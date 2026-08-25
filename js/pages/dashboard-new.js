@@ -124,7 +124,7 @@ export class DashboardNewPage {
                 </header>
 
                 <div class="main-grid">
-                    <div class="col">
+                    <div class="col col-left">
                         <div class="greeting-card">
                             <h1 class="greeting-title">${greeting.text} <span class="heart" aria-hidden="true">♡</span></h1>
                             <p class="greeting-quote">"${greeting.phrase}"</p>
@@ -194,7 +194,7 @@ export class DashboardNewPage {
                         </div>
                     </div>
 
-                    <div class="col">
+                    <div class="col col-right">
                         <section class="card">
                             <div class="card-title">
                                 Próximas citas
