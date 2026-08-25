@@ -88,6 +88,7 @@ class App {
             });
 
         router.use(async (path) => {
+            await this.auth.ready;
             const publicRoutes = ['/login', '/register', '/forgot-password'];
             const isDashboard = path === '/dashboard';
 
@@ -135,7 +136,7 @@ class App {
 
         const appEl = document.getElementById('app');
         if (appEl) {
-            appEl.classList.toggle('app--dashboard', key === 'dashboard');
+            appEl.classList.add('app--dashboard');
         }
 
         pageInstance.render();
@@ -143,6 +144,7 @@ class App {
 
     requireAuth(handler) {
         return async () => {
+            await this.auth.ready;
             if (!this.auth.isAuthenticated()) {
                 router.navigate('/login');
                 return;
@@ -195,10 +197,11 @@ class App {
 
     registerServiceWorker() {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js').then((registration) => {
-                console.log('Service Worker registrado:', registration.scope);
-            }).catch((error) => {
-                console.error('Error al registrar Service Worker:', error);
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (const reg of registrations) {
+                    reg.unregister();
+                    console.log('Service Worker desactivado:', reg.scope);
+                }
             });
         }
     }

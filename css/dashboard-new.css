@@ -1358,24 +1358,24 @@
     gap: 14px;
   }
   .app--dashboard .col-left { order: 2; display: flex; flex-direction: column; gap: 14px; }
-  .app--dashboard .orbit-section { order: 1; min-height: 380px; margin-bottom: 0; }
-  .app--dashboard .orbit-stage { width: 100%; max-width: 340px; height: 340px; margin: 0 auto; }
-  .app--dashboard .orbit-ring.ring-1 { width: 300px; height: 300px; }
-  .app--dashboard .orbit-ring.ring-2 { width: 240px; height: 240px; }
-  .app--dashboard .orbit-ring.ring-3 { width: 180px; height: 180px; }
-  .app--dashboard .brain-core { width: 110px; height: 110px; }
-  .app--dashboard .brain-core svg { width: 50px; height: 50px; }
-  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -135px; }
-  .app--dashboard .mod-citas        { --ox: 110px;  --oy: -78px;  }
-  .app--dashboard .mod-evaluaciones { --ox: 125px;  --oy: 15px;   }
-  .app--dashboard .mod-tareas       { --ox: 80px;   --oy: 100px;  }
-  .app--dashboard .mod-notas        { --ox: -85px;  --oy: 100px;  }
-  .app--dashboard .mod-reportes     { --ox: -125px; --oy: 15px;   }
-  .app--dashboard .mod-mensajes     { --ox: -110px; --oy: -78px;  }
-  .app--dashboard .module-orbit { width: 88px; padding: 10px 6px; font-size: 11px; border-radius: 14px; }
-  .app--dashboard .module-orbit .mod-icon { width: 28px; height: 28px; border-radius: 8px; }
-  .app--dashboard .module-orbit .mod-icon svg { width: 14px; height: 14px; }
-  .app--dashboard .orbit-hint { font-size: 11px; }
+  .app--dashboard .orbit-section { order: 1; min-height: 360px; margin-bottom: 0; }
+  .app--dashboard .orbit-stage { width: 100%; max-width: 320px; height: 320px; margin: 0 auto; }
+  .app--dashboard .orbit-ring.ring-1 { width: 280px; height: 280px; }
+  .app--dashboard .orbit-ring.ring-2 { width: 220px; height: 220px; }
+  .app--dashboard .orbit-ring.ring-3 { width: 170px; height: 170px; }
+  .app--dashboard .brain-core { width: 100px; height: 100px; }
+  .app--dashboard .brain-core svg { width: 46px; height: 46px; }
+  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -125px; }
+  .app--dashboard .mod-citas        { --ox: 100px;  --oy: -72px;  }
+  .app--dashboard .mod-evaluaciones { --ox: 115px;  --oy: 12px;   }
+  .app--dashboard .mod-tareas       { --ox: 72px;   --oy: 92px;   }
+  .app--dashboard .mod-notas        { --ox: -78px;  --oy: 92px;   }
+  .app--dashboard .mod-reportes     { --ox: -115px; --oy: 12px;   }
+  .app--dashboard .mod-mensajes     { --ox: -100px; --oy: -72px;  }
+  .app--dashboard .module-orbit { width: 80px; padding: 8px 5px; font-size: 10.5px; border-radius: 14px; gap: 5px; }
+  .app--dashboard .module-orbit .mod-icon { width: 26px; height: 26px; border-radius: 8px; }
+  .app--dashboard .module-orbit .mod-icon svg { width: 13px; height: 13px; }
+  .app--dashboard .orbit-hint { font-size: 10px; bottom: 4px; }
   .app--dashboard .col-right { order: 3; display: flex; flex-direction: column; gap: 14px; }
   .app--dashboard .card { padding: 14px; border-radius: 16px; }
   .app--dashboard .greeting-title { font-size: 20px; }

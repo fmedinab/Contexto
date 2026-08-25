@@ -2,7 +2,7 @@
 // Service Worker para PWA de CONTEXTO.
 // v2: Cache invalidado, dashboard.css incluido, HTML network-first.
 
-const CACHE_NAME = 'contexto-v4';
+const CACHE_NAME = 'contexto-v5';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
     '/css/reset.css',
     '/css/typography.css',
     '/css/dashboard-new.css',
+    '/css/patients.css',
     '/css/auth-neural.css',
     '/css/themes/variables.css',
     '/css/themes/light.css',

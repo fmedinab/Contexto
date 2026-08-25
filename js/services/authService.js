@@ -8,7 +8,7 @@ export class AuthService {
         this.user = null;
         this.session = null;
         this.onAuthChangeCallbacks = [];
-        this._init();
+        this.ready = this._init();
     }
 
     getSupabaseClient() {
@@ -16,11 +16,10 @@ export class AuthService {
     }
 
     async _init() {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            this.session = session;
-            this.user = session?.user || null;
-            this._notifyAuthChange(this.session);
-        });
+        const { data: { session } } = await supabase.auth.getSession();
+        this.session = session;
+        this.user = session?.user || null;
+        this._notifyAuthChange(this.session);
 
         supabase.auth.onAuthStateChange((event, session) => {
             this.session = session;
