@@ -3,11 +3,11 @@
 // Page module integrado con el sistema de routing y auth de CONTEXTO.
 
 import {
-    getClinicianProfile, getGreeting, getSummary, getPatients,
+    getClinicianProfile, getGreeting, getSummary, getDashboardPatients,
     getAppointments, getEvaluations, getTasks, getNotes,
     getReports, getMessages, getEmotionalState, getQuote,
     formatDate, formatTime, getInitials
-} from '../services/dashboardNewService.js';
+} from '../services/mockData.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -318,7 +318,7 @@ export class DashboardNewPage {
     _renderPatients(filter = '') {
         const list = $('#dashPatientList');
         if (!list) return;
-        const patients = getPatients().filter(p => p.name.toLowerCase().includes(filter.trim().toLowerCase()));
+        const patients = getDashboardPatients().filter(p => p.name.toLowerCase().includes(filter.trim().toLowerCase()));
         if (!patients.length) {
             list.innerHTML = `<div class="empty-state">No se encontraron pacientes.</div>`;
             return;
@@ -495,7 +495,7 @@ export class DashboardNewPage {
             patientList.addEventListener('click', (e) => {
                 const row = e.target.closest('[data-patient-id]');
                 if (!row) return;
-                const patient = getPatients().find(p => p.id === row.dataset.patientId);
+                const patient = getDashboardPatients().find(p => p.id === row.dataset.patientId);
                 this._openModal('patientDetail', patient);
             });
         }
@@ -655,7 +655,7 @@ export class DashboardNewPage {
     _renderModalPatientList(filter = '') {
         const el = $('#dashModalPatientList');
         if (!el) return;
-        const patients = getPatients().filter(p => p.name.toLowerCase().includes(filter.trim().toLowerCase()));
+        const patients = getDashboardPatients().filter(p => p.name.toLowerCase().includes(filter.trim().toLowerCase()));
         if (!patients.length) { el.innerHTML = `<div class="empty-state">No se encontraron pacientes.</div>`; return; }
         el.innerHTML = patients.map(p => `
             <div class="data-row">
@@ -862,7 +862,7 @@ export class DashboardNewPage {
     }
 
     _newAppointmentFormHTML() {
-        const patientOptions = getPatients().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        const patientOptions = getDashboardPatients().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
         return `
             <form class="form-grid" id="dashFormNewAppointment">
                 <div class="form-field"><label for="fPatient">Paciente</label><select id="fPatient">${patientOptions}</select></div>
@@ -877,7 +877,7 @@ export class DashboardNewPage {
     }
 
     _newNoteFormHTML() {
-        const patientOptions = getPatients().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        const patientOptions = getDashboardPatients().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
         return `
             <form class="form-grid" id="dashFormNewNote">
                 <div class="form-field"><label for="nPatient">Paciente</label><select id="nPatient">${patientOptions}</select></div>
@@ -891,7 +891,7 @@ export class DashboardNewPage {
     }
 
     _newTaskFormHTML() {
-        const patientOptions = getPatients().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        const patientOptions = getDashboardPatients().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
         return `
             <form class="form-grid" id="dashFormNewTask">
                 <div class="form-field"><label for="tPatient">Paciente</label><select id="tPatient">${patientOptions}</select></div>
@@ -984,7 +984,7 @@ export class DashboardNewPage {
         $$('#dashModalBody [data-view-patient]').forEach(btn => {
             btn.addEventListener('click', e => {
                 e.stopPropagation();
-                const p = getPatients().find(pt => pt.id === btn.dataset.viewPatient);
+                const p = getDashboardPatients().find(pt => pt.id === btn.dataset.viewPatient);
                 this._openModal('patientDetail', p);
             });
         });

@@ -5,7 +5,7 @@ import {
     getPatients, getPatientById, searchPatients, filterByStatus,
     getPatientStats, getTherapyTypes, getStatusLabel, getInitials,
     formatAppointmentDate, formatDateShort
-} from '../services/patientService.js';
+} from '../services/mockData.js';
 
 const AVATAR_COLORS = ['bg-violet', 'bg-blue', 'bg-pink'];
 

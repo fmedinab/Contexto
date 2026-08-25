@@ -4,15 +4,7 @@
 import { ThemeManager } from './theme.js';
 import { Modal } from '../components/modal.js';
 import { Toast } from '../components/toast.js';
-import { Alert } from '../components/alert.js';
 import { Confirm } from '../components/confirm.js';
-import { Loading } from '../components/loading.js';
-import { Skeleton } from '../components/skeleton.js';
-import { EmptyState } from '../components/empty-state.js';
-import { ErrorState } from '../components/error-state.js';
-import { FormValidation } from '../components/form-validation.js';
-import { Dropdown } from '../components/dropdown.js';
-import { Tabs } from '../components/tabs.js';
 import { authService } from '../services/authService.js';
 import { permissionService } from '../services/permissionService.js';
 import { auditService } from '../services/auditService.js';
@@ -23,12 +15,6 @@ import { RegisterPage } from '../pages/register.js';
 import { ForgotPasswordPage } from '../pages/forgot-password.js';
 import { DashboardNewPage } from '../pages/dashboard-new.js';
 import { PatientsPage } from '../pages/patients.js';
-import { AppointmentsPage } from '../pages/appointments.js';
-import { SessionsPage } from '../pages/sessions.js';
-import { AssessmentsPage } from '../pages/assessments.js';
-import { ReportsPage } from '../pages/reports.js';
-import { SettingsPage } from '../pages/settings.js';
-import { AdminPage } from '../pages/admin.js';
 
 import { pwaInstall } from '../pwa/install.js';
 
@@ -37,15 +23,7 @@ class App {
         this.themeManager = new ThemeManager();
         this.modal = new Modal();
         this.toast = new Toast();
-        this.alert = new Alert();
         this.confirm = new Confirm();
-        this.loading = new Loading();
-        this.skeleton = new Skeleton();
-        this.emptyState = new EmptyState();
-        this.errorState = new ErrorState();
-        this.formValidation = new FormValidation();
-        this.dropdown = new Dropdown();
-        this.tabs = new Tabs();
 
         this.auth = authService;
         this.permissions = permissionService;
@@ -77,12 +55,6 @@ class App {
             .addRoute('/forgot-password', () => this.renderPage('forgotPassword', new ForgotPasswordPage()))
             .addRoute('/dashboard', () => this.renderPage('dashboard', new DashboardNewPage()))
             .addRoute('/patients', () => this.requireAuth(() => this.renderPage('patients', new PatientsPage())))
-            .addRoute('/appointments', () => this.requireAuth(() => this.renderPage('appointments', new AppointmentsPage())))
-            .addRoute('/sessions', () => this.requireAuth(() => this.renderPage('sessions', new SessionsPage())))
-            .addRoute('/assessments', () => this.requireAuth(() => this.renderPage('assessments', new AssessmentsPage())))
-            .addRoute('/reports', () => this.requireAuth(() => this.renderPage('reports', new ReportsPage())))
-            .addRoute('/settings', () => this.requireAuth(() => this.renderPage('settings', new SettingsPage())))
-            .addRoute('/admin', () => this.requireAuth(() => this.renderPage('admin', new AdminPage())))
             .addRoute('*', () => {
                 this.renderPage('404', this._notFoundPage());
             });
