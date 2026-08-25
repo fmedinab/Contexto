@@ -414,6 +414,13 @@ export class DashboardNewPage {
                 e.stopPropagation();
                 const isOpen = userMenu.classList.toggle('open');
                 userTrigger.setAttribute('aria-expanded', String(isOpen));
+                if (isOpen) {
+                    const rect = userTrigger.getBoundingClientRect();
+                    const dropdown = userMenu.querySelector('.dropdown');
+                    if (dropdown) {
+                        dropdown.style.top = (rect.bottom + 8) + 'px';
+                    }
+                }
             });
         }
 
