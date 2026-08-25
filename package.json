@@ -1,0 +1,16 @@
+{
+  "name": "contexto",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema profesional de gestión para psicólogos y consultorios psicológicos.",
+  "author": "Frank Medina",
+  "scripts": {
+    "start": "npx serve .",
+    "dev": "npx serve . -l 3000",
+    "test": "echo \"No tests configured yet\""
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}

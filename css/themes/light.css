@@ -1,0 +1,57 @@
+[data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --bg-surface: #ffffff;
+    --bg-elevated: #ffffff;
+    --bg-hover: #e2e8f0;
+
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+
+    --modal-backdrop: rgba(15, 23, 42, 0.5);
+
+    --primary-muted: rgba(79, 70, 229, 0.08);
+    --primary-glow: rgba(79, 70, 229, 0.1);
+    --accent-muted: rgba(8, 145, 178, 0.08);
+
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(0, 0, 0, 0.06);
+
+    --dashboard-core-glow: rgba(79, 70, 229, 0.2);
+    --dashboard-core-inner: rgba(109, 81, 209, 0.08);
+    --dashboard-orb-color: rgba(79, 70, 229, 0.05);
+    --dashboard-orb-border: rgba(79, 70, 229, 0.12);
+    --dashboard-node-bg: rgba(255, 255, 255, 0.9);
+    --dashboard-node-border: rgba(79, 70, 229, 0.18);
+    --dashboard-node-hover-bg: rgba(79, 70, 229, 0.06);
+    --dashboard-node-active-bg: rgba(79, 70, 229, 0.1);
+    --dashboard-node-active-border: rgba(79, 70, 229, 0.35);
+    --dashboard-particle-color: rgba(79, 70, 229, 0.15);
+    --dashboard-connection-color: rgba(79, 70, 229, 0.04);
+    --dashboard-panel-bg: rgba(255, 255, 255, 0.95);
+    --dashboard-panel-border: rgba(79, 70, 229, 0.12);
+    --dashboard-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 40px rgba(79, 70, 229, 0.04);
+    --dashboard-stat-bg: rgba(255, 255, 255, 0.8);
+    --dashboard-stat-border: rgba(0, 0, 0, 0.04);
+    --dashboard-greeting-color: rgba(15, 23, 42, 0.92);
+    --dashboard-quote-color: rgba(71, 85, 105, 0.6);
+    --dashboard-clock-color: rgba(15, 23, 42, 0.85);
+
+    --dashboard-bg:
+        radial-gradient(ellipse 64% 48% at 50% 44%, rgba(79, 70, 229, 0.07), transparent 60%),
+        radial-gradient(ellipse 80% 60% at 50% 102%, rgba(109, 81, 209, 0.04), transparent 55%),
+        linear-gradient(180deg, #f8fafc 0%, #eef2f8 100%);
+
+    --dashboard-clock-panel-bg:
+        radial-gradient(120% 140% at 50% 0%, rgba(79, 70, 229, 0.08), transparent 62%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.96));
+    --dashboard-clock-panel-border: rgba(79, 70, 229, 0.2);
+    --dashboard-clock-panel-shadow:
+        0 14px 44px rgba(15, 23, 42, 0.14),
+        0 0 40px rgba(79, 70, 229, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
