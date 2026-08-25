@@ -1,5 +1,5 @@
-// js/pages/dashboard-new.js
-// Dashboard nuevo — Mente Serena
+// js/pages/dashboard.js
+// Dashboard — Mente Serena
 // Page module integrado con el sistema de routing y auth de CONTEXTO.
 
 import {
@@ -48,7 +48,7 @@ const MODAL_TITLES = {
     newTask: ['Nueva tarea terapéutica', 'Asigna una tarea de seguimiento a un paciente.']
 };
 
-export class DashboardNewPage {
+export class DashboardPage {
     constructor() {
         this.container = null;
         this.clockInterval = null;

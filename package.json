@@ -5,8 +5,8 @@
   "description": "Sistema profesional de gestión para psicólogos y consultorios psicológicos.",
   "author": "Frank Medina",
   "scripts": {
-    "start": "npx serve .",
-    "dev": "npx serve . -l 3000",
+    "start": "npx serve . -s",
+    "dev": "npx serve . -l 3000 -s",
     "test": "echo \"No tests configured yet\""
   },
   "dependencies": {},

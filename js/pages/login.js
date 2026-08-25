@@ -71,9 +71,9 @@ export class LoginPage {
                     </form>
 
                     <div class="auth-footer">
-                        <a href="#/forgot-password" class="auth-link">¿Olvidaste tu contraseña?</a>
+                        <a href="/forgot-password" class="auth-link" data-link>¿Olvidaste tu contraseña?</a>
                         <span class="auth-separator">·</span>
-                        <a href="#/register" class="auth-link">Crear cuenta</a>
+                        <a href="/register" class="auth-link" data-link>Crear cuenta</a>
                     </div>
                 </div>
             </div>

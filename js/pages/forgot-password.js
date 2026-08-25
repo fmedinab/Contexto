@@ -64,7 +64,7 @@ export class ForgotPasswordPage {
                     </form>
 
                     <div class="auth-footer">
-                        <a href="#/login" class="auth-link">Volver a iniciar sesión</a>
+                        <a href="/login" class="auth-link" data-link>Volver a iniciar sesión</a>
                     </div>
                 </div>
             </div>

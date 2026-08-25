@@ -1,5 +1,5 @@
 // js/core/router.js
-// Router SPA simple basado en hash.
+// Router SPA simple basado en History API.
 // Gestiona la navegación entre páginas sin recargar.
 
 import { authService } from '../services/authService.js';
@@ -15,8 +15,7 @@ export class Router {
 
     _bindEvents() {
         window.addEventListener('DOMContentLoaded', () => this._resolve());
-        window.addEventListener('hashchange', () => this._resolve());
-        window.addEventListener('load', () => this._resolve());
+        window.addEventListener('popstate', () => this._resolve());
     }
 
     addRoute(path, handler) {
@@ -30,17 +29,18 @@ export class Router {
     }
 
     navigate(path) {
-        if (window.location.hash === `#${path}`) {
+        const currentPath = window.location.pathname;
+        if (currentPath === path) {
             this._resolve();
             return;
         }
-        window.location.hash = path;
+        history.pushState(null, '', path);
+        this._resolve();
     }
 
     async _resolve() {
-        const hash = window.location.hash.replace('#', '') || '/';
-        const [path, ...queryParts] = hash.split('?');
-        const query = Object.fromEntries(new URLSearchParams(queryParts.join('?')));
+        const path = window.location.pathname || '/';
+        const query = Object.fromEntries(new URLSearchParams(window.location.search));
 
         this.previousRoute = this.currentRoute;
         this.currentRoute = path;
@@ -74,13 +74,7 @@ export class Router {
             '/register': 'Registro — CONTEXTO',
             '/forgot-password': 'Recuperar contraseña — CONTEXTO',
             '/dashboard': '',
-            '/patients': 'Pacientes — CONTEXTO',
-            '/appointments': 'Citas — CONTEXTO',
-            '/sessions': 'Sesiones — CONTEXTO',
-            '/assessments': 'Evaluaciones — CONTEXTO',
-            '/reports': 'Informes — CONTEXTO',
-            '/settings': 'Configuración — CONTEXTO',
-            '/admin': 'Administración — CONTEXTO'
+            '/patients': 'Pacientes — CONTEXTO'
         };
         return titles[path] || 'CONTEXTO';
     }
@@ -92,13 +86,7 @@ export class Router {
             '/register': { title: 'Crear cuenta', subtitle: '' },
             '/forgot-password': { title: 'Recuperar contraseña', subtitle: '' },
             '/dashboard': { title: '', subtitle: '' },
-            '/patients': { title: 'Pacientes', subtitle: 'Gestión de pacientes' },
-            '/appointments': { title: 'Citas', subtitle: 'Agenda y citas' },
-            '/sessions': { title: 'Sesiones', subtitle: 'Registro de sesiones' },
-            '/assessments': { title: 'Evaluaciones', subtitle: 'Evaluaciones psicológicas' },
-            '/reports': { title: 'Informes', subtitle: 'Informes y estadísticas' },
-            '/settings': { title: 'Configuración', subtitle: 'Ajustes del sistema' },
-            '/admin': { title: 'Administración', subtitle: 'Gestión de usuarios y roles' }
+            '/patients': { title: 'Pacientes', subtitle: 'Gestión de pacientes' }
         };
 
         const pageData = titles[path] || { title: 'CONTEXTO', subtitle: '' };

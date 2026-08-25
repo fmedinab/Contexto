@@ -13,7 +13,7 @@ import { router } from './router.js';
 import { LoginPage } from '../pages/login.js';
 import { RegisterPage } from '../pages/register.js';
 import { ForgotPasswordPage } from '../pages/forgot-password.js';
-import { DashboardNewPage } from '../pages/dashboard-new.js';
+import { DashboardPage } from '../pages/dashboard.js';
 import { PatientsPage } from '../pages/patients.js';
 
 import { pwaInstall } from '../pwa/install.js';
@@ -39,6 +39,17 @@ class App {
         this.setupAuthListener();
         this.registerServiceWorker();
         this.setupRoutes();
+        this.bindLinkClicks();
+    }
+
+    bindLinkClicks() {
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('[data-link]');
+            if (link && link.matches('a[href^="/"]')) {
+                e.preventDefault();
+                router.navigate(link.getAttribute('href'));
+            }
+        });
     }
 
     setupRoutes() {
@@ -53,7 +64,7 @@ class App {
             .addRoute('/login', () => this.renderPage('login', new LoginPage()))
             .addRoute('/register', () => this.renderPage('register', new RegisterPage()))
             .addRoute('/forgot-password', () => this.renderPage('forgotPassword', new ForgotPasswordPage()))
-            .addRoute('/dashboard', () => this.renderPage('dashboard', new DashboardNewPage()))
+            .addRoute('/dashboard', () => this.renderPage('dashboard', new DashboardPage()))
             .addRoute('/patients', () => this.requireAuth(() => this.renderPage('patients', new PatientsPage())))
             .addRoute('*', () => {
                 this.renderPage('404', this._notFoundPage());

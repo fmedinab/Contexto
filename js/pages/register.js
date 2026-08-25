@@ -80,7 +80,7 @@ export class RegisterPage {
 
                     <div class="auth-footer">
                         <span class="auth-text">¿Ya tienes cuenta?</span>
-                        <a href="#/login" class="auth-link">Inicia sesión</a>
+                        <a href="/login" class="auth-link" data-link>Inicia sesión</a>
                     </div>
                 </div>
             </div>
