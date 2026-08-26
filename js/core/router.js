@@ -1,6 +1,7 @@
 // js/core/router.js
-// Router SPA simple basado en History API.
-// Gestiona la navegación entre páginas sin recargar.
+// Router SPA basado en hash (#/ruta).
+// Se usa hash routing para que la app funcione en hosting estático
+// (GitHub Pages) sin necesidad de configurar el servidor (sin 404 al refrescar).
 
 import { authService } from '../services/authService.js';
 
@@ -15,7 +16,14 @@ export class Router {
 
     _bindEvents() {
         window.addEventListener('DOMContentLoaded', () => this._resolve());
-        window.addEventListener('popstate', () => this._resolve());
+        window.addEventListener('hashchange', () => this._resolve());
+    }
+
+    _getPath() {
+        let hash = window.location.hash.replace(/^#/, '');
+        if (!hash) hash = '/';
+        if (!hash.startsWith('/')) hash = '/' + hash;
+        return hash;
     }
 
     addRoute(path, handler) {
@@ -29,17 +37,17 @@ export class Router {
     }
 
     navigate(path) {
-        const currentPath = window.location.pathname;
-        if (currentPath === path) {
+        const target = (path && path.startsWith('/')) ? path : '/' + (path || '');
+        const current = this._getPath();
+        if (current === target) {
             this._resolve();
             return;
         }
-        history.pushState(null, '', path);
-        this._resolve();
+        window.location.hash = target;
     }
 
     async _resolve() {
-        const path = window.location.pathname || '/';
+        const path = this._getPath();
         const query = Object.fromEntries(new URLSearchParams(window.location.search));
 
         this.previousRoute = this.currentRoute;

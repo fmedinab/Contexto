@@ -3,6 +3,9 @@
 
 import { supabase } from '../../config/supabase.js';
 
+// URL base de la app (incluye el subpath en GitHub Pages, p. ej. /Contexto/).
+const APP_BASE = window.location.origin + window.location.pathname.replace(/[#?].*$/, '');
+
 export class AuthService {
     constructor() {
         this.user = null;
@@ -56,7 +59,7 @@ export class AuthService {
     async loginWithMagicLink(email) {
         const { data, error } = await supabase.auth.signInWithOtp({
             email,
-            options: { emailRedirectTo: window.location.origin }
+            options: { emailRedirectTo: APP_BASE }
         });
 
         if (error) throw error;
@@ -85,7 +88,7 @@ export class AuthService {
 
     async resetPassword(email) {
         const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`
+            redirectTo: `${APP_BASE}reset-password`
         });
 
         if (error) throw error;
