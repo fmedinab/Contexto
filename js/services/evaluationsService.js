@@ -3,6 +3,7 @@
 
 import { supabase } from '../../config/supabase.js';
 import { authService } from './authService.js';
+import { patientService } from './patientsService.js';
 
 const TABLE = 'assessments';
 
@@ -105,7 +106,7 @@ class EvaluationsService {
     /* ===== CRUD ===== */
 
     async getAll(opts = {}) {
-        let query = supabase.from(TABLE).select('*, patients(full_name)', { count: 'exact' });
+        let query = supabase.from(TABLE).select('*', { count: 'exact' });
 
         const ownerId = await this._getOwnerId();
         if (ownerId) query = query.eq('owner_id', ownerId);
@@ -130,10 +131,16 @@ class EvaluationsService {
 
         if (error) return { data: [], error, count: 0 };
 
+        let patientMap = {};
+        try {
+            const { data: patients } = await patientService.getAll();
+            (patients || []).forEach(p => { patientMap[p.id] = p.name; });
+        } catch { /* continue without patient names */ }
+
         const mapped = (data || []).map(row => {
-            const appt = dbRowToUI(row);
-            appt.patientName = row.patients?.full_name || '';
-            return appt;
+            const item = dbRowToUI(row);
+            item.patientName = patientMap[row.patient_id] || '';
+            return item;
         });
 
         return { data: mapped, error: null, count: count || 0 };
@@ -142,16 +149,26 @@ class EvaluationsService {
     async getById(id) {
         const { data, error } = await supabase
             .from(TABLE)
-            .select('*, patients(full_name, age, therapy_type)')
+            .select('*')
             .eq('id', id)
             .single();
 
         if (error) return { data: null, error };
-        const appt = dbRowToUI(data);
-        appt.patientName = data.patients?.full_name || '';
-        appt.patientAge = data.patients?.age ?? null;
-        appt.patientTherapyType = data.patients?.therapy_type || '';
-        return { data: appt, error: null };
+
+        const item = dbRowToUI(data);
+
+        try {
+            const { data: patient } = await supabase
+                .from('patients')
+                .select('full_name, age, therapy_type')
+                .eq('id', data.patient_id)
+                .single();
+            item.patientName = patient?.full_name || '';
+            item.patientAge = patient?.age ?? null;
+            item.patientTherapyType = patient?.therapy_type || '';
+        } catch { /* continue without patient details */ }
+
+        return { data: item, error: null };
     }
 
     async create(data) {

@@ -52,6 +52,7 @@ const MODAL_TITLES = {
     patientDetail: ['Expediente del paciente', ''],
     appointmentDetail: ['Detalle de la cita', ''],
     newAppointment: ['Nueva cita', 'Programa una nueva cita para un paciente.'],
+    newEvaluation: ['Nueva evaluación', 'Registra una nueva evaluación psicológica.'],
     newNote: ['Nueva nota clínica', 'Registra el resumen de una sesión.'],
     newTask: ['Nueva tarea terapéutica', 'Asigna una tarea de seguimiento a un paciente.'],
     patientForm: ['Paciente', '']
@@ -669,7 +670,7 @@ export class DashboardPage {
 
         box.className = 'modal-box' + (wide ? ' modal-wide' : '');
 
-        const hasLoading = ['evaluations', 'patients', 'appointments', 'tasks', 'notes', 'reports', 'messages'].includes(type);
+        const hasLoading = ['evaluations', 'patients', 'appointments', 'newEvaluation', 'tasks', 'notes', 'reports', 'messages'].includes(type);
 
         if (hasLoading) {
             const loadText = modalSubtitle || 'Cargando información';
@@ -737,6 +738,7 @@ export class DashboardPage {
             case 'patientDetail': body.innerHTML = this._patientDetailHTML(payload); break;
             case 'appointmentDetail': body.innerHTML = await this._appointmentDetailHTML(payload); break;
             case 'newAppointment': body.innerHTML = await this._newAppointmentFormHTML(); break;
+            case 'newEvaluation': body.innerHTML = await this._newEvaluationFormHTML(); break;
             case 'newNote': body.innerHTML = await this._newNoteFormHTML(); break;
             case 'newTask': body.innerHTML = await this._newTaskFormHTML(); break;
             case 'patientForm': body.innerHTML = this._patientFormHTML(payload || {}); break;
@@ -1064,6 +1066,22 @@ export class DashboardPage {
         `;
     }
 
+    async _newEvaluationFormHTML() {
+        const { data: patients } = await patientService.getAll();
+        const patientOptions = (patients || []).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+        const instrumentOptions = INSTRUMENTS.map(i => `<option value="${i.name}" data-code="${i.code}" data-category="${i.category}">${i.code} — ${i.name}</option>`).join('');
+        return `
+            <form class="form-grid" id="dashFormNewEvaluation">
+                <div class="form-field"><label for="efDashPatient">Paciente *</label><select id="efDashPatient" required><option value="">Seleccionar paciente…</option>${patientOptions}</select><span class="form-error" id="efDashPatientError"></span></div>
+                <div class="form-field"><label for="efDashInstrument">Instrumento *</label><select id="efDashInstrument" required><option value="">Seleccionar instrumento…</option>${instrumentOptions}</select><span class="form-error" id="efDashInstrumentError"></span></div>
+                <div class="form-field"><label for="efDashDate">Fecha *</label><input type="date" id="efDashDate" required></div>
+                <div class="form-field"><label for="efDashStatus">Estado</label><select id="efDashStatus"><option value="PENDIENTE">Pendiente</option><option value="EN_PROGRESO">En progreso</option><option value="COMPLETADA">Completada</option></select></div>
+                <div class="form-field" style="grid-column:1/-1;"><label for="efDashNotes">Notas</label><textarea id="efDashNotes" placeholder="Observaciones sobre la evaluación…"></textarea></div>
+                <div class="action-row" style="grid-column:1/-1;"><button type="submit" class="btn btn-primary">Crear evaluación</button><button type="button" class="btn" id="dashCancelNewEvaluation">Cancelar</button></div>
+            </form>
+        `;
+    }
+
     _patientFormHTML(opts = {}) {
         const p = opts.patient || null;
         const isEdit = opts.isEdit || false;
@@ -1148,6 +1166,46 @@ export class DashboardPage {
         }
     }
 
+    async _handleNewEvaluationFormSave() {
+        const patientId = $('#efDashPatient')?.value || '';
+        const instrumentName = $('#efDashInstrument')?.value || '';
+        const instrumentOption = $('#efDashInstrument')?.selectedOptions[0];
+        const instrumentCode = instrumentOption?.dataset?.code || '';
+        const instrumentCategory = instrumentOption?.dataset?.category || '';
+        const assessmentDate = $('#efDashDate')?.value || '';
+        const status = $('#efDashStatus')?.value || 'PENDIENTE';
+        const notes = $('#efDashNotes')?.value.trim() || '';
+
+        ['efDashPatientError', 'efDashInstrumentError'].forEach(eid => {
+            const el = document.getElementById(eid);
+            if (el) el.textContent = '';
+        });
+
+        let valid = true;
+        if (!patientId) { document.getElementById('efDashPatientError').textContent = 'Selecciona un paciente'; valid = false; }
+        if (!instrumentName) { document.getElementById('efDashInstrumentError').textContent = 'Selecciona un instrumento'; valid = false; }
+        if (!assessmentDate) { this._showToast('La fecha es obligatoria'); valid = false; }
+        if (!valid) return;
+
+        const saveBtn = $('#dashFormNewEvaluation button[type="submit"]');
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...'; }
+
+        try {
+            const { data, error } = await evaluationService.create({
+                patientId, instrumentName, instrumentCode, instrumentCategory,
+                assessmentDate, status, notes: notes || null
+            });
+            if (error) throw error;
+            this._closeModal();
+            this._showToast('Evaluación creada correctamente.');
+            await this._renderEvaluationsPanel();
+            if (this.currentModal === 'evaluations') await this._renderModalEvalList();
+        } catch (err) {
+            this._showToast('Error: ' + (err.message || 'No se pudo guardar'));
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Crear evaluación'; }
+        }
+    }
+
     async _newNoteFormHTML() {
         const { data: patients } = await patientService.getAll();
         const patientOptions = (patients || []).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
@@ -1224,10 +1282,7 @@ export class DashboardPage {
                     await this._renderModalEvalList();
                 });
             });
-            $('#dashBtnNewEval')?.addEventListener('click', () => {
-                window.location.hash = '#/evaluations';
-                this._closeModal();
-            });
+            $('#dashBtnNewEval')?.addEventListener('click', () => this._openModal('newEvaluation'));
             $$('[data-eval-start]').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
@@ -1325,6 +1380,14 @@ export class DashboardPage {
                 }
             });
             $('#dashCancelNewAppointment')?.addEventListener('click', () => this._openModal('appointments'));
+        }
+
+        if (type === 'newEvaluation') {
+            $('#dashFormNewEvaluation')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this._handleNewEvaluationFormSave();
+            });
+            $('#dashCancelNewEvaluation')?.addEventListener('click', () => this._openModal('evaluations'));
         }
 
         if (type === 'newNote') {

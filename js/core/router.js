@@ -21,7 +21,15 @@ export class Router {
         let hash = window.location.hash.replace(/^#/, '');
         if (!hash) hash = '/';
         if (!hash.startsWith('/')) hash = '/' + hash;
-        return hash;
+        const qIdx = hash.indexOf('?');
+        return qIdx >= 0 ? hash.substring(0, qIdx) : hash;
+    }
+
+    _getHashQuery() {
+        const hash = window.location.hash.replace(/^#/, '');
+        const qIdx = hash.indexOf('?');
+        if (qIdx < 0) return {};
+        return Object.fromEntries(new URLSearchParams(hash.substring(qIdx + 1)));
     }
 
     addRoute(path, handler) {
@@ -36,8 +44,9 @@ export class Router {
 
     navigate(path) {
         const target = (path && path.startsWith('/')) ? path : '/' + (path || '');
+        const targetPath = target.split('?')[0];
         const current = this._getPath();
-        if (current === target) {
+        if (current === targetPath && !target.includes('?')) {
             this._resolve();
             return;
         }
@@ -46,7 +55,7 @@ export class Router {
 
     async _resolve() {
         const path = this._getPath();
-        const query = Object.fromEntries(new URLSearchParams(window.location.search));
+        const query = { ...Object.fromEntries(new URLSearchParams(window.location.search)), ...this._getHashQuery() };
 
         this.previousRoute = this.currentRoute;
         this.currentRoute = path;
