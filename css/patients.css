@@ -245,10 +245,10 @@
 
 .app--dashboard .status-badge.active  { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 .app--dashboard .status-badge.active::before  { background: #34d399; }
+.app--dashboard .status-badge.new { background: rgba(56, 189, 248, 0.15); color: var(--dash-blue); }
+.app--dashboard .status-badge.new::before { background: var(--dash-blue); }
 .app--dashboard .status-badge.inactive { background: rgba(107, 114, 144, 0.2); color: var(--dash-text-secondary); }
 .app--dashboard .status-badge.inactive::before { background: var(--dash-text-secondary); }
-.app--dashboard .status-badge.new      { background: rgba(56, 189, 248, 0.15); color: var(--dash-blue); }
-.app--dashboard .status-badge.new::before      { background: var(--dash-blue); }
 
 /* Therapy type tag */
 .app--dashboard .therapy-tag {
@@ -374,6 +374,37 @@
   font-size: 0.72rem;
   color: #ef4444;
   min-height: 1rem;
+}
+
+.app--dashboard .form-field input.error,
+.app--dashboard .form-field select.error {
+  border-color: #ef4444;
+}
+
+.app--dashboard .form-field input:disabled,
+.app--dashboard .form-field select:disabled,
+.app--dashboard .form-field textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dashboard modal patient stats */
+.app--dashboard .dash-modal-stats-row {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--dash-border);
+  margin-bottom: 12px;
+}
+
+.app--dashboard .dash-modal-stat {
+  font-size: 0.78rem;
+  color: var(--dash-text-secondary);
+}
+
+.app--dashboard .dash-modal-stat strong {
+  color: var(--dash-text-primary);
+  font-weight: 700;
 }
 
 /* ========== BUTTONS ========== */
@@ -671,6 +702,24 @@
   .app--dashboard .patients-table td,
   .app--dashboard .patients-table thead th { padding: 10px 12px; }
 
+  .app--dashboard .patients-table thead { display: none; }
+  .app--dashboard .patients-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 12px;
+    align-items: center;
+  }
+  .app--dashboard .patients-table tbody tr td {
+    padding: 2px 0;
+  }
+  .app--dashboard .patients-table tbody tr td:first-child {
+    flex: 1;
+  }
+  .app--dashboard .patients-table tbody tr td:nth-child(n+2) {
+    flex-basis: 100%;
+  }
+
   .app--dashboard .form-grid { grid-template-columns: 1fr; }
   .app--dashboard .form-field.full { grid-column: auto; }
 
@@ -678,4 +727,6 @@
   .app--dashboard .detail-field.full { grid-column: auto; }
 
   .app--dashboard .patient-modal { width: 95%; max-height: 90vh; }
+
+  .app--dashboard .dash-modal-stats-row { flex-wrap: wrap; gap: 8px; }
 }

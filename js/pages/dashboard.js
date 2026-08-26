@@ -3,11 +3,12 @@
 // Page module integrado con el sistema de routing y auth de CONTEXTO.
 
 import {
-    getClinicianProfile, getGreeting, getSummary, getDashboardPatients,
+    getClinicianProfile, getGreeting, getSummary,
     getAppointments, getEvaluations, getTasks, getNotes,
     getReports, getMessages, getEmotionalState, getQuote,
-    formatDate, formatTime, getInitials
+    formatDate, formatTime, getInitials, formatAppointmentDate
 } from '../services/mockData.js';
+import { patientService, THERAPY_TYPES, STATUS_LABELS } from '../services/patientsService.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -32,6 +33,11 @@ function icon(name, size = 16) {
 function $(sel, ctx = document) { return ctx.querySelector(sel); }
 function $$(sel, ctx = document) { return Array.from(ctx.querySelectorAll(sel)); }
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 const MODAL_TITLES = {
     core: ['Centro de Psicología', 'Accede rápidamente a todos los módulos de tu consultorio.'],
     patients: ['Pacientes', 'Consulta y gestiona los expedientes de tus pacientes.'],
@@ -45,7 +51,8 @@ const MODAL_TITLES = {
     appointmentDetail: ['Detalle de la cita', ''],
     newAppointment: ['Nueva cita', 'Programa una nueva cita para un paciente.'],
     newNote: ['Nueva nota clínica', 'Registra el resumen de una sesión.'],
-    newTask: ['Nueva tarea terapéutica', 'Asigna una tarea de seguimiento a un paciente.']
+    newTask: ['Nueva tarea terapéutica', 'Asigna una tarea de seguimiento a un paciente.'],
+    patientForm: ['Paciente', '']
 };
 
 export class DashboardPage {
@@ -248,6 +255,11 @@ export class DashboardPage {
         this._renderPatients();
         this._renderAppointments();
         this._renderEmotionChart();
+
+        patientService.onChange(() => {
+            this._renderPatients();
+            if (this.currentModal === 'patients') this._renderModalPatientList();
+        });
         this._renderEvaluationsPanel();
         this._initParticles();
         this._startClock();
@@ -315,23 +327,23 @@ export class DashboardPage {
         `;
     }
 
-    _renderPatients(filter = '') {
+    async _renderPatients(filter = '') {
         const list = $('#dashPatientList');
         if (!list) return;
-        const patients = getDashboardPatients().filter(p => p.name.toLowerCase().includes(filter.trim().toLowerCase()));
+        const { data: patients } = await patientService.getAll({ search: filter || undefined });
         if (!patients.length) {
             list.innerHTML = `<div class="empty-state">No se encontraron pacientes.</div>`;
             return;
         }
-        list.innerHTML = patients.map(p => `
+        list.innerHTML = patients.slice(0, 6).map(p => `
             <button class="patient-row" data-patient-id="${p.id}">
                 <div class="patient-avatar">${getInitials(p.name)}</div>
                 <div class="patient-info">
                     <div class="patient-name-row">
-                        <span class="patient-name">${p.name}</span>
-                        <span class="tag ${p.status === 'new' ? 'tag-new' : ''}">${p.therapyType}</span>
+                        <span class="patient-name">${escapeHtml(p.name)}</span>
+                        <span class="tag ${p.status === 'new' ? 'tag-new' : ''}">${escapeHtml(p.therapyType)}</span>
                     </div>
-                    <div class="patient-meta">${p.id} · ${p.age} años · ${p.nextAppointment}</div>
+                    <div class="patient-meta">${escapeHtml(p.id)} · ${p.age != null ? p.age + ' años' : ''} · ${p.nextAppointment ? formatAppointmentDate(p.nextAppointment) : 'Sin cita'}</div>
                 </div>
                 ${icon('chevRight', 15)}
             </button>
@@ -495,11 +507,11 @@ export class DashboardPage {
         // Patient rows
         const patientList = $('#dashPatientList');
         if (patientList) {
-            patientList.addEventListener('click', (e) => {
+            patientList.addEventListener('click', async (e) => {
                 const row = e.target.closest('[data-patient-id]');
                 if (!row) return;
-                const patient = getDashboardPatients().find(p => p.id === row.dataset.patientId);
-                this._openModal('patientDetail', patient);
+                const { data: patient } = await patientService.getById(row.dataset.patientId);
+                if (patient) this._openModal('patientDetail', patient);
             });
         }
 
@@ -578,6 +590,9 @@ export class DashboardPage {
         if (!overlay || !box) return;
 
         const [title, subtitle] = MODAL_TITLES[type] || ['Módulo', ''];
+        const modalSubtitle = type === 'patientForm' && payload?.patient
+            ? (payload.isEdit ? `Editar: ${payload.patient.name}` : 'Nuevo paciente')
+            : subtitle;
         const wide = ['core', 'patients', 'appointments', 'evaluations', 'reports', 'tasks'].includes(type);
 
         box.className = 'modal-box' + (wide ? ' modal-wide' : '');
@@ -585,7 +600,7 @@ export class DashboardPage {
         const hasLoading = ['evaluations', 'patients', 'appointments', 'tasks', 'notes', 'reports', 'messages'].includes(type);
 
         if (hasLoading) {
-            const loadText = subtitle || 'Cargando información';
+            const loadText = modalSubtitle || 'Cargando información';
             box.innerHTML = `
                 <div class="modal-header">
                     <div class="modal-title-group">
@@ -606,14 +621,14 @@ export class DashboardPage {
             setTimeout(() => {
                 this._renderModalBody(type, payload);
                 const subtitleEl = box.querySelector('.modal-subtitle');
-                if (subtitleEl) subtitleEl.textContent = subtitle || '';
+                if (subtitleEl) subtitleEl.textContent = modalSubtitle || '';
             }, 600);
         } else {
             box.innerHTML = `
                 <div class="modal-header">
                     <div class="modal-title-group">
                         <h2 class="modal-title">${title}</h2>
-                        ${subtitle ? `<p class="modal-subtitle">${subtitle}</p>` : ''}
+                        ${modalSubtitle ? `<p class="modal-subtitle">${modalSubtitle}</p>` : ''}
                     </div>
                     <button class="modal-close" id="dashModalClose" aria-label="Cerrar">${icon('close', 15)}</button>
                 </div>
@@ -634,13 +649,13 @@ export class DashboardPage {
         this.currentModal = null;
     }
 
-    _renderModalBody(type, payload) {
+    async _renderModalBody(type, payload) {
         const body = $('#dashModalBody');
         if (!body) return;
 
         switch (type) {
             case 'core': body.innerHTML = this._coreModalHTML(); break;
-            case 'patients': body.innerHTML = this._patientsModalHTML(); this._renderModalPatientList(); break;
+            case 'patients': body.innerHTML = this._patientsModalHTML(); await this._renderModalPatientList(); break;
             case 'appointments': body.innerHTML = this._appointmentsModalHTML(); break;
             case 'evaluations': body.innerHTML = this._evaluationsModalHTML(); this._renderModalEvalList(); break;
             case 'tasks': body.innerHTML = this._tasksModalHTML(); break;
@@ -649,13 +664,14 @@ export class DashboardPage {
             case 'messages': body.innerHTML = this._messagesModalHTML(); break;
             case 'patientDetail': body.innerHTML = this._patientDetailHTML(payload); break;
             case 'appointmentDetail': body.innerHTML = this._appointmentDetailHTML(payload); break;
-            case 'newAppointment': body.innerHTML = this._newAppointmentFormHTML(); break;
-            case 'newNote': body.innerHTML = this._newNoteFormHTML(); break;
-            case 'newTask': body.innerHTML = this._newTaskFormHTML(); break;
+            case 'newAppointment': body.innerHTML = await this._newAppointmentFormHTML(); break;
+            case 'newNote': body.innerHTML = await this._newNoteFormHTML(); break;
+            case 'newTask': body.innerHTML = await this._newTaskFormHTML(); break;
+            case 'patientForm': body.innerHTML = this._patientFormHTML(payload || {}); break;
             default: body.innerHTML = '<div class="empty-state">Módulo en construcción.</div>';
         }
 
-        this._bindModalBodyEvents(type);
+        this._bindModalBodyEvents(type, payload);
     }
 
     _coreModalHTML() {
@@ -676,29 +692,49 @@ export class DashboardPage {
         return `
             <div class="search-row modal-search">
                 <input class="search-input" id="dashModalPatientSearch" type="text" placeholder="Buscar paciente...">
-                <button class="filter-btn">${icon('search', 13)} Filtrar</button>
                 <button class="btn btn-primary" id="dashBtnNewPatient">${icon('plus', 14)} Nuevo paciente</button>
             </div>
+            <div class="dash-patient-stats" id="dashModalPatientStats"></div>
             <div class="data-rows" id="dashModalPatientList"></div>
+            <button class="card-footer-link" id="dashViewAllPatients">Ver todos los pacientes</button>
         `;
     }
 
-    _renderModalPatientList(filter = '') {
+    async _renderModalPatientList(filter = '') {
         const el = $('#dashModalPatientList');
+        const statsEl = $('#dashModalPatientStats');
         if (!el) return;
-        const patients = getDashboardPatients().filter(p => p.name.toLowerCase().includes(filter.trim().toLowerCase()));
-        if (!patients.length) { el.innerHTML = `<div class="empty-state">No se encontraron pacientes.</div>`; return; }
+
+        const { data: patients } = await patientService.getAll({ search: filter || undefined });
+        const { data: stats } = await patientService.getStats();
+
+        if (statsEl) {
+            statsEl.innerHTML = `
+                <div class="dash-modal-stats-row">
+                    <span class="dash-modal-stat"><strong>${stats.total}</strong> total</span>
+                    <span class="dash-modal-stat"><strong>${stats.active}</strong> activos</span>
+                    <span class="dash-modal-stat"><strong>${stats.new || 0}</strong> nuevos</span>
+                    <span class="dash-modal-stat"><strong>${stats.upcomingAppointments}</strong> citas</span>
+                </div>
+            `;
+        }
+
+        if (!patients.length) {
+            el.innerHTML = `<div class="empty-state">${filter ? 'No se encontraron pacientes.' : 'No hay pacientes registrados.'}</div>`;
+            return;
+        }
         el.innerHTML = patients.map(p => `
-            <div class="data-row">
+            <div class="data-row" data-patient-id="${p.id}">
                 <div class="patient-avatar">${getInitials(p.name)}</div>
                 <div class="data-main">
-                    <div class="data-title">${p.name} <span class="tag" style="margin-left:6px;">${p.therapyType}</span></div>
-                    <div class="data-sub">${p.id} · ${p.age} años</div>
-                    <div class="data-sub2">Próxima cita: ${p.nextAppointment}</div>
+                    <div class="data-title">${escapeHtml(p.name)} <span class="tag" style="margin-left:6px;">${escapeHtml(p.therapyType)}</span></div>
+                    <div class="data-sub">${escapeHtml(p.id)} · ${p.age != null ? p.age + ' años' : ''}</div>
+                    <div class="data-sub2">${p.nextAppointment ? 'Próxima cita: ' + formatAppointmentDate(p.nextAppointment) : 'Sin cita programada'}</div>
                 </div>
                 <div class="action-row" style="margin-top:0;">
                     <button class="btn" data-view-patient="${p.id}">Ver</button>
                     <button class="btn" data-edit-patient="${p.id}">Editar</button>
+                    <button class="btn btn-danger" data-delete-patient="${p.id}" style="color:var(--dash-pink);">Eliminar</button>
                 </div>
             </div>
         `).join('');
@@ -851,19 +887,28 @@ export class DashboardPage {
 
     _patientDetailHTML(patient) {
         if (!patient) return `<div class="empty-state">Paciente no encontrado.</div>`;
+        const statusLabel = STATUS_LABELS[patient.status] || patient.status;
         return `
             <div class="data-row">
                 <div class="patient-avatar" style="width:52px;height:52px;font-size:15px;">${getInitials(patient.name)}</div>
                 <div class="data-main">
-                    <div class="data-title" style="font-size:16px;">${patient.name}</div>
-                    <div class="data-sub">${patient.id} · ${patient.age} años · ${patient.therapyType}</div>
-                    <div class="data-sub2">Próxima cita: ${patient.nextAppointment}</div>
+                    <div class="data-title" style="font-size:16px;">${escapeHtml(patient.name)}</div>
+                    <div class="data-sub">${escapeHtml(patient.email || '')} · ${escapeHtml(patient.phone || '')}</div>
+                    <div class="data-sub2">${patient.age != null ? patient.age + ' años' : ''}</div>
+                </div>
+                <span class="status-pill ${patient.status === 'active' ? 'confirmed' : patient.status === 'new' ? 'in-progress' : 'pending'}">${statusLabel}</span>
+            </div>
+            <div class="data-title" style="font-size:12px; color:var(--dash-text-secondary); text-transform:uppercase; letter-spacing:.04em; margin-top:4px;">Información terapéutica</div>
+            <div class="data-row" style="background:rgba(255,255,255,0.02);">
+                <div class="data-main">
+                    <div class="data-sub">Tipo: <span class="tag">${escapeHtml(patient.therapyType)}</span></div>
+                    <div class="data-sub2" style="margin-top:4px;">${patient.nextAppointment ? 'Próxima cita: ' + formatAppointmentDate(patient.nextAppointment) : 'Sin cita programada'}</div>
                 </div>
             </div>
-            <div class="data-title" style="font-size:12px; color:var(--dash-text-secondary); text-transform:uppercase; letter-spacing:.04em; margin-top:4px;">Notas recientes</div>
+            ${patient.notes ? `<div class="data-title" style="font-size:12px; color:var(--dash-text-secondary); text-transform:uppercase; letter-spacing:.04em; margin-top:4px;">Notas</div>
             <div class="data-row" style="background:rgba(255,255,255,0.02);">
-                <div class="data-main"><div class="data-sub2">${patient.notes}</div></div>
-            </div>
+                <div class="data-main"><div class="data-sub2">${escapeHtml(patient.notes)}</div></div>
+            </div>` : ''}
             <div class="action-row">
                 <button class="btn btn-primary" data-edit-patient="${patient.id}">Editar</button>
                 <button class="btn" data-history-patient="${patient.id}">Ver historial completo</button>
@@ -892,8 +937,9 @@ export class DashboardPage {
         `;
     }
 
-    _newAppointmentFormHTML() {
-        const patientOptions = getDashboardPatients().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    async _newAppointmentFormHTML() {
+        const { data: patients } = await patientService.getAll();
+        const patientOptions = (patients || []).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
         return `
             <form class="form-grid" id="dashFormNewAppointment">
                 <div class="form-field"><label for="fPatient">Paciente</label><select id="fPatient">${patientOptions}</select></div>
@@ -907,8 +953,93 @@ export class DashboardPage {
         `;
     }
 
-    _newNoteFormHTML() {
-        const patientOptions = getDashboardPatients().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    _patientFormHTML(opts = {}) {
+        const p = opts.patient || null;
+        const isEdit = opts.isEdit || false;
+        const therapyOptions = THERAPY_TYPES.map(t => `<option value="${t}" ${p && p.therapyType === t ? 'selected' : ''}>${t}</option>`).join('');
+        const statusOptions = Object.entries(STATUS_LABELS).map(([val, label]) => `<option value="${val}" ${p && p.status === val ? 'selected' : ''}>${label}</option>`).join('');
+
+        const formatLocalDate = (d) => {
+            if (!d) return '';
+            const date = new Date(d);
+            if (isNaN(date.getTime())) return '';
+            return date.toISOString().split('T')[0];
+        };
+
+        return `
+            <form class="form-grid" id="dashPatientForm" novalidate>
+                <div class="form-field"><label for="pfFirstName">Nombre *</label><input type="text" id="pfFirstName" value="${p ? escapeHtml(p.firstName) : ''}" placeholder="Nombre" required><span class="form-error" id="pfFirstNameError"></span></div>
+                <div class="form-field"><label for="pfLastName">Apellido *</label><input type="text" id="pfLastName" value="${p ? escapeHtml(p.lastName) : ''}" placeholder="Apellido" required><span class="form-error" id="pfLastNameError"></span></div>
+                <div class="form-field"><label for="pfAge">Edad</label><input type="number" id="pfAge" min="0" max="120" value="${p && p.age != null ? p.age : ''}" placeholder="Edad"><span class="form-error" id="pfAgeError"></span></div>
+                <div class="form-field"><label for="pfEmail">Email</label><input type="email" id="pfEmail" value="${p ? escapeHtml(p.email) : ''}" placeholder="correo@ejemplo.com"><span class="form-error" id="pfEmailError"></span></div>
+                <div class="form-field"><label for="pfPhone">Teléfono</label><input type="tel" id="pfPhone" value="${p ? escapeHtml(p.phone) : ''}" placeholder="+52 55 0000 0000"><span class="form-error" id="pfPhoneError"></span></div>
+                <div class="form-field"><label for="pfGender">Género</label><select id="pfGender"><option value="">Seleccionar…</option><option value="Femenino" ${p && p.gender === 'Femenino' ? 'selected' : ''}>Femenino</option><option value="Masculino" ${p && p.gender === 'Masculino' ? 'selected' : ''}>Masculino</option><option value="Otro" ${p && p.gender === 'Otro' ? 'selected' : ''}>Otro</option></select></div>
+                <div class="form-field"><label for="pfTherapy">Tipo de terapia *</label><select id="pfTherapy">${therapyOptions}</select><span class="form-error" id="pfTherapyError"></span></div>
+                <div class="form-field"><label for="pfStatus">Estado *</label><select id="pfStatus">${statusOptions}</select><span class="form-error" id="pfStatusError"></span></div>
+                <div class="form-field"><label for="pfNextAppointment">Próxima cita</label><input type="datetime-local" id="pfNextAppointment" value="${p && p.nextAppointment ? formatLocalDate(p.nextAppointment) + 'T' + (p.nextAppointment.split('T')[1] || '10:00') : ''}"></div>
+                <div class="form-field" style="grid-column:1/-1;"><label for="pfNotes">Notas</label><textarea id="pfNotes" placeholder="Observaciones relevantes…">${p ? escapeHtml(p.notes) : ''}</textarea></div>
+                <div class="action-row" style="grid-column:1/-1;">
+                    <button type="button" class="btn" id="dashPatientFormCancel">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="dashPatientFormSave">${isEdit ? 'Guardar cambios' : 'Crear paciente'}</button>
+                </div>
+            </form>
+        `;
+    }
+
+    async _handlePatientFormSave(opts = {}) {
+        const { isEdit, id } = opts;
+        const firstName = $('#dashPatientForm #pfFirstName')?.value.trim() || '';
+        const lastName = $('#dashPatientForm #pfLastName')?.value.trim() || '';
+        const ageRaw = $('#dashPatientForm #pfAge')?.value;
+        const age = ageRaw !== '' && ageRaw != null ? Number(ageRaw) : null;
+        const email = $('#dashPatientForm #pfEmail')?.value.trim() || '';
+        const phone = $('#dashPatientForm #pfPhone')?.value.trim() || '';
+        const gender = $('#dashPatientForm #pfGender')?.value || '';
+        const therapyType = $('#dashPatientForm #pfTherapy')?.value || 'Terapia Individual';
+        const status = $('#dashPatientForm #pfStatus')?.value || 'active';
+        const nextAppointment = $('#dashPatientForm #pfNextAppointment')?.value || '';
+        const notes = $('#dashPatientForm #pfNotes')?.value.trim() || '';
+
+        ['pfFirstNameError', 'pfLastNameError', 'pfAgeError', 'pfEmailError', 'pfPhoneError', 'pfTherapyError', 'pfStatusError'].forEach(eid => {
+            const el = document.getElementById(eid);
+            if (el) el.textContent = '';
+        });
+
+        let valid = true;
+        if (!firstName) { document.getElementById('pfFirstNameError').textContent = 'El nombre es obligatorio'; valid = false; }
+        if (!lastName) { document.getElementById('pfLastNameError').textContent = 'El apellido es obligatorio'; valid = false; }
+        if (age !== null && (isNaN(age) || age < 0 || age > 120)) { document.getElementById('pfAgeError').textContent = 'Edad no válida'; valid = false; }
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { document.getElementById('pfEmailError').textContent = 'Email no válido'; valid = false; }
+        if (phone && phone.length < 7) { document.getElementById('pfPhoneError').textContent = 'Teléfono no válido'; valid = false; }
+        if (!valid) return;
+
+        const saveBtn = document.getElementById('dashPatientFormSave');
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...'; }
+
+        const data = {
+            firstName, lastName, age,
+            email: email || null, phone: phone || null,
+            gender: gender || null,
+            therapyType, status,
+            nextAppointment: nextAppointment ? new Date(nextAppointment).toISOString() : null,
+            notes: notes || null
+        };
+
+        try {
+            const result = isEdit ? await patientService.update(id, data) : await patientService.create(data);
+            if (result.error) throw result.error;
+            this._closeModal();
+            this._showToast(isEdit ? 'Paciente actualizado correctamente.' : 'Paciente creado correctamente.');
+            this._renderPatients();
+        } catch (err) {
+            this._showToast('Error: ' + (err.message || 'No se pudo guardar'));
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = isEdit ? 'Guardar cambios' : 'Crear paciente'; }
+        }
+    }
+
+    async _newNoteFormHTML() {
+        const { data: patients } = await patientService.getAll();
+        const patientOptions = (patients || []).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
         return `
             <form class="form-grid" id="dashFormNewNote">
                 <div class="form-field"><label for="nPatient">Paciente</label><select id="nPatient">${patientOptions}</select></div>
@@ -921,8 +1052,9 @@ export class DashboardPage {
         `;
     }
 
-    _newTaskFormHTML() {
-        const patientOptions = getDashboardPatients().map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    async _newTaskFormHTML() {
+        const { data: patients } = await patientService.getAll();
+        const patientOptions = (patients || []).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
         return `
             <form class="form-grid" id="dashFormNewTask">
                 <div class="form-field"><label for="tPatient">Paciente</label><select id="tPatient">${patientOptions}</select></div>
@@ -938,7 +1070,7 @@ export class DashboardPage {
 
     // ========== MODAL EVENT BINDING ==========
 
-    _bindModalBodyEvents(type) {
+    _bindModalBodyEvents(type, payload) {
         if (type === 'core') {
             $$('#dashModalBody [data-core-open]').forEach(btn => {
                 btn.addEventListener('click', () => this._openModal(btn.dataset.coreOpen));
@@ -947,8 +1079,18 @@ export class DashboardPage {
 
         if (type === 'patients') {
             const search = $('#dashModalPatientSearch');
-            if (search) search.addEventListener('input', () => this._renderModalPatientList(search.value));
-            $('#dashBtnNewPatient')?.addEventListener('click', () => this._showToast('Formulario de nuevo paciente (demo).'));
+            if (search) {
+                let searchTimer;
+                search.addEventListener('input', () => {
+                    clearTimeout(searchTimer);
+                    searchTimer = setTimeout(() => this._renderModalPatientList(search.value), 300);
+                });
+            }
+            $('#dashBtnNewPatient')?.addEventListener('click', () => this._openModal('patientForm'));
+            $('#dashViewAllPatients')?.addEventListener('click', () => {
+                this._closeModal();
+                window.router?.navigate('/patients');
+            });
             this._bindPatientRowActions();
         }
 
@@ -1009,21 +1151,62 @@ export class DashboardPage {
             $('#dashFormNewTask')?.addEventListener('submit', e => { e.preventDefault(); this._showToast('Tarea terapéutica asignada.'); this._closeModal(); });
             $('#dashCancelNewTask')?.addEventListener('click', () => this._openModal('tasks'));
         }
+
+        if (type === 'patientForm') {
+            const form = document.getElementById('dashPatientForm');
+            const cancelBtn = document.getElementById('dashPatientFormCancel');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const urlHash = window.location.hash;
+                    const isEdit = urlHash.includes('/edit') || (payload && payload.isEdit);
+                    const id = payload && payload.patient ? payload.patient.id : null;
+                    this._handlePatientFormSave({ isEdit, id });
+                });
+            }
+            if (cancelBtn) cancelBtn.addEventListener('click', () => this._openModal('patients'));
+        }
     }
 
     _bindPatientRowActions() {
         $$('#dashModalBody [data-view-patient]').forEach(btn => {
-            btn.addEventListener('click', e => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                const p = getDashboardPatients().find(pt => pt.id === btn.dataset.viewPatient);
-                this._openModal('patientDetail', p);
+                const { data: p } = await patientService.getById(btn.dataset.viewPatient);
+                if (p) this._openModal('patientDetail', p);
             });
         });
         $$('#dashModalBody [data-edit-patient]').forEach(btn => {
-            btn.addEventListener('click', e => { e.stopPropagation(); this._showToast('Editar paciente (demo).'); });
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const { data: p } = await patientService.getById(btn.dataset.editPatient);
+                if (p) this._openModal('patientForm', { patient: p, isEdit: true });
+            });
+        });
+        $$('#dashModalBody [data-delete-patient]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.deletePatient;
+                const { data: p } = await patientService.getById(id);
+                if (!p) return;
+                const confirmed = await window.app?.confirm?.show({
+                    title: '¿Eliminar paciente?',
+                    message: `Se eliminará a ${p.name} del listado. Esta acción no se puede deshacer.`,
+                    confirmLabel: 'Eliminar',
+                    cancelLabel: 'Cancelar',
+                    danger: true
+                });
+                if (!confirmed) return;
+                const { error } = await patientService.delete(id);
+                if (!error) {
+                    window.app?.toast?.success('Eliminado', 'Paciente eliminado correctamente.');
+                    this._renderModalPatientList();
+                    this._renderPatients();
+                }
+            });
         });
         $$('#dashModalBody [data-history-patient]').forEach(btn => {
-            btn.addEventListener('click', e => { e.stopPropagation(); this._showToast('Abriendo historial clínico completo (demo).'); });
+            btn.addEventListener('click', e => { e.stopPropagation(); this._showToast('Historial clínico (próximamente).'); });
         });
     }
 

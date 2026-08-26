@@ -1,10 +1,8 @@
 // js/pages/patients.js
-// Módulo de pacientes — Conexión real a Supabase.
+// Módulo de pacientes — Página completa con CRUD real.
 
-import { patientsService } from '../services/patientsService.js';
+import { patientService, THERAPY_TYPES, STATUS_LABELS } from '../services/patientsService.js';
 
-const THERAPY_TYPES = ['Terapia Individual', 'Terapia de Pareja', 'Evaluación Inicial', 'Terapia Familiar', 'Terapia de Grupo'];
-const STATUS_LABELS = { active: 'Activo', inactive: 'Inactivo', new: 'Nuevo' };
 const AVATAR_COLORS = ['bg-violet', 'bg-blue', 'bg-pink'];
 
 function $(sel, ctx) { return (ctx || document).querySelector(sel); }
@@ -27,7 +25,7 @@ function icon(name) {
         users: '<i class="fa-solid fa-users"></i>',
         shield: '<i class="fa-solid fa-shield-halved"></i>',
         triangle: '<i class="fa-solid fa-triangle-exclamation"></i>',
-        wifi: '<i class="fa-solid fa-wifi"></i>'
+        sort: '<i class="fa-solid fa-arrow-down-wide-short"></i>'
     };
     return map[name] || '';
 }
@@ -44,59 +42,25 @@ function formatDate(dateStr) {
     return d.toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function formatDateShort(dateStr) {
-    if (!dateStr) return '—';
+function formatDateInput(dateStr) {
+    if (!dateStr) return '';
     const d = new Date(dateStr);
-    if (isNaN(d)) return '—';
-    return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    if (isNaN(d)) return '';
+    return d.toISOString().split('T')[0];
 }
 
-// Mapea snake_case (BD) → camelCase (UI)
-function mapPatient(p) {
-    return {
-        id: p.id,
-        name: p.full_name,
-        email: p.email || '',
-        phone: p.phone || '',
-        age: p.age || '',
-        gender: p.gender || '',
-        therapyType: p.therapy_type,
-        status: p.status,
-        diagnosis: p.diagnosis || '',
-        notes: p.notes || '',
-        emergencyContact: p.emergency_contact || '',
-        startDate: p.start_date,
-        nextAppointment: p.next_appointment,
-        createdAt: p.created_at
-    };
-}
-
-// Mapea camelCase (UI) → snake_case (BD)
-function mapToDB(data) {
-    return {
-        full_name: data.full_name,
-        email: data.email || null,
-        phone: data.phone || null,
-        age: data.age ? parseInt(data.age, 10) : null,
-        gender: data.gender || null,
-        therapy_type: data.therapy_type,
-        status: data.status,
-        diagnosis: data.diagnosis || null,
-        notes: data.notes || null,
-        emergency_contact: data.emergency_contact || null,
-        next_appointment: data.next_appointment || null
-    };
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function skeletonTable(rows = 5) {
-    return `<tr>${'<td colspan="5">'.repeat(1)}<div class="patients-loading">
+    return `<tr><td colspan="7"><div class="patients-loading">
         ${Array.from({ length: rows }).map(() => `
             <div class="skeleton-row">
                 <div class="skel-avatar"></div>
                 <div class="skel-lines"><div class="skel-line w60"></div><div class="skel-line w40"></div></div>
-                <div class="skel-btn"></div>
-                <div class="skel-btn"></div>
-                <div class="skel-btn"></div>
+                <div class="skel-btn"></div><div class="skel-btn"></div><div class="skel-btn"></div>
             </div>
         `).join('')}
     </div></td></tr>`;
@@ -105,16 +69,18 @@ function skeletonTable(rows = 5) {
 export class PatientsPage {
     constructor() {
         this.container = null;
-        this.currentFilter = 'all';
+        this.currentStatusFilter = 'all';
+        this.currentTherapyFilter = 'all';
         this.searchQuery = '';
         this.currentModal = null;
         this.editingPatient = null;
         this.patients = [];
-        this.stats = { total: 0, active: 0, inactive: 0, new: 0 };
+        this.stats = { total: 0, active: 0, new: 0, inactive: 0, upcomingAppointments: 0 };
         this.loading = true;
         this.error = null;
         this._onKeyDown = this._onKeyDown.bind(this);
         this._debounceTimer = null;
+        this._unsubscribers = [];
     }
 
     async render() {
@@ -122,51 +88,62 @@ export class PatientsPage {
         if (!this.container) return;
 
         this.container.innerHTML = `
-            <div class="patients-header">
-                <div class="patients-header-left">
-                    <h1 class="patients-title">Pacientes</h1>
-                    <p class="patients-subtitle">Gestión integral de pacientes del consultorio</p>
+            <div class="ambient-bg" aria-hidden="true"></div>
+            <div class="patients-page">
+                <div class="patients-header">
+                    <div class="patients-header-left">
+                        <h1 class="patients-title">Pacientes</h1>
+                        <p class="patients-subtitle">Gestiona y realiza seguimiento de tus pacientes.</p>
+                    </div>
+                    <div class="patients-header-actions">
+                        <button class="btn btn-primary" id="btnNewPatient">
+                            ${icon('plus')} Nuevo paciente
+                        </button>
+                    </div>
                 </div>
-                <div class="patients-header-actions">
-                    <button class="btn btn-primary" id="btnNewPatient">
-                        ${icon('plus')} Nuevo paciente
-                    </button>
-                </div>
-            </div>
 
-            <div class="patients-stats" id="patientsStats">
-                <div class="stat-card"><span class="stat-label">Total</span><span class="stat-value accent">—</span></div>
-                <div class="stat-card"><span class="stat-label">Activos</span><span class="stat-value">—</span></div>
-                <div class="stat-card"><span class="stat-label">Nuevos</span><span class="stat-value">—</span></div>
-                <div class="stat-card"><span class="stat-label">Inactivos</span><span class="stat-value">—</span></div>
-            </div>
-
-            <div class="patients-toolbar">
-                <div class="search-box">
-                    <span class="search-icon">${icon('search')}</span>
-                    <input type="text" id="patientSearch" placeholder="Buscar por nombre o email…" autocomplete="off">
+                <div class="patients-stats" id="patientsStats">
+                    <div class="stat-card"><span class="stat-label">Total</span><span class="stat-value accent">—</span></div>
+                    <div class="stat-card"><span class="stat-label">Activos</span><span class="stat-value">—</span></div>
+                    <div class="stat-card"><span class="stat-label">Nuevos</span><span class="stat-value">—</span></div>
+                    <div class="stat-card"><span class="stat-label">Próximas citas</span><span class="stat-value">—</span></div>
                 </div>
-                <div class="filter-tabs" id="filterTabs">
-                    <button class="filter-tab active" data-filter="all">Todos</button>
-                    <button class="filter-tab" data-filter="active">Activos</button>
-                    <button class="filter-tab" data-filter="new">Nuevos</button>
-                    <button class="filter-tab" data-filter="inactive">Inactivos</button>
-                </div>
-            </div>
 
-            <div class="patients-table-wrap">
-                <table class="patients-table">
-                    <thead>
-                        <tr>
-                            <th>Paciente</th>
-                            <th>Estado</th>
-                            <th>Tipo de terapia</th>
-                            <th>Próxima cita</th>
-                            <th style="width:100px">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="patientsTableBody">${skeletonTable()}</tbody>
-                </table>
+                <div class="patients-toolbar">
+                    <div class="search-box">
+                        <span class="search-icon">${icon('search')}</span>
+                        <input type="text" id="patientSearch" placeholder="Buscar por nombre, ID, email o teléfono…" autocomplete="off">
+                    </div>
+                    <div class="filter-group">
+                        <div class="filter-tabs" id="statusFilterTabs">
+                            <button class="filter-tab active" data-filter="all">Todos</button>
+                            <button class="filter-tab" data-filter="active">Activos</button>
+                            <button class="filter-tab" data-filter="new">Nuevos</button>
+                            <button class="filter-tab" data-filter="inactive">Inactivos</button>
+                        </div>
+                        <select id="therapyFilter" class="therapy-filter-select">
+                            <option value="all">Todas las terapias</option>
+                            ${THERAPY_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="patients-table-wrap">
+                    <table class="patients-table">
+                        <thead>
+                            <tr>
+                                <th>Paciente</th>
+                                <th>ID</th>
+                                <th>Edad</th>
+                                <th>Terapia</th>
+                                <th>Estado</th>
+                                <th>Próxima cita</th>
+                                <th style="width:120px">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="patientsTableBody">${skeletonTable()}</tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="patient-modal-overlay" id="patientModalOverlay">
@@ -190,33 +167,37 @@ export class PatientsPage {
     destroy() {
         document.removeEventListener('keydown', this._onKeyDown);
         if (this._debounceTimer) clearTimeout(this._debounceTimer);
+        this._unsubscribers.forEach(fn => fn());
+        this._unsubscribers = [];
         this.container = null;
     }
 
-    /* ===== DATA LOADING ===== */
+    /* ===== DATA ===== */
+
     async _loadData() {
         this.loading = true;
         this.error = null;
 
         try {
             const [patientsResult, statsResult] = await Promise.all([
-                patientsService.getAll({
-                    status: this.currentFilter,
+                patientService.getAll({
+                    status: this.currentStatusFilter,
+                    therapyType: this.currentTherapyFilter,
                     search: this.searchQuery || undefined
                 }),
-                patientsService.getStats()
+                patientService.getStats()
             ]);
 
             if (patientsResult.error) throw patientsResult.error;
             if (statsResult.error) throw statsResult.error;
 
-            this.patients = (patientsResult.data || []).map(mapPatient);
+            this.patients = patientsResult.data || [];
             this.stats = statsResult.data;
             this._renderStats();
             this._renderTable();
         } catch (err) {
             console.error('Error al cargar pacientes:', err);
-            this.error = err.message || 'Error al conectar con el servidor';
+            this.error = err.message || 'Error al cargar datos';
             this._renderError();
         } finally {
             this.loading = false;
@@ -230,7 +211,7 @@ export class PatientsPage {
             <div class="stat-card"><span class="stat-label">Total</span><span class="stat-value accent">${this.stats.total}</span></div>
             <div class="stat-card"><span class="stat-label">Activos</span><span class="stat-value">${this.stats.active}</span></div>
             <div class="stat-card"><span class="stat-label">Nuevos</span><span class="stat-value">${this.stats.new}</span></div>
-            <div class="stat-card"><span class="stat-label">Inactivos</span><span class="stat-value">${this.stats.inactive}</span></div>
+            <div class="stat-card"><span class="stat-label">Próximas citas</span><span class="stat-value">${this.stats.upcomingAppointments}</span></div>
         `;
     }
 
@@ -241,14 +222,17 @@ export class PatientsPage {
         if (this.patients.length === 0) {
             const isSearch = this.searchQuery.length > 0;
             tbody.innerHTML = `
-                <tr><td colspan="5">
+                <tr><td colspan="7">
                     <div class="patients-empty">
                         <i class="fa-solid fa-${isSearch ? 'magnifying-glass' : 'user-slash'}"></i>
-                        <p>${isSearch ? 'No se encontraron pacientes con ese criterio' : 'No hay pacientes registrados'}</p>
-                        ${!isSearch ? '<p style="font-size:0.8rem; margin-top:8px; opacity:0.6;">Comienza agregando tu primer paciente</p>' : ''}
+                        <p>${isSearch ? 'No se encontraron pacientes con ese criterio' : 'No hay pacientes todavía.'}</p>
+                        ${!isSearch ? '<p class="patients-empty-hint">Agrega tu primer paciente para comenzar.</p>' : ''}
+                        ${!isSearch ? `<button class="btn btn-primary patients-empty-btn" id="emptyNewPatient">${icon('plus')} Nuevo paciente</button>` : ''}
                     </div>
                 </td></tr>
             `;
+            const emptyBtn = $('#emptyNewPatient');
+            if (emptyBtn) emptyBtn.addEventListener('click', () => this._openForm());
             return;
         }
 
@@ -258,13 +242,14 @@ export class PatientsPage {
                     <div class="patient-cell">
                         <div class="patient-avatar ${AVATAR_COLORS[i % AVATAR_COLORS.length]}">${getInitials(p.name)}</div>
                         <div>
-                            <div class="patient-name">${p.name}</div>
-                            <div class="patient-id">${p.id.slice(0, 8)}</div>
+                            <div class="patient-name">${escapeHtml(p.name)}</div>
                         </div>
                     </div>
                 </td>
+                <td><span class="patient-id-text">${escapeHtml(p.id)}</span></td>
+                <td><span class="patient-age-text">${p.age != null ? p.age + ' años' : '—'}</span></td>
+                <td><span class="therapy-tag">${escapeHtml(p.therapyType)}</span></td>
                 <td><span class="status-badge ${p.status}">${STATUS_LABELS[p.status] || p.status}</span></td>
-                <td><span class="therapy-tag">${p.therapyType}</span></td>
                 <td><span class="next-appt">${formatDate(p.nextAppointment)}</span></td>
                 <td>
                     <div class="row-actions">
@@ -281,19 +266,23 @@ export class PatientsPage {
         const tbody = $('#patientsTableBody');
         if (!tbody) return;
         tbody.innerHTML = `
-            <tr><td colspan="5">
+            <tr><td colspan="7">
                 <div class="patients-empty">
                     <i class="fa-solid fa-wifi" style="color:var(--dash-pink);"></i>
-                    <p style="color:var(--dash-pink); margin-bottom:8px;">Error de conexión</p>
-                    <p style="font-size:0.82rem;">${this.error}</p>
-                    <button class="btn btn-primary" style="margin-top:16px;" onclick="window.location.reload()">Reintentar</button>
+                    <p style="color:var(--dash-pink); margin-bottom:8px;">No pudimos completar la operación.</p>
+                    <p style="font-size:0.82rem;">${escapeHtml(this.error)}</p>
+                    <button class="btn btn-primary" style="margin-top:16px;" id="retryLoadBtn">Reintentar</button>
                 </div>
             </td></tr>
         `;
+        const retryBtn = $('#retryLoadBtn');
+        if (retryBtn) retryBtn.addEventListener('click', () => this._loadData());
     }
 
-    /* ===== EVENT BINDING ===== */
+    /* ===== EVENTS ===== */
+
     _bindEvents() {
+        // Búsqueda
         const search = $('#patientSearch');
         if (search) {
             search.addEventListener('input', () => {
@@ -301,25 +290,33 @@ export class PatientsPage {
                 this._debounceTimer = setTimeout(async () => {
                     this.searchQuery = search.value;
                     await this._loadData();
-                }, 350);
+                }, 300);
             });
         }
 
-        const tabs = $('#filterTabs');
-        if (tabs) {
-            tabs.addEventListener('click', async (e) => {
+        // Filtro de estado
+        const statusTabs = $('#statusFilterTabs');
+        if (statusTabs) {
+            statusTabs.addEventListener('click', async (e) => {
                 const tab = e.target.closest('.filter-tab');
                 if (!tab) return;
-                $$('.filter-tab', tabs).forEach(t => t.classList.remove('active'));
+                $$('.filter-tab', statusTabs).forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                this.currentFilter = tab.dataset.filter;
-                this.searchQuery = '';
-                const searchInput = $('#patientSearch');
-                if (searchInput) searchInput.value = '';
+                this.currentStatusFilter = tab.dataset.filter;
                 await this._loadData();
             });
         }
 
+        // Filtro de terapia
+        const therapySelect = $('#therapyFilter');
+        if (therapySelect) {
+            therapySelect.addEventListener('change', async () => {
+                this.currentTherapyFilter = therapySelect.value;
+                await this._loadData();
+            });
+        }
+
+        // Acciones en tabla
         const tbody = $('#patientsTableBody');
         if (tbody) {
             tbody.addEventListener('click', (e) => {
@@ -338,9 +335,11 @@ export class PatientsPage {
             });
         }
 
+        // Nuevo paciente
         const newBtn = $('#btnNewPatient');
         if (newBtn) newBtn.addEventListener('click', () => this._openForm());
 
+        // Cerrar modal
         const overlay = $('#patientModalOverlay');
         if (overlay) {
             overlay.addEventListener('click', (e) => {
@@ -352,13 +351,20 @@ export class PatientsPage {
         if (closeBtn) closeBtn.addEventListener('click', () => this._closeModal());
 
         document.addEventListener('keydown', this._onKeyDown);
+
+        // Escuchar cambios del servicio (sincronización con dashboard)
+        const unsub = patientService.onChange(() => {
+            if (!this.loading) this._loadData();
+        });
+        this._unsubscribers.push(unsub);
     }
 
     _onKeyDown(e) {
         if (e.key === 'Escape' && this.currentModal) this._closeModal();
     }
 
-    /* ===== MODAL MANAGEMENT ===== */
+    /* ===== MODAL ===== */
+
     _openModal(title, bodyHTML, actionsHTML) {
         this.currentModal = true;
         const overlay = $('#patientModalOverlay');
@@ -385,72 +391,66 @@ export class PatientsPage {
         }
     }
 
-    /* ===== DETAIL VIEW ===== */
+    /* ===== DETALLE ===== */
+
     async _openDetail(id) {
         this._openModal('Cargando...', '<div class="modal-loading"><div class="loading-orbit"><div class="ring"></div><div class="ring ring-2"></div><div class="core"></div></div></div>', '');
 
-        const { data: p, error } = await patientsService.getById(id);
+        const { data: p, error } = await patientService.getById(id);
         if (error || !p) {
             this._openModal('Error', '<div class="patients-empty"><p>No se pudo cargar el paciente</p></div>', '<button class="btn btn-primary" id="modalCloseBtn">Cerrar</button>');
             $('#modalCloseBtn')?.addEventListener('click', () => this._closeModal());
             return;
         }
 
-        const patient = mapPatient(p);
-
         const bodyHTML = `
             <div class="patient-detail-header">
-                <div class="patient-detail-avatar">${getInitials(patient.name)}</div>
+                <div class="patient-detail-avatar">${getInitials(p.name)}</div>
                 <div>
-                    <h3 class="patient-detail-name">${patient.name}</h3>
-                    <span class="patient-detail-id">${patient.id.slice(0, 8)}</span>
+                    <h3 class="patient-detail-name">${escapeHtml(p.name)}</h3>
+                    <span class="patient-detail-id">${escapeHtml(p.id)}</span>
                 </div>
             </div>
+            <div class="detail-section-title">Información personal</div>
             <div class="patient-detail-grid">
                 <div class="detail-field">
                     <span class="detail-label">${icon('mail')} Email</span>
-                    <span class="detail-value">${patient.email || '—'}</span>
+                    <span class="detail-value">${escapeHtml(p.email) || '—'}</span>
                 </div>
                 <div class="detail-field">
                     <span class="detail-label">${icon('phone')} Teléfono</span>
-                    <span class="detail-value">${patient.phone || '—'}</span>
+                    <span class="detail-value">${escapeHtml(p.phone) || '—'}</span>
                 </div>
                 <div class="detail-field">
                     <span class="detail-label">Edad</span>
-                    <span class="detail-value">${patient.age ? patient.age + ' años' : '—'}</span>
+                    <span class="detail-value">${p.age != null ? p.age + ' años' : '—'}</span>
                 </div>
-                <div class="detail-field">
-                    <span class="detail-label">Género</span>
-                    <span class="detail-value">${patient.gender || '—'}</span>
-                </div>
+            </div>
+            <div class="detail-section-title">Información terapéutica</div>
+            <div class="patient-detail-grid">
                 <div class="detail-field">
                     <span class="detail-label">${icon('heartbeat')} Tipo de terapia</span>
-                    <span class="detail-value"><span class="therapy-tag">${patient.therapyType}</span></span>
+                    <span class="detail-value"><span class="therapy-tag">${escapeHtml(p.therapyType)}</span></span>
                 </div>
                 <div class="detail-field">
                     <span class="detail-label">Estado</span>
-                    <span class="detail-value"><span class="status-badge ${patient.status}">${STATUS_LABELS[patient.status] || patient.status}</span></span>
+                    <span class="detail-value"><span class="status-badge ${p.status}">${STATUS_LABELS[p.status] || p.status}</span></span>
                 </div>
                 <div class="detail-field">
                     <span class="detail-label">${icon('calendar')} Próxima cita</span>
-                    <span class="detail-value">${formatDate(patient.nextAppointment)}</span>
+                    <span class="detail-value">${formatDate(p.nextAppointment)}</span>
                 </div>
                 <div class="detail-field">
-                    <span class="detail-label">Inicio de tratamiento</span>
-                    <span class="detail-value">${formatDateShort(patient.startDate)}</span>
-                </div>
-                <hr class="detail-divider">
-                <div class="detail-field full">
-                    <span class="detail-label">${icon('shield')} Diagnóstico</span>
-                    <span class="detail-value">${patient.diagnosis || 'Sin diagnóstico registrado'}</span>
+                    <span class="detail-label">Registro</span>
+                    <span class="detail-value">${formatDate(p.startDate)}</span>
                 </div>
                 <div class="detail-field full">
-                    <span class="detail-label">${icon('note')} Notas clínicas</span>
-                    <span class="detail-value">${patient.notes || 'Sin notas'}</span>
+                    <span class="detail-label">${icon('note')} Notas</span>
+                    <span class="detail-value">${escapeHtml(p.notes) || 'Sin notas'}</span>
                 </div>
                 <div class="detail-field full">
                     <span class="detail-label">${icon('users')} Contacto de emergencia</span>
-                    <span class="detail-value">${patient.emergencyContact || '—'}</span>
+                    <span class="detail-value">${escapeHtml(p.emergencyContact) || '—'}</span>
                 </div>
             </div>
         `;
@@ -460,26 +460,27 @@ export class PatientsPage {
             <button class="btn btn-primary" id="modalCloseBtn">Cerrar</button>
         `;
 
-        this._openModal(patient.name, bodyHTML, actionsHTML);
+        this._openModal(p.name, bodyHTML, actionsHTML);
 
         $('#modalEditBtn')?.addEventListener('click', () => { this._closeModal(); this._openForm(id); });
         $('#modalCloseBtn')?.addEventListener('click', () => this._closeModal());
     }
 
-    /* ===== FORM (NEW / EDIT) ===== */
+    /* ===== FORMULARIO (NUEVO / EDITAR) ===== */
+
     async _openForm(id) {
         const isEdit = !!id;
         let p = null;
 
         if (isEdit) {
             this._openModal('Cargando...', '<div class="modal-loading"><div class="loading-orbit"><div class="ring"></div><div class="ring ring-2"></div><div class="core"></div></div></div>', '');
-            const { data, error } = await patientsService.getById(id);
+            const { data, error } = await patientService.getById(id);
             if (error || !data) {
                 this._showToast('Error al cargar paciente');
                 this._closeModal();
                 return;
             }
-            p = mapPatient(data);
+            p = data;
         }
         this.editingPatient = p;
 
@@ -487,25 +488,36 @@ export class PatientsPage {
             .map(t => `<option value="${t}" ${p && p.therapyType === t ? 'selected' : ''}>${t}</option>`)
             .join('');
 
+        const statusOptions = Object.entries(STATUS_LABELS)
+            .map(([val, label]) => `<option value="${val}" ${p && p.status === val ? 'selected' : ''}>${label}</option>`)
+            .join('');
+
         const bodyHTML = `
             <form class="form-grid" id="patientForm" novalidate>
                 <div class="form-field">
-                    <label for="pfName">Nombre completo *</label>
-                    <input type="text" id="pfName" value="${p ? p.name : ''}" required placeholder="Nombre y apellidos">
-                    <span class="form-error" id="pfNameError"></span>
+                    <label for="pfFirstName">Nombre *</label>
+                    <input type="text" id="pfFirstName" value="${p ? escapeHtml(p.firstName) : ''}" required placeholder="Nombre">
+                    <span class="form-error" id="pfFirstNameError"></span>
+                </div>
+                <div class="form-field">
+                    <label for="pfLastName">Apellido *</label>
+                    <input type="text" id="pfLastName" value="${p ? escapeHtml(p.lastName) : ''}" required placeholder="Apellido">
+                    <span class="form-error" id="pfLastNameError"></span>
+                </div>
+                <div class="form-field">
+                    <label for="pfAge">Edad</label>
+                    <input type="number" id="pfAge" min="0" max="120" value="${p ? (p.age ?? '') : ''}" placeholder="Edad">
+                    <span class="form-error" id="pfAgeError"></span>
                 </div>
                 <div class="form-field">
                     <label for="pfEmail">Email</label>
-                    <input type="email" id="pfEmail" value="${p ? p.email : ''}" placeholder="correo@ejemplo.com">
+                    <input type="email" id="pfEmail" value="${p ? escapeHtml(p.email) : ''}" placeholder="correo@ejemplo.com">
                     <span class="form-error" id="pfEmailError"></span>
                 </div>
                 <div class="form-field">
                     <label for="pfPhone">Teléfono</label>
-                    <input type="tel" id="pfPhone" value="${p ? p.phone : ''}" placeholder="+52 55 0000 0000">
-                </div>
-                <div class="form-field">
-                    <label for="pfAge">Edad</label>
-                    <input type="number" id="pfAge" value="${p ? p.age : ''}" min="1" max="120" placeholder="28">
+                    <input type="tel" id="pfPhone" value="${p ? escapeHtml(p.phone) : ''}" placeholder="+52 55 0000 0000">
+                    <span class="form-error" id="pfPhoneError"></span>
                 </div>
                 <div class="form-field">
                     <label for="pfGender">Género</label>
@@ -517,20 +529,22 @@ export class PatientsPage {
                     </select>
                 </div>
                 <div class="form-field">
-                    <label for="pfTherapy">Tipo de terapia</label>
+                    <label for="pfTherapy">Tipo de terapia *</label>
                     <select id="pfTherapy">${therapyOptions}</select>
+                    <span class="form-error" id="pfTherapyError"></span>
+                </div>
+                <div class="form-field">
+                    <label for="pfStatus">Estado *</label>
+                    <select id="pfStatus">${statusOptions}</select>
+                    <span class="form-error" id="pfStatusError"></span>
+                </div>
+                <div class="form-field">
+                    <label for="pfNextAppointment">Próxima cita</label>
+                    <input type="datetime-local" id="pfNextAppointment" value="${p && p.nextAppointment ? formatDateInput(p.nextAppointment) + 'T' + (p.nextAppointment.split('T')[1] || '10:00') : ''}">
                 </div>
                 <div class="form-field full">
-                    <label for="pfDiagnosis">Diagnóstico</label>
-                    <input type="text" id="pfDiagnosis" value="${p ? p.diagnosis : ''}" placeholder="Diagnóstico principal">
-                </div>
-                <div class="form-field full">
-                    <label for="pfNotes">Notas clínicas</label>
-                    <textarea id="pfNotes" placeholder="Observaciones relevantes…">${p ? p.notes : ''}</textarea>
-                </div>
-                <div class="form-field full">
-                    <label for="pfEmergency">Contacto de emergencia</label>
-                    <input type="text" id="pfEmergency" value="${p ? p.emergencyContact : ''}" placeholder="Nombre — Teléfono">
+                    <label for="pfNotes">Notas</label>
+                    <textarea id="pfNotes" placeholder="Observaciones relevantes…">${p ? escapeHtml(p.notes) : ''}</textarea>
                 </div>
             </form>
         `;
@@ -555,31 +569,52 @@ export class PatientsPage {
     }
 
     async _handleSave(isEdit, id) {
-        const name = $('#pfName')?.value.trim();
-        const email = $('#pfEmail')?.value.trim();
-        const phone = $('#pfPhone')?.value.trim();
-        const age = $('#pfAge')?.value;
-        const gender = $('#pfGender')?.value;
-        const therapyType = $('#pfTherapy')?.value;
-        const diagnosis = $('#pfDiagnosis')?.value.trim();
-        const notes = $('#pfNotes')?.value.trim();
-        const emergency = $('#pfEmergency')?.value.trim();
+        const firstName = $('#pfFirstName')?.value.trim() || '';
+        const lastName = $('#pfLastName')?.value.trim() || '';
+        const ageRaw = $('#pfAge')?.value;
+        const age = ageRaw !== '' && ageRaw != null ? Number(ageRaw) : null;
+        const email = $('#pfEmail')?.value.trim() || '';
+        const phone = $('#pfPhone')?.value.trim() || '';
+        const gender = $('#pfGender')?.value || '';
+        const therapyType = $('#pfTherapy')?.value || 'Terapia Individual';
+        const status = $('#pfStatus')?.value || 'active';
+        const nextAppointment = $('#pfNextAppointment')?.value || '';
+        const notes = $('#pfNotes')?.value.trim() || '';
 
-        // Validación
+        const errorIds = ['pfFirstNameError', 'pfLastNameError', 'pfAgeError', 'pfEmailError', 'pfPhoneError', 'pfTherapyError', 'pfStatusError'];
+        errorIds.forEach(eid => { const el = $(`#${eid}`); if (el) el.textContent = ''; });
+
         let valid = true;
-        const nameError = $('#pfNameError');
-        const emailError = $('#pfEmailError');
-        if (nameError) nameError.textContent = '';
-        if (emailError) emailError.textContent = '';
 
-        if (!name) {
-            if (nameError) nameError.textContent = 'El nombre es obligatorio';
+        if (!firstName) {
+            $('#pfFirstNameError').textContent = 'El nombre es obligatorio';
+            valid = false;
+        }
+        if (!lastName) {
+            $('#pfLastNameError').textContent = 'El apellido es obligatorio';
+            valid = false;
+        }
+        if (age !== null && (isNaN(age) || age < 0 || age > 120)) {
+            $('#pfAgeError').textContent = 'Edad no válida';
             valid = false;
         }
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            if (emailError) emailError.textContent = 'Email no válido';
+            $('#pfEmailError').textContent = 'Email no válido';
             valid = false;
         }
+        if (phone && phone.length < 7) {
+            $('#pfPhoneError').textContent = 'Teléfono no válido';
+            valid = false;
+        }
+        if (!therapyType) {
+            $('#pfTherapyError').textContent = 'Selecciona un tipo de terapia';
+            valid = false;
+        }
+        if (!status) {
+            $('#pfStatusError').textContent = 'Selecciona un estado';
+            valid = false;
+        }
+
         if (!valid) return;
 
         const saveBtn = $('#formSaveBtn');
@@ -589,34 +624,38 @@ export class PatientsPage {
         }
 
         const patientData = {
-            full_name: name,
+            firstName,
+            lastName,
+            age,
             email: email || null,
             phone: phone || null,
-            age: age ? parseInt(age, 10) : null,
             gender: gender || null,
-            therapy_type: therapyType,
-            status: this.editingPatient?.status || 'active',
-            diagnosis: diagnosis || null,
-            notes: notes || null,
-            emergency_contact: emergency || null
+            therapyType,
+            status,
+            diagnosis: null,
+            nextAppointment: nextAppointment ? new Date(nextAppointment).toISOString() : null,
+            notes: notes || null
         };
 
         try {
             let result;
             if (isEdit) {
-                result = await patientsService.update(id, patientData);
+                result = await patientService.update(id, patientData);
             } else {
-                result = await patientsService.create(patientData);
+                result = await patientService.create(patientData);
             }
 
             if (result.error) throw result.error;
 
             this._closeModal();
-            this._showToast(isEdit ? 'Paciente actualizado correctamente' : 'Paciente creado correctamente');
+            window.app?.toast?.success(
+                isEdit ? 'Paciente actualizado' : 'Paciente creado',
+                isEdit ? 'Los datos se actualizaron correctamente.' : 'El paciente se registró correctamente.'
+            );
             await this._loadData();
         } catch (err) {
             console.error('Error al guardar paciente:', err);
-            this._showToast('Error al guardar: ' + (err.message || 'Intenta de nuevo'));
+            window.app?.toast?.error('Error', 'No se pudo guardar: ' + (err.message || 'Intenta de nuevo'));
             if (saveBtn) {
                 saveBtn.disabled = false;
                 saveBtn.textContent = isEdit ? 'Guardar cambios' : 'Crear paciente';
@@ -624,53 +663,35 @@ export class PatientsPage {
         }
     }
 
-    /* ===== DELETE ===== */
-    _confirmDelete(id) {
+    /* ===== ELIMINAR ===== */
+
+    async _confirmDelete(id) {
         const p = this.patients.find(pt => pt.id === id);
         if (!p) return;
 
-        const bodyHTML = `
-            <div style="text-align:center; padding: 12px 0;">
-                <i class="fa-solid fa-triangle-exclamation" style="font-size:2rem; color:var(--dash-pink); margin-bottom:12px; display:block;"></i>
-                <p style="margin:0 0 8px; font-size:0.95rem; color:var(--dash-text-primary);">
-                    ¿Eliminar a <strong>${p.name}</strong>?
-                </p>
-                <p style="margin:0; font-size:0.82rem; color:var(--dash-text-secondary);">
-                    Esta acción no se puede deshacer. Se eliminarán todos los datos asociados.
-                </p>
-            </div>
-        `;
-
-        const actionsHTML = `
-            <button class="btn" id="deleteCancelBtn">Cancelar</button>
-            <button class="btn btn-danger" id="deleteConfirmBtn">${icon('trash')} Eliminar</button>
-        `;
-
-        this._openModal('Confirmar eliminación', bodyHTML, actionsHTML);
-
-        $('#deleteCancelBtn')?.addEventListener('click', () => this._closeModal());
-        $('#deleteConfirmBtn')?.addEventListener('click', async () => {
-            const confirmBtn = $('#deleteConfirmBtn');
-            if (confirmBtn) {
-                confirmBtn.disabled = true;
-                confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Eliminando...';
-            }
-
-            try {
-                const { error } = await patientsService.delete(id);
-                if (error) throw error;
-                this._closeModal();
-                this._showToast('Paciente eliminado correctamente');
-                await this._loadData();
-            } catch (err) {
-                console.error('Error al eliminar:', err);
-                this._showToast('Error al eliminar: ' + (err.message || 'Intenta de nuevo'));
-                this._closeModal();
-            }
+        const confirmed = await window.app?.confirm?.show({
+            title: '¿Eliminar paciente?',
+            message: `Se eliminará a ${p.name} del listado. Esta acción no se puede deshacer.`,
+            confirmLabel: 'Eliminar',
+            cancelLabel: 'Cancelar',
+            danger: true
         });
+
+        if (!confirmed) return;
+
+        try {
+            const { error } = await patientService.delete(id);
+            if (error) throw error;
+            window.app?.toast?.success('Eliminado', 'Paciente eliminado correctamente.');
+            await this._loadData();
+        } catch (err) {
+            console.error('Error al eliminar:', err);
+            window.app?.toast?.error('Error', 'No se pudo eliminar: ' + (err.message || 'Intenta de nuevo'));
+        }
     }
 
-    /* ===== TOAST ===== */
+    /* ===== TOAST LOCAL ===== */
+
     _showToast(message) {
         const toast = $('#patientsToast');
         if (!toast) return;
