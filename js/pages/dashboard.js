@@ -4,12 +4,13 @@
 
 import {
     getClinicianProfile, getGreeting, getSummary,
-    getAppointments, getEvaluations, getTasks, getNotes,
+    getAppointments, getTasks, getNotes,
     getReports, getMessages, getEmotionalState, getQuote,
     formatDate, formatTime, getInitials, formatAppointmentDate
 } from '../services/mockData.js';
 import { patientService, THERAPY_TYPES, STATUS_LABELS } from '../services/patientsService.js';
 import { appointmentService, STATUS_LABELS as APPT_STATUS_LABELS, STATUS_COLORS as APPT_STATUS_COLORS } from '../services/appointmentsService.js';
+import { evaluationService, INSTRUMENTS, STATUS_LABELS as EVAL_STATUS_LABELS } from '../services/evaluationsService.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -256,6 +257,7 @@ export class DashboardPage {
         this._renderPatients();
         await this._renderAppointments();
         this._renderEmotionChart();
+        await this._renderEvaluationsPanel();
 
         patientService.onChange(() => {
             this._renderPatients();
@@ -265,7 +267,11 @@ export class DashboardPage {
         appointmentService.onChange(() => {
             this._renderAppointments();
         });
-        this._renderEvaluationsPanel();
+        evaluationService.onChange(async () => {
+            await this._renderEvaluationsPanel();
+            if (this.currentModal === 'evaluations') await this._renderModalEvalList();
+        });
+        await this._renderEvaluationsPanel();
         this._initParticles();
         this._startClock();
         this._initResponsiveListeners();
@@ -443,27 +449,31 @@ export class DashboardPage {
             </svg>`;
     }
 
-    _renderEvaluationsPanel() {
+    async _renderEvaluationsPanel() {
         const container = $('#dashEvalList');
         if (!container) return;
         const tab = this.panelEvaluationTab;
-        const evals = getEvaluations();
-        const items = evals[tab] || [];
-        $$('#dashEvalTabs .tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
-        if (!items.length) {
-            container.innerHTML = `<div class="empty-state">No hay evaluaciones en esta categoría.</div>`;
-            return;
-        }
-        container.innerHTML = items.slice(0, 3).map(ev => `
-            <div class="eval-row">
-                <div class="eval-icon">${icon('clipboard', 14)}</div>
-                <div class="eval-info">
-                    <div class="eval-name">${ev.name}</div>
-                    <div class="eval-meta">${ev.patient} · ${ev.date}</div>
+        const statusMap = { pending: 'PENDIENTE', inProgress: 'EN_PROGRESO', completed: 'COMPLETADA' };
+        try {
+            const { data: items } = await evaluationService.getAll({ status: statusMap[tab] || 'all' });
+            $$('#dashEvalTabs .tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+            if (!items.length) {
+                container.innerHTML = `<div class="empty-state">No hay evaluaciones en esta categoría.</div>`;
+                return;
+            }
+            container.innerHTML = items.slice(0, 3).map(ev => `
+                <div class="eval-row">
+                    <div class="eval-icon">${icon('clipboard', 14)}</div>
+                    <div class="eval-info">
+                        <div class="eval-name">${ev.instrumentCode || ev.instrumentName}</div>
+                        <div class="eval-meta">${ev.patientName} · ${formatDate(ev.assessmentDate)}</div>
+                    </div>
+                    ${tab !== 'completed' ? `<button class="btn-start" data-eval-start="${ev.id}">Comenzar</button>` : `<span class="status-pill completed">Lista</span>`}
                 </div>
-                ${tab !== 'completed' ? `<button class="btn-start" data-eval-start="${ev.name}">Comenzar</button>` : `<span class="status-pill completed">Lista</span>`}
-            </div>
-        `).join('');
+            `).join('');
+        } catch {
+            container.innerHTML = `<div class="empty-state">Error al cargar evaluaciones.</div>`;
+        }
     }
 
     // ========== EVENTS ==========
@@ -580,21 +590,26 @@ export class DashboardPage {
         // Eval tabs
         const evalTabs = $('#dashEvalTabs');
         if (evalTabs) {
-            evalTabs.addEventListener('click', (e) => {
+            evalTabs.addEventListener('click', async (e) => {
                 const btn = e.target.closest('.tab-btn');
                 if (!btn) return;
                 this.panelEvaluationTab = btn.dataset.tab;
-                this._renderEvaluationsPanel();
+                await this._renderEvaluationsPanel();
             });
         }
 
         // Eval start buttons
         const evalList = $('#dashEvalList');
         if (evalList) {
-            evalList.addEventListener('click', (e) => {
+            evalList.addEventListener('click', async (e) => {
                 const btn = e.target.closest('[data-eval-start]');
                 if (!btn) return;
-                this._showToast(`Iniciando: ${btn.dataset.evalStart}`);
+                const id = btn.dataset.evalStart;
+                try {
+                    await evaluationService.update(id, { status: 'EN_PROGRESO', startedAt: new Date().toISOString() });
+                    this._showToast('Evaluación iniciada');
+                    await this._renderEvaluationsPanel();
+                } catch { this._showToast('Error al iniciar evaluación'); }
             });
         }
 
@@ -714,7 +729,7 @@ export class DashboardPage {
             case 'core': body.innerHTML = this._coreModalHTML(); break;
             case 'patients': body.innerHTML = this._patientsModalHTML(); await this._renderModalPatientList(); break;
             case 'appointments': body.innerHTML = await this._appointmentsModalHTML(); break;
-            case 'evaluations': body.innerHTML = this._evaluationsModalHTML(); this._renderModalEvalList(); break;
+            case 'evaluations': body.innerHTML = await this._evaluationsModalHTML(); await this._renderModalEvalList(); break;
             case 'tasks': body.innerHTML = this._tasksModalHTML(); break;
             case 'notes': body.innerHTML = this._notesModalHTML(); break;
             case 'reports': body.innerHTML = this._reportsModalHTML(); this._renderReportsChart(); break;
@@ -821,34 +836,50 @@ export class DashboardPage {
         `;
     }
 
-    _evaluationsModalHTML() {
+    async _evaluationsModalHTML() {
         const tab = this.activeEvaluationTab;
-        const evals = getEvaluations();
+        let counts = { pending: 0, inProgress: 0, completed: 0 };
+        try {
+            const [pending, inProgress, completed] = await Promise.all([
+                evaluationService.getAll({ status: 'PENDIENTE' }),
+                evaluationService.getAll({ status: 'EN_PROGRESO' }),
+                evaluationService.getAll({ status: 'COMPLETADA' })
+            ]);
+            counts = { pending: pending.data.length, inProgress: inProgress.data.length, completed: completed.data.length };
+        } catch { /* use zeros */ }
         return `
+            <div class="action-row" style="justify-content:flex-end;">
+                <button class="btn btn-primary" id="dashBtnNewEval">${icon('plus', 14)} Nueva evaluación</button>
+            </div>
             <div class="tabs">
-                <button class="tab-btn ${tab === 'pending' ? 'active' : ''}" data-modal-tab="pending">Pendientes <span class="tab-count">${evals.pending.length}</span></button>
-                <button class="tab-btn ${tab === 'inProgress' ? 'active' : ''}" data-modal-tab="inProgress">En progreso <span class="tab-count">${evals.inProgress.length}</span></button>
-                <button class="tab-btn ${tab === 'completed' ? 'active' : ''}" data-modal-tab="completed">Completadas <span class="tab-count">${evals.completed.length}</span></button>
+                <button class="tab-btn ${tab === 'pending' ? 'active' : ''}" data-modal-tab="pending">Pendientes <span class="tab-count">${counts.pending}</span></button>
+                <button class="tab-btn ${tab === 'inProgress' ? 'active' : ''}" data-modal-tab="inProgress">En progreso <span class="tab-count">${counts.inProgress}</span></button>
+                <button class="tab-btn ${tab === 'completed' ? 'active' : ''}" data-modal-tab="completed">Completadas <span class="tab-count">${counts.completed}</span></button>
             </div>
             <div class="data-rows" id="dashModalEvalList"></div>
         `;
     }
 
-    _renderModalEvalList() {
+    async _renderModalEvalList() {
         const el = $('#dashModalEvalList');
         if (!el) return;
-        const items = getEvaluations()[this.activeEvaluationTab] || [];
-        if (!items.length) { el.innerHTML = `<div class="empty-state">No hay evaluaciones en esta categoría.</div>`; return; }
-        el.innerHTML = items.map(ev => `
-            <div class="data-row">
-                <div class="eval-icon">${icon('clipboard', 14)}</div>
-                <div class="data-main">
-                    <div class="data-title">${ev.name}</div>
-                    <div class="data-sub">${ev.patient} · Asignada: ${ev.date}</div>
+        const statusMap = { pending: 'PENDIENTE', inProgress: 'EN_PROGRESO', completed: 'COMPLETADA' };
+        try {
+            const { data: items } = await evaluationService.getAll({ status: statusMap[this.activeEvaluationTab] || 'all' });
+            if (!items.length) { el.innerHTML = `<div class="empty-state">No hay evaluaciones en esta categoría.</div>`; return; }
+            el.innerHTML = items.map(ev => `
+                <div class="data-row">
+                    <div class="eval-icon">${icon('clipboard', 14)}</div>
+                    <div class="data-main">
+                        <div class="data-title">${ev.instrumentCode || ev.instrumentName}</div>
+                        <div class="data-sub">${ev.patientName} · Asignada: ${formatDate(ev.assessmentDate)}</div>
+                    </div>
+                    ${this.activeEvaluationTab !== 'completed' ? `<button class="btn-start" data-eval-start="${ev.id}">Comenzar</button>` : `<span class="status-pill completed">Completada</span>`}
                 </div>
-                ${this.activeEvaluationTab !== 'completed' ? `<button class="btn-start" data-eval-start="${ev.name}">Comenzar</button>` : `<span class="status-pill completed">Completada</span>`}
-            </div>
-        `).join('');
+            `).join('');
+        } catch {
+            el.innerHTML = `<div class="empty-state">Error al cargar evaluaciones.</div>`;
+        }
     }
 
     _tasksModalHTML() {
@@ -1187,14 +1218,26 @@ export class DashboardPage {
 
         if (type === 'evaluations') {
             $$('#dashModalBody [data-modal-tab]').forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', async () => {
                     this.activeEvaluationTab = btn.dataset.modalTab;
                     $$('#dashModalBody .tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-                    this._renderModalEvalList();
+                    await this._renderModalEvalList();
                 });
             });
+            $('#dashBtnNewEval')?.addEventListener('click', () => {
+                window.location.hash = '#/evaluations';
+                this._closeModal();
+            });
             $$('[data-eval-start]').forEach(btn => {
-                btn.addEventListener('click', (e) => { e.stopPropagation(); this._showToast(`Iniciando: ${btn.dataset.evalStart}`); });
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.evalStart;
+                    try {
+                        await evaluationService.update(id, { status: 'EN_PROGRESO', startedAt: new Date().toISOString() });
+                        this._showToast('Evaluación iniciada');
+                        await this._renderModalEvalList();
+                    } catch { this._showToast('Error al iniciar evaluación'); }
+                });
             });
         }
 

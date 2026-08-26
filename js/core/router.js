@@ -79,7 +79,9 @@ export class Router {
             '/register': 'Registro — CONTEXTO',
             '/forgot-password': 'Recuperar contraseña — CONTEXTO',
             '/dashboard': '',
-            '/patients': 'Pacientes — CONTEXTO'
+            '/patients': 'Pacientes — CONTEXTO',
+            '/appointments': 'Citas — CONTEXTO',
+            '/evaluations': 'Evaluaciones — CONTEXTO'
         };
         return titles[path] || 'CONTEXTO';
     }
