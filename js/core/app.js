@@ -23,7 +23,7 @@ class App {
         this.themeManager = new ThemeManager();
         this.modal = new Modal();
         this.toast = new Toast();
-        this.confirm = new Confirm();
+        this.confirm = new Confirm(this.modal);
 
         this.auth = authService;
         this.permissions = permissionService;
@@ -119,7 +119,12 @@ class App {
 
         const appEl = document.getElementById('app');
         if (appEl) {
-            appEl.classList.add('app--dashboard');
+            const dashboardPages = ['dashboard', 'patients'];
+            if (dashboardPages.includes(key)) {
+                appEl.classList.add('app--dashboard');
+            } else {
+                appEl.classList.remove('app--dashboard');
+            }
         }
 
         pageInstance.render();
@@ -193,4 +198,11 @@ class App {
 const app = new App();
 window.app = app;
 window.router = router;
+
+const loader = document.getElementById('app-loader');
+if (loader) {
+    loader.classList.add('hidden');
+    setTimeout(() => loader.remove(), 350);
+}
+
 export default app;

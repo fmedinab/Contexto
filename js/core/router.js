@@ -3,8 +3,6 @@
 // Se usa hash routing para que la app funcione en hosting estático
 // (GitHub Pages) sin necesidad de configurar el servidor (sin 404 al refrescar).
 
-import { authService } from '../services/authService.js';
-
 export class Router {
     constructor(routes = {}) {
         this.routes = routes;
@@ -67,7 +65,6 @@ export class Router {
             }
 
             await handler(path, query);
-            this._updatePageHeader(path);
             document.title = this._buildTitle(path);
         } catch (error) {
             console.error(`Error en ruta ${path}:`, error);
@@ -85,31 +82,6 @@ export class Router {
             '/patients': 'Pacientes — CONTEXTO'
         };
         return titles[path] || 'CONTEXTO';
-    }
-
-    _updatePageHeader(path) {
-        const titles = {
-            '/': { title: 'Bienvenido', subtitle: 'Inicio' },
-            '/login': { title: 'Iniciar sesión', subtitle: '' },
-            '/register': { title: 'Crear cuenta', subtitle: '' },
-            '/forgot-password': { title: 'Recuperar contraseña', subtitle: '' },
-            '/dashboard': { title: '', subtitle: '' },
-            '/patients': { title: 'Pacientes', subtitle: 'Gestión de pacientes' }
-        };
-
-        const pageData = titles[path] || { title: 'CONTEXTO', subtitle: '' };
-        const pageTitle = document.getElementById('pageTitle');
-        const pageSubtitle = document.getElementById('pageSubtitle');
-        const pageHeader = document.getElementById('pageHeader');
-
-        if (pageTitle) pageTitle.textContent = pageData.title;
-        if (pageSubtitle) {
-            pageSubtitle.textContent = pageData.subtitle;
-            pageSubtitle.style.display = pageData.subtitle ? 'block' : 'none';
-        }
-        if (pageHeader) {
-            pageHeader.style.display = pageData.subtitle || pageData.title ? 'block' : 'none';
-        }
     }
 }
 

@@ -168,3 +168,51 @@ COMMENT ON TABLE public.role_permissions IS 'Asignación de permisos a roles.';
 COMMENT ON TABLE public.user_roles IS 'Asignación de roles a usuarios. Un usuario puede tener múltiples roles.';
 COMMENT ON TABLE public.site_settings IS 'Configuración global del sistema (clave-valor).';
 COMMENT ON TABLE public.audit_logs IS 'Registro de auditoría para trazabilidad de operaciones sensibles.';
+
+-- ============================================
+-- TABLA: patients
+-- Expedientes de pacientes del consultorio
+-- Entidad base: todas las tablas de negocio
+-- referencian esta tabla.
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.patients (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    owner_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    full_name TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    age INTEGER,
+    gender TEXT CHECK (gender IN ('Femenino', 'Masculino', 'Otro', '')),
+    therapy_type TEXT NOT NULL DEFAULT 'Terapia Individual',
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'new')),
+    diagnosis TEXT,
+    notes TEXT,
+    emergency_contact TEXT,
+    start_date DATE DEFAULT CURRENT_DATE,
+    next_appointment TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+-- ============================================
+-- ÍNDICES: patients
+-- ============================================
+CREATE INDEX IF NOT EXISTS idx_patients_owner_id ON public.patients(owner_id);
+CREATE INDEX IF NOT EXISTS idx_patients_status ON public.patients(status);
+CREATE INDEX IF NOT EXISTS idx_patients_full_name ON public.patients(full_name);
+
+-- ============================================
+-- TRIGGER: patients.updated_at
+-- ============================================
+DROP TRIGGER IF EXISTS update_patients_updated_at ON public.patients;
+CREATE TRIGGER update_patients_updated_at
+    BEFORE UPDATE ON public.patients
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- COMENTARIOS: patients
+-- ============================================
+COMMENT ON TABLE public.patients IS 'Expedientes de pacientes del consultorio psicológico.';
+COMMENT ON COLUMN public.patients.owner_id IS 'UUID del usuario paciente en auth.users. Permite RLS por paciente.';
+COMMENT ON COLUMN public.patients.therapy_type IS 'Tipo de terapia: Terapia Individual, Terapia de Pareja, Evaluación Inicial, Terapia Familiar.';
+COMMENT ON COLUMN public.patients.status IS 'Estado: active (activo), inactive (inactivo/pausa), new (nuevo/primera consulta).';

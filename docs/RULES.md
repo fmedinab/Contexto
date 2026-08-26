@@ -125,8 +125,52 @@ Ubicación central: `js/components/`. No duplicar en cada módulo.
 - HTTPS, variables de entorno, deploy en hosting estático o VPS.
 - No credenciales hardcodeadas (salvo anon key pública).
 - Sin `console.log()` innecesarios ni comentarios obsoletos.
+- **Objetivo**: Sistema listo para producción. No se requiere módulo de auditoría (audit_logs se mantiene en BD pero no se escribe desde frontend).
+- Cada módulo debe llegar completo: CRUD funcional, RLS, loading, skeleton, empty state, error state, validaciones, responsive, dark/light.
+- No dejar módulos a medias. Un módulo terminado = listo para usar por el usuario final.
 
-## 18. Regla fundamental
+## 18. Estructura SQL y base de datos
+
+**Archivos fuente de verdad** (copiar y pegar en Supabase SQL Editor):
+- `database/schema.sql` — Todas las tablas
+- `database/rls.sql` — Todas las políticas RLS + funciones SECURITY DEFINER
+- `database/seed.sql` — Roles, permisos, configuraciones iniciales
+
+**Migraciones** (`database/migrations/`): Solo para cambios futuros cuando el sistema ya esté en producción. Usar la convención `NNN_descripcion.sql`.
+
+**Orden de creación en Supabase SQL Editor:**
+1. Ejecutar `schema.sql` completo
+2. Ejecutar `rls.sql` completo
+3. Ejecutar `seed.sql` completo
+4. Crear usuario AUTH desde Supabase Dashboard → Authentication → Users
+5. Ejecutar `seed-admin.sql` con el UUID del usuario
+
+Cada módulo nuevo agrega su tabla e índices al final de `schema.sql` y sus políticas RLS al final de `rls.sql`. NUNCA crear tablas sueltas en archivos separados.
+
+## 19. Orden de implementación de módulos
+
+**Orden obligatorio** (cada módulo depende del anterior):
+
+1. **Pacientes** (`patients`) — Entidad base. Todo referencia a pacientes.
+2. **Citas** (`appointments`) — Depende de pacientes.
+3. **Evaluaciones** (`assessments`) — Depende de pacientes.
+4. **Notas clínicas** (`session_notes`) — Depende de pacientes.
+5. **Tareas** (`tasks`) — Depende de pacientes.
+6. **Reportes** — Agrega datos de todos los módulos.
+7. **Mensajes** (`messages`) — Depende de pacientes.
+
+**Por cada módulo, entregar completo:**
+- Tabla + índices + RLS agregados a schema.sql y rls.sql
+- Service layer (`js/services/<module>Service.js`)
+- Page module (`js/pages/<module>.js`)
+- CSS (`css/<module>.css`)
+- Routing + permisos
+- Loading spinner orbital + skeleton
+- Empty state + error state
+- Formularios con validación
+- Responsive + dark/light
+
+## 20. Regla fundamental
 
 - NO avanzar al siguiente módulo sin instrucción explícita.
 - Terminar arquitectura, estructura, componentes, seguridad, errores, validaciones, modal, toast, alert, loading, skeleton, dark/light, responsive, API client, configuración para producción antes de implementar funcionalidad nueva.

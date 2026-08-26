@@ -319,6 +319,63 @@
   font-size: 0.9rem;
 }
 
+/* ========== LOADING STATE ========== */
+.app--dashboard .patients-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+}
+
+.app--dashboard .patients-loading .skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.app--dashboard .patients-loading .skel-avatar {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.05) 63%);
+  background-size: 400% 100%;
+  animation: dash-shimmer 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.app--dashboard .patients-loading .skel-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.app--dashboard .patients-loading .skel-line {
+  height: 9px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 37%, rgba(255,255,255,0.05) 63%);
+  background-size: 400% 100%;
+  animation: dash-shimmer 1.6s ease-in-out infinite;
+}
+
+.app--dashboard .patients-loading .skel-line.w60 { width: 60%; }
+.app--dashboard .patients-loading .skel-line.w40 { width: 40%; }
+
+.app--dashboard .patients-loading .skel-btn {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 37%, rgba(255,255,255,0.04) 63%);
+  background-size: 400% 100%;
+  animation: dash-shimmer 1.6s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* Form error */
+.app--dashboard .form-error {
+  font-size: 0.72rem;
+  color: #ef4444;
+  min-height: 1rem;
+}
+
 /* ========== BUTTONS ========== */
 .app--dashboard .btn {
   display: inline-flex;

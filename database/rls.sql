@@ -156,3 +156,54 @@ CREATE POLICY "Admins can view audit_logs"
 -- 4. Las políticas deben ser lo más restrictivas posible.
 -- 5. Para módulos futuros (patients, appointments, etc.),
 --    se crearán políticas específicas respetando mínimo privilegio.
+
+-- ============================================
+-- PATIENTS
+-- ============================================
+-- Habilitar RLS
+ALTER TABLE public.patients ENABLE ROW LEVEL SECURITY;
+
+-- Clinicians (admin, psychologist, assistant) ven todos los pacientes
+CREATE POLICY "Clinicians can view all patients"
+    ON public.patients FOR SELECT
+    USING (
+        public.has_role(auth.uid(), 'admin')
+        OR public.has_role(auth.uid(), 'psychologist')
+        OR public.has_role(auth.uid(), 'assistant')
+    );
+
+-- Clinicians pueden crear pacientes
+CREATE POLICY "Clinicians can create patients"
+    ON public.patients FOR INSERT
+    WITH CHECK (
+        public.has_role(auth.uid(), 'admin')
+        OR public.has_role(auth.uid(), 'psychologist')
+        OR public.has_role(auth.uid(), 'assistant')
+    );
+
+-- Clinicians pueden actualizar pacientes
+CREATE POLICY "Clinicians can update patients"
+    ON public.patients FOR UPDATE
+    USING (
+        public.has_role(auth.uid(), 'admin')
+        OR public.has_role(auth.uid(), 'psychologist')
+        OR public.has_role(auth.uid(), 'assistant')
+    )
+    WITH CHECK (
+        public.has_role(auth.uid(), 'admin')
+        OR public.has_role(auth.uid(), 'psychologist')
+        OR public.has_role(auth.uid(), 'assistant')
+    );
+
+-- Solo admin puede eliminar pacientes
+CREATE POLICY "Admins can delete patients"
+    ON public.patients FOR DELETE
+    USING (public.is_user_admin(auth.uid()));
+
+-- Pacientes ven solo su propio registro
+CREATE POLICY "Patients can view own record"
+    ON public.patients FOR SELECT
+    USING (
+        public.has_role(auth.uid(), 'patient')
+        AND owner_id = auth.uid()
+    );

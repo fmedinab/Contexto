@@ -31,7 +31,7 @@ export class Modal {
             <div class="modal-backdrop" aria-hidden="true"></div>
             <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" style="--modal-max-width: ${this.getSizeWidth(size)}">
                 <div class="modal-header">
-                    <h2 class="modal-title" id="modalTitle">${this.escapeHtml(title)}</h2>
+                    <h2 class="modal-title" id="modalTitle">${escapeHtml(title)}</h2>
                     <button class="modal-close" aria-label="Cerrar modal" data-action="close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -45,7 +45,7 @@ export class Modal {
                         ${actions.map((action, i) => `
                             <button class="btn btn--${action.variant || 'secondary'}" data-action="action" data-index="${i}" ${action.disabled ? 'disabled' : ''}>
                                 ${action.loading ? '<span class="spinner spinner--sm btn-spinner"></span>' : ''}
-                                ${this.escapeHtml(action.label)}
+                                ${escapeHtml(action.label)}
                             </button>
                         `).join('')}
                     </div>
@@ -145,8 +145,8 @@ export class Modal {
                                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
                             </svg>
                         </div>
-                        <h3 class="confirm-title">${this.escapeHtml(title)}</h3>
-                        <p class="confirm-message">${this.escapeHtml(message)}</p>
+                        <h3 class="confirm-title">${escapeHtml(title)}</h3>
+                        <p class="confirm-message">${escapeHtml(message)}</p>
                     </div>
                 `,
                 actions: [

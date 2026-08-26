@@ -456,21 +456,24 @@ export class DashboardPage {
             });
         }
 
-        // Theme toggle
+        // Theme toggle — syncs with global ThemeManager
         const themeBtn = $('#dashSettings');
         if (themeBtn) {
             const appEl = document.getElementById('app');
-            const savedTheme = localStorage.getItem('dash-theme') || 'dark';
-            if (savedTheme === 'light' && appEl) {
+            const currentTheme = window.app?.themeManager?.getTheme() || 'dark';
+            if (currentTheme === 'light' && appEl) {
                 appEl.classList.add('light-mode');
             }
             themeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (!appEl) return;
-                appEl.classList.toggle('light-mode');
-                const isLight = appEl.classList.contains('light-mode');
-                localStorage.setItem('dash-theme', isLight ? 'light' : 'dark');
-                this._showToast(isLight ? 'Modo claro activado.' : 'Modo oscuro activado.');
+                const next = window.app?.themeManager?.toggle() || (appEl.classList.contains('light-mode') ? 'dark' : 'light');
+                if (next === 'light') {
+                    appEl.classList.add('light-mode');
+                } else {
+                    appEl.classList.remove('light-mode');
+                }
+                this._showToast(next === 'light' ? 'Modo claro activado.' : 'Modo oscuro activado.');
             });
         }
 
@@ -578,22 +581,50 @@ export class DashboardPage {
         const wide = ['core', 'patients', 'appointments', 'evaluations', 'reports', 'tasks'].includes(type);
 
         box.className = 'modal-box' + (wide ? ' modal-wide' : '');
-        box.innerHTML = `
-            <div class="modal-header">
-                <div class="modal-title-group">
-                    <h2 class="modal-title">${title}</h2>
-                    ${subtitle ? `<p class="modal-subtitle">${subtitle}</p>` : ''}
-                </div>
-                <button class="modal-close" id="dashModalClose" aria-label="Cerrar">${icon('close', 15)}</button>
-            </div>
-            <div class="modal-body" id="dashModalBody"></div>
-        `;
 
-        this._renderModalBody(type, payload);
-        overlay.classList.add('open');
-        document.body.style.overflow = 'hidden';
-        $('#dashModalClose')?.addEventListener('click', () => this._closeModal());
-        setTimeout(() => $('#dashModalClose')?.focus(), 50);
+        const hasLoading = ['evaluations', 'patients', 'appointments', 'tasks', 'notes', 'reports', 'messages'].includes(type);
+
+        if (hasLoading) {
+            const loadText = subtitle || 'Cargando información';
+            box.innerHTML = `
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <h2 class="modal-title">${title}</h2>
+                        <p class="modal-subtitle">${loadText}...</p>
+                    </div>
+                    <button class="modal-close" id="dashModalClose" aria-label="Cerrar">${icon('close', 15)}</button>
+                </div>
+                <div class="modal-body" id="dashModalBody">
+                    ${this._modalSpinnerHTML(loadText)}
+                </div>
+            `;
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            $('#dashModalClose')?.addEventListener('click', () => this._closeModal());
+            setTimeout(() => $('#dashModalClose')?.focus(), 50);
+
+            setTimeout(() => {
+                this._renderModalBody(type, payload);
+                const subtitleEl = box.querySelector('.modal-subtitle');
+                if (subtitleEl) subtitleEl.textContent = subtitle || '';
+            }, 600);
+        } else {
+            box.innerHTML = `
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <h2 class="modal-title">${title}</h2>
+                        ${subtitle ? `<p class="modal-subtitle">${subtitle}</p>` : ''}
+                    </div>
+                    <button class="modal-close" id="dashModalClose" aria-label="Cerrar">${icon('close', 15)}</button>
+                </div>
+                <div class="modal-body" id="dashModalBody"></div>
+            `;
+            this._renderModalBody(type, payload);
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            $('#dashModalClose')?.addEventListener('click', () => this._closeModal());
+            setTimeout(() => $('#dashModalClose')?.focus(), 50);
+        }
     }
 
     _closeModal() {
@@ -994,6 +1025,76 @@ export class DashboardPage {
         $$('#dashModalBody [data-history-patient]').forEach(btn => {
             btn.addEventListener('click', e => { e.stopPropagation(); this._showToast('Abriendo historial clínico completo (demo).'); });
         });
+    }
+
+    // ========== LOADING HELPERS ==========
+
+    _modalSpinnerHTML(text = 'Cargando', name = '') {
+        return `
+            <div class="modal-loading">
+                <div class="loading-orbit">
+                    <div class="ring"></div>
+                    <div class="ring ring-2"></div>
+                    <div class="core"></div>
+                </div>
+                <div class="loading-text">${text}<span class="loading-dots"><span></span><span></span><span></span></span>${name ? `<br><strong>${name}</strong>` : ''}</div>
+                <div class="loading-bar-track"><div class="loading-bar-fill"></div></div>
+            </div>
+        `;
+    }
+
+    _skeletonRows(count = 3, opts = {}) {
+        const { withBtn = false, twoLines = true } = opts;
+        return `
+            <div class="skeleton-list">
+                ${Array.from({ length: count }).map(() => `
+                    <div class="skeleton-row">
+                        <div class="skel-avatar"></div>
+                        <div class="skel-lines">
+                            <div class="skel-line w60"></div>
+                            ${twoLines ? '<div class="skel-line w40"></div>' : ''}
+                        </div>
+                        ${withBtn ? '<div class="skel-btn"></div>' : ''}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    _skeletonTabs(count = 3) {
+        return `
+            <div class="skeleton-tabs">
+                ${Array.from({ length: count }).map(() => '<div class="skel-tab"></div>').join('')}
+            </div>
+        `;
+    }
+
+    _skeletonChart() {
+        return '<div class="skeleton-chart"></div>';
+    }
+
+    _skeletonGrid(count = 6) {
+        return `
+            <div class="skeleton-grid">
+                ${Array.from({ length: count }).map(() => '<div class="skel-box"></div>').join('')}
+            </div>
+        `;
+    }
+
+    _skeletonMessages(count = 4) {
+        return `
+            <div class="skeleton-list">
+                ${Array.from({ length: count }).map(() => `
+                    <div class="skeleton-msg">
+                        <div class="skel-dot"></div>
+                        <div class="skel-lines">
+                            <div class="skel-line w40"></div>
+                            <div class="skel-line w80"></div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
     }
 
     // ========== TOAST ==========
