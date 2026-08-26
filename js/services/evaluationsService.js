@@ -3,7 +3,6 @@
 
 import { supabase } from '../../config/supabase.js';
 import { authService } from './authService.js';
-import { patientService } from './patientsService.js';
 
 const TABLE = 'assessments';
 
@@ -129,13 +128,24 @@ class EvaluationsService {
 
         const { data, error, count } = await query;
 
-        if (error) return { data: [], error, count: 0 };
+        if (error) {
+            console.error('evaluationsService.getAll query error:', error);
+            return { data: [], error, count: 0 };
+        }
 
         let patientMap = {};
         try {
-            const { data: patients } = await patientService.getAll();
-            (patients || []).forEach(p => { patientMap[p.id] = p.name; });
-        } catch { /* continue without patient names */ }
+            const ids = [...new Set((data || []).map(r => r.patient_id).filter(Boolean))];
+            if (ids.length) {
+                const { data: pRows, error: pErr } = await supabase.from('patients').select('id, full_name').in('id', ids);
+                if (pErr) {
+                    console.error('evaluationsService patient lookup error:', pErr);
+                }
+                (pRows || []).forEach(p => { patientMap[p.id] = p.full_name || ''; });
+            }
+        } catch (pErr) {
+            console.error('evaluationsService patient lookup exception:', pErr);
+        }
 
         const mapped = (data || []).map(row => {
             const item = dbRowToUI(row);

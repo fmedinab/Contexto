@@ -272,7 +272,6 @@ export class DashboardPage {
             await this._renderEvaluationsPanel();
             if (this.currentModal === 'evaluations') await this._renderModalEvalList();
         });
-        await this._renderEvaluationsPanel();
         this._initParticles();
         this._startClock();
         this._initResponsiveListeners();
@@ -467,12 +466,13 @@ export class DashboardPage {
                     <div class="eval-icon">${icon('clipboard', 14)}</div>
                     <div class="eval-info">
                         <div class="eval-name">${ev.instrumentCode || ev.instrumentName}</div>
-                        <div class="eval-meta">${ev.patientName} · ${formatDate(ev.assessmentDate)}</div>
+                        <div class="eval-meta">${ev.patientName} · ${new Date(ev.assessmentDate + 'T00:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                     </div>
                     ${tab !== 'completed' ? `<button class="btn-start" data-eval-start="${ev.id}">Comenzar</button>` : `<span class="status-pill completed">Lista</span>`}
                 </div>
             `).join('');
-        } catch {
+        } catch (err) {
+            console.error('Error panel evaluaciones:', err);
             container.innerHTML = `<div class="empty-state">Error al cargar evaluaciones.</div>`;
         }
     }
@@ -874,7 +874,7 @@ export class DashboardPage {
                     <div class="eval-icon">${icon('clipboard', 14)}</div>
                     <div class="data-main">
                         <div class="data-title">${ev.instrumentCode || ev.instrumentName}</div>
-                        <div class="data-sub">${ev.patientName} · Asignada: ${formatDate(ev.assessmentDate)}</div>
+                        <div class="data-sub">${ev.patientName} · Asignada: ${new Date(ev.assessmentDate + 'T00:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                     </div>
                     ${this.activeEvaluationTab !== 'completed' ? `<button class="btn-start" data-eval-start="${ev.id}">Comenzar</button>` : `<span class="status-pill completed">Completada</span>`}
                 </div>
