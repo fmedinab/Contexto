@@ -1,0 +1,543 @@
+/* ============================================================
+   CITAS / AGENDA — Mente Serena
+   Encapsulado bajo .app--dashboard para consistencia visual.
+   ============================================================ */
+
+/* ========== PAGE HEADER ========== */
+.app--dashboard .appts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 24px 0;
+  border-bottom: 1px solid var(--dash-border);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.app--dashboard .appts-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app--dashboard .appts-title {
+  font-family: var(--dash-font-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+  margin: 0;
+}
+
+.app--dashboard .appts-subtitle {
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+  margin: 0;
+}
+
+.app--dashboard .appts-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ========== VIEW TOGGLE ========== */
+.app--dashboard .view-toggle {
+  display: flex;
+  background: var(--dash-bg-card);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  padding: 3px;
+}
+
+.app--dashboard .view-btn {
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+
+.app--dashboard .view-btn:hover { color: var(--dash-text-primary); }
+.app--dashboard .view-btn.active { background: var(--dash-violet); color: #fff; }
+
+/* ========== STATS ROW ========== */
+.app--dashboard .appts-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+/* ========== TOOLBAR ========== */
+.app--dashboard .type-filter-select {
+  padding: 8px 32px 8px 14px;
+  background: var(--dash-bg-card);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  color: var(--dash-text-primary);
+  font-size: 0.85rem;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239ba3bd' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: border-color 0.2s;
+}
+
+.app--dashboard .type-filter-select:focus { border-color: var(--dash-violet); }
+
+/* ========== APPOINTMENT TABLE ========== */
+.app--dashboard .appts-table-wrap {
+  background: var(--dash-bg-card);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-md);
+  overflow: hidden;
+}
+
+.app--dashboard .appts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.app--dashboard .appts-table thead th {
+  text-align: left;
+  padding: 14px 18px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-text-tertiary);
+  border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-bg-secondary);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.app--dashboard .appts-table tbody tr {
+  border-bottom: 1px solid var(--dash-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.app--dashboard .appts-table tbody tr:last-child { border-bottom: none; }
+.app--dashboard .appts-table tbody tr:hover { background: var(--dash-bg-card-strong); }
+
+.app--dashboard .appts-table td {
+  padding: 14px 18px;
+  vertical-align: middle;
+  color: var(--dash-text-primary);
+}
+
+/* Appt cell with avatar */
+.app--dashboard .appt-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app--dashboard .appt-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #fff;
+  flex-shrink: 0;
+  background: var(--dash-blue);
+}
+
+.app--dashboard .appt-patient-name {
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.app--dashboard .appt-title-text {
+  font-size: 0.85rem;
+  color: var(--dash-text-secondary);
+}
+
+.app--dashboard .appt-datetime {
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary);
+  white-space: nowrap;
+}
+
+.app--dashboard .appt-duration {
+  font-size: 0.82rem;
+  color: var(--dash-text-tertiary);
+}
+
+/* ========== STATUS BADGES (appointments) ========== */
+.app--dashboard .status-badge.appt-status-amber {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+.app--dashboard .status-badge.appt-status-amber::before { background: #fbbf24; }
+
+.app--dashboard .status-badge.appt-status-green {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+.app--dashboard .status-badge.appt-status-green::before { background: #34d399; }
+
+.app--dashboard .status-badge.appt-status-blue {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--dash-blue);
+}
+.app--dashboard .status-badge.appt-status-blue::before { background: var(--dash-blue); }
+
+.app--dashboard .status-badge.appt-status-emerald {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+.app--dashboard .status-badge.appt-status-emerald::before { background: #34d399; }
+
+.app--dashboard .status-badge.appt-status-red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+.app--dashboard .status-badge.appt-status-red::before { background: #ef4444; }
+
+/* ========== EMPTY STATE ========== */
+.app--dashboard .appts-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--dash-text-tertiary);
+}
+
+.app--dashboard .appts-empty i {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  display: block;
+  color: var(--dash-text-tertiary);
+}
+
+.app--dashboard .appts-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.app--dashboard .appts-empty-hint {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: var(--dash-text-tertiary);
+}
+
+.app--dashboard .appts-empty-btn {
+  margin-top: 16px;
+}
+
+/* ========== LOADING STATE ========== */
+.app--dashboard .appt-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+}
+
+.app--dashboard .appt-loading .skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+/* ========== MODAL ========== */
+.app--dashboard .appt-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s, visibility 0.25s;
+}
+
+.app--dashboard .appt-modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.app--dashboard .appt-modal {
+  background: var(--dash-bg-modal);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-md);
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--dash-shadow-soft);
+  transform: translateY(12px);
+  transition: transform 0.25s;
+}
+
+.app--dashboard .appt-modal-overlay.open .appt-modal {
+  transform: translateY(0);
+}
+
+/* ========== DETAIL VIEW ========== */
+.app--dashboard .appt-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--dash-border);
+}
+
+.app--dashboard .appt-detail-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--dash-blue);
+}
+
+.app--dashboard .appt-detail-name {
+  font-family: var(--dash-font-display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--dash-text-primary);
+}
+
+.app--dashboard .appt-detail-id {
+  font-size: 0.78rem;
+  color: var(--dash-text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.app--dashboard .appt-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.app--dashboard .detail-section-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+  margin-top: 4px;
+}
+
+.app--dashboard .modal-actions-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ========== AGENDA VIEW ========== */
+.app--dashboard .agenda-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--dash-bg-card);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+}
+
+.app--dashboard .agenda-date-label {
+  flex: 1;
+  text-align: center;
+  font-family: var(--dash-font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+}
+
+.app--dashboard .agenda-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app--dashboard .agenda-card {
+  display: flex;
+  align-items: stretch;
+  background: var(--dash-bg-card);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  overflow: hidden;
+  transition: border-color 0.2s;
+  cursor: pointer;
+}
+
+.app--dashboard .agenda-card:hover {
+  border-color: var(--dash-border-strong);
+}
+
+.app--dashboard .agenda-card-time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dash-violet);
+  background: var(--dash-violet-dim);
+  white-space: nowrap;
+  min-width: 90px;
+  border-right: 1px solid var(--dash-border);
+}
+
+.app--dashboard .agenda-card-body {
+  flex: 1;
+  padding: 14px 18px;
+  min-width: 0;
+}
+
+.app--dashboard .agenda-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.app--dashboard .agenda-card-patient {
+  font-weight: 600;
+  color: var(--dash-text-primary);
+  font-size: 0.9rem;
+}
+
+.app--dashboard .agenda-card-title {
+  font-size: 0.82rem;
+  color: var(--dash-text-secondary);
+  margin-bottom: 6px;
+}
+
+.app--dashboard .agenda-card-meta {
+  display: flex;
+  gap: 14px;
+  font-size: 0.78rem;
+  color: var(--dash-text-tertiary);
+  flex-wrap: wrap;
+}
+
+.app--dashboard .agenda-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app--dashboard .agenda-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+}
+
+.app--dashboard .agenda-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--dash-text-tertiary);
+}
+
+.app--dashboard .agenda-empty i {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* ========== TOAST ========== */
+.app--dashboard .appts-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 20px;
+  background: var(--dash-bg-modal);
+  border: 1px solid var(--dash-border);
+  border-radius: 12px;
+  color: var(--dash-text-primary);
+  font-size: 0.85rem;
+  box-shadow: var(--dash-shadow-soft);
+  z-index: 500;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+
+.app--dashboard .appts-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ========== HIDDEN UTILITY ========== */
+.app--dashboard .hidden { display: none !important; }
+
+/* ========== RESPONSIVE — TABLET ========== */
+@media (max-width: 1040px) {
+  .app--dashboard .appts-stats { grid-template-columns: repeat(2, 1fr); }
+  .app--dashboard .appts-table-wrap { overflow-x: auto; }
+  .app--dashboard .appts-table { min-width: 680px; }
+}
+
+/* ========== RESPONSIVE — MOBILE ========== */
+@media (max-width: 640px) {
+  .app--dashboard .appts-header { flex-direction: column; align-items: flex-start; }
+  .app--dashboard .appts-header-actions { width: 100%; justify-content: space-between; }
+  .app--dashboard .appts-header-actions .btn { flex: 1; justify-content: center; }
+
+  .app--dashboard .appts-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+  .app--dashboard .appts-toolbar { flex-direction: column; }
+  .app--dashboard .search-box { min-width: 0; width: 100%; }
+  .app--dashboard .filter-tabs { width: 100%; overflow-x: auto; }
+
+  .app--dashboard .appts-table-wrap { border-radius: var(--dash-radius-sm); }
+  .app--dashboard .appts-table td,
+  .app--dashboard .appts-table thead th { padding: 10px 12px; }
+
+  .app--dashboard .appts-table thead { display: none; }
+  .app--dashboard .appts-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 12px;
+    align-items: center;
+  }
+  .app--dashboard .appts-table tbody tr td { padding: 2px 0; }
+  .app--dashboard .appts-table tbody tr td:first-child { flex: 1; }
+  .app--dashboard .appts-table tbody tr td:nth-child(n+2) { flex-basis: 100%; }
+
+  .app--dashboard .form-grid { grid-template-columns: 1fr; }
+  .app--dashboard .form-field.full { grid-column: auto; }
+
+  .app--dashboard .appt-detail-grid { grid-template-columns: 1fr; }
+
+  .app--dashboard .appt-modal { width: 95%; max-height: 90vh; }
+
+  .app--dashboard .agenda-card { flex-direction: column; }
+  .app--dashboard .agenda-card-time {
+    min-width: 0;
+    padding: 10px 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--dash-border);
+    justify-content: flex-start;
+  }
+}

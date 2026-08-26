@@ -9,6 +9,7 @@ import {
     formatDate, formatTime, getInitials, formatAppointmentDate
 } from '../services/mockData.js';
 import { patientService, THERAPY_TYPES, STATUS_LABELS } from '../services/patientsService.js';
+import { appointmentService, STATUS_LABELS as APPT_STATUS_LABELS, STATUS_COLORS as APPT_STATUS_COLORS } from '../services/appointmentsService.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -64,7 +65,7 @@ export class DashboardPage {
         this.panelEvaluationTab = 'pending';
     }
 
-    render() {
+    async render() {
         this.container = document.getElementById('pageBody');
         if (!this.container) return;
 
@@ -205,7 +206,7 @@ export class DashboardPage {
                         <section class="card">
                             <div class="card-title">
                                 Próximas citas
-                                <button class="card-link" data-modal="appointments">Ver agenda ${icon('chevRight', 12)}</button>
+                                <button class="card-link" data-navigate="/appointments">Ver agenda ${icon('chevRight', 12)}</button>
                             </div>
                             <div class="appt-list" id="dashAppointments"></div>
                         </section>
@@ -253,12 +254,16 @@ export class DashboardPage {
         this._bindEvents();
         this._renderSummary();
         this._renderPatients();
-        this._renderAppointments();
+        await this._renderAppointments();
         this._renderEmotionChart();
 
         patientService.onChange(() => {
             this._renderPatients();
             if (this.currentModal === 'patients') this._renderModalPatientList();
+        });
+
+        appointmentService.onChange(() => {
+            this._renderAppointments();
         });
         this._renderEvaluationsPanel();
         this._initParticles();
@@ -350,19 +355,31 @@ export class DashboardPage {
         `).join('');
     }
 
-    _renderAppointments() {
+    async _renderAppointments() {
         const list = $('#dashAppointments');
         if (!list) return;
-        list.innerHTML = getAppointments().map((a, i) => `
-            <button class="appt-row" data-appt-index="${i}">
-                <span class="appt-status-dot ${a.status}"></span>
-                <span class="appt-info">
-                    <span class="appt-time-name">${a.time}<span class="sep">·</span>${a.patient}</span>
-                    <span class="appt-type">${a.type}</span>
-                </span>
-                ${icon('chevRight', 16)}
-            </button>
-        `).join('');
+        try {
+            const { data: appointments } = await appointmentService.getAll({ status: 'all' });
+            const upcoming = (appointments || [])
+                .filter(a => new Date(a.appointmentDate) >= new Date() && a.status !== 'CANCELADA')
+                .slice(0, 5);
+            if (!upcoming.length) {
+                list.innerHTML = `<div class="empty-state">No hay citas próximas.</div>`;
+                return;
+            }
+            list.innerHTML = upcoming.map(a => `
+                <button class="appt-row" data-appt-id="${a.id}">
+                    <span class="appt-status-dot ${APPT_STATUS_COLORS[a.status] || 'amber'}"></span>
+                    <span class="appt-info">
+                        <span class="appt-time-name">${formatAppointmentDate(a.appointmentDate)}<span class="sep">·</span>${escapeHtml(a.patientName)}</span>
+                        <span class="appt-type">${escapeHtml(a.title)}</span>
+                    </span>
+                    ${icon('chevRight', 16)}
+                </button>
+            `).join('');
+        } catch {
+            list.innerHTML = `<div class="empty-state">Error al cargar citas.</div>`;
+        }
     }
 
     _renderEmotionChart() {
@@ -459,12 +476,12 @@ export class DashboardPage {
             });
         }
 
-        // Calendar
+        // Calendar — navigate to appointments page
         const calBtn = $('#dashCalendar');
         if (calBtn) {
             calBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this._openModal('appointments');
+                window.router?.navigate('/appointments');
             });
         }
 
@@ -518,11 +535,11 @@ export class DashboardPage {
         // Appointment rows
         const apptList = $('#dashAppointments');
         if (apptList) {
-            apptList.addEventListener('click', (e) => {
-                const row = e.target.closest('[data-appt-index]');
+            apptList.addEventListener('click', async (e) => {
+                const row = e.target.closest('[data-appt-id]');
                 if (!row) return;
-                const appt = getAppointments()[Number(row.dataset.apptIndex)];
-                this._openModal('appointmentDetail', appt);
+                const { data: appt } = await appointmentService.getById(row.dataset.apptId);
+                if (appt) this._openModal('appointmentDetail', appt);
             });
         }
 
@@ -552,6 +569,11 @@ export class DashboardPage {
             const trigger = e.target.closest('[data-modal]');
             if (trigger) {
                 this._openModal(trigger.dataset.modal);
+            }
+            // Navigate triggers (data-navigate)
+            const navTrigger = e.target.closest('[data-navigate]');
+            if (navTrigger) {
+                window.router?.navigate(navTrigger.dataset.navigate);
             }
         });
 
@@ -656,14 +678,14 @@ export class DashboardPage {
         switch (type) {
             case 'core': body.innerHTML = this._coreModalHTML(); break;
             case 'patients': body.innerHTML = this._patientsModalHTML(); await this._renderModalPatientList(); break;
-            case 'appointments': body.innerHTML = this._appointmentsModalHTML(); break;
+            case 'appointments': body.innerHTML = await this._appointmentsModalHTML(); break;
             case 'evaluations': body.innerHTML = this._evaluationsModalHTML(); this._renderModalEvalList(); break;
             case 'tasks': body.innerHTML = this._tasksModalHTML(); break;
             case 'notes': body.innerHTML = this._notesModalHTML(); break;
             case 'reports': body.innerHTML = this._reportsModalHTML(); this._renderReportsChart(); break;
             case 'messages': body.innerHTML = this._messagesModalHTML(); break;
             case 'patientDetail': body.innerHTML = this._patientDetailHTML(payload); break;
-            case 'appointmentDetail': body.innerHTML = this._appointmentDetailHTML(payload); break;
+            case 'appointmentDetail': body.innerHTML = await this._appointmentDetailHTML(payload); break;
             case 'newAppointment': body.innerHTML = await this._newAppointmentFormHTML(); break;
             case 'newNote': body.innerHTML = await this._newNoteFormHTML(); break;
             case 'newTask': body.innerHTML = await this._newTaskFormHTML(); break;
@@ -740,23 +762,27 @@ export class DashboardPage {
         `).join('');
     }
 
-    _appointmentsModalHTML() {
-        const statusLabel = { confirmed: 'Confirmada', pending: 'Pendiente', 'in-progress': 'En curso', completed: 'Completada', cancelled: 'Cancelada' };
+    async _appointmentsModalHTML() {
+        const { data: appointments } = await appointmentService.getAll({ status: 'all' });
+        const upcoming = (appointments || [])
+            .filter(a => a.status !== 'CANCELADA')
+            .slice(0, 10);
         return `
             <div class="action-row" style="justify-content:space-between; align-items:center;">
                 <span class="data-sub" style="font-size:12.5px;">${formatDate(new Date())}</span>
                 <button class="btn btn-primary" id="dashBtnNewAppointment">${icon('plus', 14)} Nueva cita</button>
             </div>
-            <div class="data-rows">${getAppointments().map(a => `
-                <div class="data-row">
-                    <div class="patient-avatar">${getInitials(a.patient)}</div>
+            <div class="data-rows">${upcoming.length ? upcoming.map(a => `
+                <div class="data-row" data-appt-id="${a.id}" style="cursor:pointer;">
+                    <div class="patient-avatar">${getInitials(a.patientName)}</div>
                     <div class="data-main">
-                        <div class="data-title">${a.time} · ${a.patient}</div>
-                        <div class="data-sub">${a.type}</div>
+                        <div class="data-title">${escapeHtml(a.title)}</div>
+                        <div class="data-sub">${escapeHtml(a.patientName)} · ${formatAppointmentDate(a.appointmentDate)}</div>
+                        <div class="data-sub2">${escapeHtml(a.type)}</div>
                     </div>
-                    <span class="status-pill ${a.status}">${statusLabel[a.status] || a.status}</span>
+                    <span class="status-pill ${APPT_STATUS_COLORS[a.status] || 'pending'}">${APPT_STATUS_LABELS[a.status] || a.status}</span>
                 </div>
-            `).join('')}</div>
+            `).join('') : '<div class="empty-state">No hay citas programadas.</div>'}</div>
         `;
     }
 
@@ -916,24 +942,40 @@ export class DashboardPage {
         `;
     }
 
-    _appointmentDetailHTML(a) {
-        if (!a) return `<div class="empty-state">Cita no encontrada.</div>`;
-        const statusLabel = { confirmed: 'Confirmada', pending: 'Pendiente', 'in-progress': 'En curso', completed: 'Completada', cancelled: 'Cancelada' };
+    async _appointmentDetailHTML(appointment) {
+        if (!appointment) return `<div class="empty-state">Cita no encontrada.</div>`;
+        const a = appointment.id ? appointment : (await appointmentService.getById(appointment.id)).data || appointment;
+        const statusColor = APPT_STATUS_COLORS[a.status] || 'amber';
+        const transitions = appointmentService.getValidTransitions(a.status);
+        let actionsHTML = `<button class="btn" data-close-modal>Cerrar</button>`;
+        if (transitions.length > 0) {
+            const transitionBtns = transitions.map(t => {
+                const label = APPT_STATUS_LABELS[t] || t;
+                const cls = t === 'CANCELADA' ? 'btn btn-danger' : 'btn btn-primary';
+                return `<button class="${cls}" data-transition="${t}" data-appt-id="${a.id}">${label}</button>`;
+            }).join('');
+            actionsHTML = `<div class="action-row" style="gap:8px; flex-wrap:wrap;">${transitionBtns}</div>` + actionsHTML;
+        }
+        actionsHTML += `<button class="btn" data-edit-appt="${a.id}">${icon('pencil', 13)} Editar</button>`;
         return `
             <div class="data-row">
-                <div class="patient-avatar">${getInitials(a.patient)}</div>
+                <div class="patient-avatar">${getInitials(a.patientName)}</div>
                 <div class="data-main">
-                    <div class="data-title">${a.patient}</div>
-                    <div class="data-sub">${a.type}</div>
-                    <div class="data-sub2">Hoy · ${a.time}</div>
+                    <div class="data-title">${escapeHtml(a.title)}</div>
+                    <div class="data-sub">${escapeHtml(a.patientName)}</div>
+                    <div class="data-sub2">${escapeHtml(a.type)}</div>
                 </div>
-                <span class="status-pill ${a.status}">${statusLabel[a.status] || a.status}</span>
+                <span class="status-pill ${statusColor}">${APPT_STATUS_LABELS[a.status] || a.status}</span>
             </div>
-            <div class="action-row">
-                <button class="btn btn-primary" data-confirm-appt="1">Confirmar asistencia</button>
-                <button class="btn" data-reschedule-appt="1">Reprogramar</button>
-                <button class="btn" data-cancel-appt="1">Cancelar</button>
+            <div class="data-title" style="font-size:12px; color:var(--dash-text-secondary); text-transform:uppercase; letter-spacing:.04em; margin-top:4px;">Detalle</div>
+            <div class="data-row" style="background:rgba(255,255,255,0.02);">
+                <div class="data-main">
+                    <div class="data-sub">Fecha: ${formatAppointmentDate(a.appointmentDate)}</div>
+                    <div class="data-sub2" style="margin-top:4px;">Duración: ${a.durationMinutes} min · ${a.location ? 'Lugar: ' + escapeHtml(a.location) : ''}</div>
+                    ${a.notes ? `<div class="data-sub2" style="margin-top:4px;">Notas: ${escapeHtml(a.notes)}</div>` : ''}
+                </div>
             </div>
+            <div class="action-row">${actionsHTML}</div>
         `;
     }
 
@@ -942,12 +984,14 @@ export class DashboardPage {
         const patientOptions = (patients || []).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
         return `
             <form class="form-grid" id="dashFormNewAppointment">
-                <div class="form-field"><label for="fPatient">Paciente</label><select id="fPatient">${patientOptions}</select></div>
-                <div class="form-field"><label for="fDate">Fecha</label><input type="date" id="fDate"></div>
-                <div class="form-field"><label for="fTime">Hora</label><input type="time" id="fTime"></div>
+                <div class="form-field"><label for="fPatient">Paciente *</label><select id="fPatient" required>${patientOptions}</select></div>
+                <div class="form-field"><label for="fTitle">Título *</label><input type="text" id="fTitle" placeholder="Ej: Sesión de seguimiento" required></div>
+                <div class="form-field"><label for="fDate">Fecha *</label><input type="date" id="fDate" required></div>
+                <div class="form-field"><label for="fTime">Hora *</label><input type="time" id="fTime" required></div>
                 <div class="form-field"><label for="fType">Tipo de sesión</label>
-                    <select id="fType"><option>Terapia Individual</option><option>Terapia de Pareja</option><option>Evaluación Inicial</option></select>
+                    <select id="fType"><option>Terapia Individual</option><option>Terapia de Pareja</option><option>Terapia Familiar</option><option>Evaluación</option><option>Otra</option></select>
                 </div>
+                <div class="form-field"><label for="fLocation">Ubicación</label><input type="text" id="fLocation" placeholder="Ej: Consultorio 1"></div>
                 <div class="action-row"><button type="submit" class="btn btn-primary">Guardar cita</button><button type="button" class="btn" id="dashCancelNewAppointment">Cancelar</button></div>
             </form>
         `;
@@ -1096,6 +1140,13 @@ export class DashboardPage {
 
         if (type === 'appointments') {
             $('#dashBtnNewAppointment')?.addEventListener('click', () => this._openModal('newAppointment'));
+            $$('#dashModalBody [data-appt-id]').forEach(row => {
+                row.addEventListener('click', async () => {
+                    const apptId = row.dataset.apptId;
+                    const { data: appt } = await appointmentService.getById(apptId);
+                    if (appt) this._openModal('appointmentDetail', appt);
+                });
+            });
         }
 
         if (type === 'evaluations') {
@@ -1130,15 +1181,70 @@ export class DashboardPage {
         if (type === 'patientDetail') this._bindPatientRowActions();
 
         if (type === 'appointmentDetail') {
-            const map = { 'confirm-appt': 'Cita confirmada.', 'reschedule-appt': 'Iniciando reprogramación (demo).', 'cancel-appt': 'Cita cancelada.' };
-            Object.keys(map).forEach(key => {
-                const el = $(`#dashModalBody [data-${key}]`);
-                if (el) el.addEventListener('click', () => { this._showToast(map[key]); this._closeModal(); });
+            $$('[data-close-modal]', $('#dashModalBody')).forEach(btn => {
+                btn.addEventListener('click', () => this._closeModal());
+            });
+            $$('[data-transition]', $('#dashModalBody')).forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const newStatus = btn.dataset.transition;
+                    const apptId = btn.dataset.apptId;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    const { error } = await appointmentService.update(apptId, { status: newStatus });
+                    if (error) {
+                        this._showToast('Error: ' + (error.message || 'No se pudo actualizar'));
+                        btn.disabled = false;
+                        btn.textContent = APPT_STATUS_LABELS[newStatus];
+                    } else {
+                        this._closeModal();
+                        this._showToast(`Cita marcada como ${APPT_STATUS_LABELS[newStatus]}`);
+                        await this._renderAppointments();
+                    }
+                });
+            });
+            $$('[data-edit-appt]', $('#dashModalBody')).forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    this._closeModal();
+                    const { data: appt } = await appointmentService.getById(btn.dataset.editAppt);
+                    if (appt) {
+                        this._showToast('Redirigiendo a la agenda de citas...');
+                        window.router?.navigate('/appointments');
+                    }
+                });
             });
         }
 
         if (type === 'newAppointment') {
-            $('#dashFormNewAppointment')?.addEventListener('submit', e => { e.preventDefault(); this._showToast('Cita creada correctamente.'); this._closeModal(); });
+            $('#dashFormNewAppointment')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const patientId = $('#dashModalBody #fPatient')?.value;
+                const title = $('#dashModalBody #fTitle')?.value.trim();
+                const dateVal = $('#dashModalBody #fDate')?.value;
+                const timeVal = $('#dashModalBody #fTime')?.value;
+                const typeVal = $('#dashModalBody #fType')?.value;
+                const location = $('#dashModalBody #fLocation')?.value.trim();
+                if (!patientId || !title || !dateVal || !timeVal) {
+                    this._showToast('Completa todos los campos obligatorios.');
+                    return;
+                }
+                const appointmentDate = new Date(`${dateVal}T${timeVal}`).toISOString();
+                const submitBtn = e.target.querySelector('[type="submit"]');
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...'; }
+                try {
+                    const { error } = await appointmentService.create({
+                        patientId, title, appointmentDate,
+                        durationMinutes: 50, type: typeVal,
+                        status: 'PENDIENTE', location: location || null
+                    });
+                    if (error) throw error;
+                    this._closeModal();
+                    this._showToast('Cita creada correctamente.');
+                    await this._renderAppointments();
+                } catch (err) {
+                    this._showToast('Error: ' + (err.message || 'No se pudo crear la cita'));
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Guardar cita'; }
+                }
+            });
             $('#dashCancelNewAppointment')?.addEventListener('click', () => this._openModal('appointments'));
         }
 

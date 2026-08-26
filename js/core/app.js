@@ -15,6 +15,7 @@ import { RegisterPage } from '../pages/register.js';
 import { ForgotPasswordPage } from '../pages/forgot-password.js';
 import { DashboardPage } from '../pages/dashboard.js';
 import { PatientsPage } from '../pages/patients.js';
+import { AppointmentsPage } from '../pages/appointments.js';
 
 import { pwaInstall } from '../pwa/install.js';
 
@@ -66,6 +67,7 @@ class App {
             .addRoute('/forgot-password', () => this.renderPage('forgotPassword', new ForgotPasswordPage()))
             .addRoute('/dashboard', () => this.renderPage('dashboard', new DashboardPage()))
             .addRoute('/patients', () => this.requireAuth(() => this.renderPage('patients', new PatientsPage())))
+            .addRoute('/appointments', () => this.requireAuth(() => this.renderPage('appointments', new AppointmentsPage())))
             .addRoute('*', () => {
                 this.renderPage('404', this._notFoundPage());
             });
@@ -119,7 +121,7 @@ class App {
 
         const appEl = document.getElementById('app');
         if (appEl) {
-            const dashboardPages = ['dashboard', 'patients'];
+            const dashboardPages = ['dashboard', 'patients', 'appointments'];
             if (dashboardPages.includes(key)) {
                 appEl.classList.add('app--dashboard');
             } else {
