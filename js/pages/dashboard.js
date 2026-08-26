@@ -268,11 +268,13 @@ export class DashboardPage {
         this._renderEvaluationsPanel();
         this._initParticles();
         this._startClock();
+        this._initResponsiveListeners();
     }
 
     destroy() {
         if (this.clockInterval) clearInterval(this.clockInterval);
         if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
+        if (this._orientationHandler) window.removeEventListener('orientationchange', this._orientationHandler);
         if (this._docClickHandler) document.removeEventListener('click', this._docClickHandler);
         if (this._docKeyHandler) document.removeEventListener('keydown', this._docKeyHandler);
         this.container = null;
@@ -292,18 +294,46 @@ export class DashboardPage {
         this.clockInterval = setInterval(update, 1000);
     }
 
+    // ========== RESPONSIVE LISTENERS ==========
+
+    _initResponsiveListeners() {
+        let resizeTimer;
+        let lastWidth = window.innerWidth;
+
+        this._resizeHandler = () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                const newWidth = window.innerWidth;
+                if (Math.abs(newWidth - lastWidth) > 50) {
+                    this._initParticles();
+                    lastWidth = newWidth;
+                }
+            }, 250);
+        };
+        window.addEventListener('resize', this._resizeHandler);
+
+        this._orientationHandler = () => {
+            setTimeout(() => {
+                this._initParticles();
+            }, 300);
+        };
+        window.addEventListener('orientationchange', this._orientationHandler);
+    }
+
     // ========== PARTICLES ==========
 
     _initParticles() {
         const field = $('#dashParticleField');
         if (!field) return;
-        const count = 16;
+        const isMobile = window.innerWidth < 768;
+        const count = isMobile ? 8 : 16;
+        const maxRadius = isMobile ? 120 : 200;
         let html = '';
         for (let i = 0; i < count; i++) {
             const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
-            const radius = 200 + Math.random() * 90;
-            const x = 50 + (Math.cos(angle) * radius) / 6.4;
-            const y = 50 + (Math.sin(angle) * radius) / 6.4;
+            const radius = (isMobile ? 80 : 200) + Math.random() * (isMobile ? 40 : 90);
+            const x = 50 + (Math.cos(angle) * radius) / (isMobile ? 3.6 : 6.4);
+            const y = 50 + (Math.sin(angle) * radius) / (isMobile ? 3.6 : 6.4);
             const delay = (Math.random() * 4).toFixed(2);
             html += `<span class="orbit-particle" style="left:${x}%; top:${y}%; animation-delay:${delay}s;"></span>`;
         }
@@ -360,14 +390,17 @@ export class DashboardPage {
         if (!list) return;
         try {
             const { data: appointments } = await appointmentService.getAll({ status: 'all' });
-            const upcoming = (appointments || [])
-                .filter(a => new Date(a.appointmentDate) >= new Date() && a.status !== 'CANCELADA')
-                .slice(0, 5);
-            if (!upcoming.length) {
-                list.innerHTML = `<div class="empty-state">No hay citas próximas.</div>`;
+            const all = (appointments || []).filter(a => a.status !== 'CANCELADA');
+            const now = new Date();
+            const upcoming = all.filter(a => new Date(a.appointmentDate) >= now);
+            const display = upcoming.length > 0
+                ? upcoming.slice(0, 5)
+                : all.sort((a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate)).slice(0, 5);
+            if (!display.length) {
+                list.innerHTML = `<div class="empty-state">No hay citas programadas.</div>`;
                 return;
             }
-            list.innerHTML = upcoming.map(a => `
+            list.innerHTML = display.map(a => `
                 <button class="appt-row" data-appt-id="${a.id}">
                     <span class="appt-status-dot ${APPT_STATUS_COLORS[a.status] || 'amber'}"></span>
                     <span class="appt-info">
@@ -386,7 +419,8 @@ export class DashboardPage {
         const wrap = $('#dashEmotionChart');
         if (!wrap) return;
         const points = getEmotionalState().points;
-        const w = 320, h = 70, pad = 4;
+        const w = Math.max(200, wrap.offsetWidth || 320);
+        const h = 70, pad = 4;
         const max = Math.max(...points), min = Math.min(...points);
         const stepX = (w - pad * 2) / (points.length - 1);
         const coords = points.map((p, i) => {
@@ -564,16 +598,17 @@ export class DashboardPage {
             });
         }
 
-        // Modal triggers (data-modal)
+        // Modal triggers (data-modal) and Navigate triggers (data-navigate)
         document.body.addEventListener('click', (e) => {
             const trigger = e.target.closest('[data-modal]');
             if (trigger) {
                 this._openModal(trigger.dataset.modal);
+                return;
             }
-            // Navigate triggers (data-navigate)
             const navTrigger = e.target.closest('[data-navigate]');
             if (navTrigger) {
                 window.router?.navigate(navTrigger.dataset.navigate);
+                return;
             }
         });
 
@@ -881,7 +916,8 @@ export class DashboardPage {
         const el = $('#dashReportsChart');
         if (!el) return;
         const values = getReports().monthlySessions;
-        const w = 680, h = 90, gap = 6;
+        const w = Math.max(200, el.offsetWidth || 680);
+        const h = 90, gap = 6;
         const barW = (w - gap * (values.length - 1)) / values.length;
         const max = Math.max(...values);
         const bars = values.map((v, i) => {
