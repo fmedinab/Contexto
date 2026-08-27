@@ -20,6 +20,7 @@ import { EvaluationsPage } from '../pages/evaluations.js';
 import { TasksPage } from '../pages/tasks.js';
 import { NotesPage } from '../pages/notes.js';
 import { ReportsPage } from '../pages/reports.js';
+import { LandingPage } from '../pages/landing.js';
 
 import { pwaInstall } from '../pwa/install.js';
 
@@ -59,13 +60,7 @@ class App {
 
     setupRoutes() {
         router
-            .addRoute('/', () => {
-                if (this.auth.isAuthenticated()) {
-                    router.navigate('/dashboard');
-                } else {
-                    router.navigate('/login');
-                }
-            })
+            .addRoute('/', () => this.renderPage('landing', new LandingPage()))
             .addRoute('/login', () => this.renderPage('login', new LoginPage()))
             .addRoute('/register', () => this.renderPage('register', new RegisterPage()))
             .addRoute('/forgot-password', () => this.renderPage('forgotPassword', new ForgotPasswordPage()))

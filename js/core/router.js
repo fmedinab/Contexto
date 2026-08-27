@@ -97,7 +97,7 @@ export class Router {
 
     _buildTitle(path) {
         const titles = {
-            '/': 'Inicio — CONTEXTO',
+            '/': 'CONTEXTO — Psicología',
             '/login': 'Iniciar sesión — CONTEXTO',
             '/register': 'Registro — CONTEXTO',
             '/forgot-password': 'Recuperar contraseña — CONTEXTO',
