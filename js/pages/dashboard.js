@@ -50,6 +50,7 @@ const MODAL_TITLES = {
     notes: ['Notas clínicas', 'Historial de notas de sesión por paciente.'],
     reports: ['Reportes', 'Indicadores generales del consultorio.'],
     messages: ['Mensajes', 'Conversaciones recientes con tus pacientes.'],
+    taskDetail: ['Detalle de tarea', ''],
     patientDetail: ['Expediente del paciente', ''],
     appointmentDetail: ['Detalle de la cita', ''],
     newAppointment: ['Nueva cita', 'Programa una nueva cita para un paciente.'],
@@ -734,7 +735,7 @@ export class DashboardPage {
         const modalSubtitle = type === 'patientForm' && payload?.patient
             ? (payload.isEdit ? `Editar: ${payload.patient.name}` : 'Nuevo paciente')
             : subtitle;
-        const wide = ['core', 'patients', 'appointments', 'evaluations', 'reports', 'tasks'].includes(type);
+        const wide = ['core', 'patients', 'appointments', 'evaluations', 'reports', 'tasks', 'taskDetail'].includes(type);
 
         box.className = 'modal-box' + (wide ? ' modal-wide' : '');
 
@@ -803,6 +804,7 @@ export class DashboardPage {
             case 'notes': body.innerHTML = this._notesModalHTML(); break;
             case 'reports': body.innerHTML = this._reportsModalHTML(); this._renderReportsChart(); break;
             case 'messages': body.innerHTML = this._messagesModalHTML(); break;
+            case 'taskDetail': body.innerHTML = this._taskDetailHTML(payload); break;
             case 'patientDetail': body.innerHTML = this._patientDetailHTML(payload); break;
             case 'appointmentDetail': body.innerHTML = await this._appointmentDetailHTML(payload); break;
             case 'newAppointment': body.innerHTML = await this._newAppointmentFormHTML(); break;
@@ -963,7 +965,6 @@ export class DashboardPage {
             ]);
             counts = { pending: pending.length, inProgress: inProgress.length, completed: completed.length };
         } catch { /* use zeros */ }
-        const _dateDisp = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' }) : '—';
         return `
             <div class="action-row" style="justify-content:flex-end;">
                 <button class="btn btn-primary" id="dashBtnNewTask">${icon('plus', 14)} Nueva tarea</button>
@@ -981,6 +982,7 @@ export class DashboardPage {
         const el = $('#dashModalTaskList');
         if (!el) return;
         const tab = this.activeTaskTab || 'PENDIENTE';
+        const _dateDisp = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' }) : '—';
         try {
             const items = await tasksService.list({ status: tab });
             if (!items.length) { el.innerHTML = `<div class="empty-state">No hay tareas en esta categoría.</div>`; return; }
@@ -1000,6 +1002,78 @@ export class DashboardPage {
         } catch {
             el.innerHTML = `<div class="empty-state">Error al cargar tareas.</div>`;
         }
+    }
+
+    async _openTaskDetailModal(task) {
+        const STATUS_MAP = {
+            PENDIENTE:   { label: 'Pendiente',   color: 'pending' },
+            EN_PROGRESO: { label: 'En progreso', color: 'in-progress' },
+            COMPLETADA:  { label: 'Completada',  color: 'completed' },
+            VENCIDA:     { label: 'Vencida',     color: 'danger' },
+            CANCELADA:   { label: 'Cancelada',   color: 'cancelled' },
+        };
+        const PRIORITY_MAP = {
+            BAJA:    'Baja',   MEDIA: 'Media',
+            ALTA:    'Alta',   URGENTE: 'Urgente',
+        };
+        const st = STATUS_MAP[task.status] || STATUS_MAP.PENDIENTE;
+        const _dd = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) : '—';
+        const isActive = task.status !== 'COMPLETADA' && task.status !== 'CANCELADA';
+        let actions = '';
+        if (isActive) {
+            if (task.status === 'PENDIENTE') actions += `<button class="btn btn-primary" data-task-action="start" data-task-id="${task.id}">Iniciar</button>`;
+            if (task.status === 'EN_PROGRESO') actions += `<button class="btn btn-primary" data-task-action="complete" data-task-id="${task.id}">Completar</button>`;
+            actions += `<button class="btn btn-danger" data-task-action="cancel" data-task-id="${task.id}">Cancelar</button>`;
+        }
+        actions += `<button class="btn btn-danger" data-task-action="delete" data-task-id="${task.id}" style="margin-left:auto;">Eliminar</button>`;
+
+        this._taskDetailData = task;
+        this._openModal('taskDetail', task);
+    }
+
+    _taskDetailHTML(task) {
+        const STATUS_MAP = {
+            PENDIENTE:   { label: 'Pendiente',   color: 'pending' },
+            EN_PROGRESO: { label: 'En progreso', color: 'in-progress' },
+            COMPLETADA:  { label: 'Completada',  color: 'completed' },
+            VENCIDA:     { label: 'Vencida',     color: 'danger' },
+            CANCELADA:   { label: 'Cancelada',   color: 'cancelled' },
+        };
+        const PRIORITY_MAP = { BAJA: 'Baja', MEDIA: 'Media', ALTA: 'Alta', URGENTE: 'Urgente' };
+        const st = STATUS_MAP[task.status] || STATUS_MAP.PENDIENTE;
+        const _dd = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) : '—';
+        const isActive = task.status !== 'COMPLETADA' && task.status !== 'CANCELADA';
+        let actions = '';
+        if (isActive) {
+            if (task.status === 'PENDIENTE') actions += `<button class="btn btn-primary" data-task-action="start" data-task-id="${task.id}">Iniciar</button>`;
+            if (task.status === 'EN_PROGRESO') actions += `<button class="btn btn-primary" data-task-action="complete" data-task-id="${task.id}">Completar</button>`;
+            actions += `<button class="btn btn-danger" data-task-action="cancel" data-task-id="${task.id}">Cancelar</button>`;
+        }
+        actions += `<button class="btn btn-danger" data-task-action="delete" data-task-id="${task.id}" style="margin-left:auto;">Eliminar</button>`;
+        return `
+            <div class="data-row" style="background:transparent;">
+                <div class="patient-avatar">${(task.patient || '?')[0]?.toUpperCase() || '?'}</div>
+                <div class="data-main">
+                    <div class="data-title" style="font-size:15px;">${escapeHtml(task.title)}</div>
+                    <div class="data-sub">${escapeHtml(task.patient || 'Sin paciente')} · ${task.category}</div>
+                </div>
+                <span class="status-pill ${st.color}">${st.label}</span>
+            </div>
+            <div class="detail-section-title">Detalle</div>
+            <div class="patient-detail-grid">
+                <div class="detail-field"><span class="detail-label">Prioridad</span><span class="detail-value">${PRIORITY_MAP[task.priority] || task.priority}</span></div>
+                <div class="detail-field"><span class="detail-label">Categoría</span><span class="detail-value">${task.category}</span></div>
+                <div class="detail-field"><span class="detail-label">Asignada</span><span class="detail-value">${_dd(task.assignedDate)}</span></div>
+                <div class="detail-field"><span class="detail-label">Vence</span><span class="detail-value">${task.dueDate ? _dd(task.dueDate) : 'Sin fecha límite'}</span></div>
+            </div>
+            <div class="detail-section-title">Progreso</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <div class="progress-track" style="flex:1;"><div class="progress-fill" style="width:${task.progress}%;"></div></div>
+                <span style="font-size:13px;font-weight:600;color:var(--dash-text-primary);min-width:36px;">${task.progress}%</span>
+            </div>
+            ${task.description ? `<div class="detail-section-title">Descripción</div><p style="font-size:13px;color:var(--dash-text-secondary);margin:0 0 8px;">${escapeHtml(task.description)}</p>` : ''}
+            ${task.notes ? `<div class="detail-section-title">Notas</div><p style="font-size:12px;color:var(--dash-text-tertiary);margin:0 0 8px;">${escapeHtml(task.notes)}</p>` : ''}
+            <div class="action-row">${actions}</div>`;
     }
 
     _notesModalHTML() {
@@ -1400,11 +1474,38 @@ export class DashboardPage {
             });
             $('#dashBtnNewTask')?.addEventListener('click', () => this._openModal('newTask'));
             $$('#dashModalBody [data-task-id]').forEach(row => {
-                row.addEventListener('click', async () => {
+                row.addEventListener('click', async (e) => {
+                    if (e.target.closest('[data-task-action]')) return;
+                    const taskId = row.dataset.taskId;
                     try {
-                        const task = await tasksService.getById(row.dataset.taskId);
-                        if (task) this._showToast(`Tarea: ${task.title} — ${task.progress}%`);
+                        const task = await tasksService.getById(taskId);
+                        if (!task) return;
+                        this._openTaskDetailModal(task);
                     } catch { this._showToast('Error al cargar tarea'); }
+                });
+            });
+        }
+
+        if (type === 'taskDetail') {
+            $$('[data-task-action]', $('#dashModalBody')).forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const act = btn.dataset.taskAction;
+                    const id = btn.dataset.taskId;
+                    btn.disabled = true; btn.textContent = 'Procesando…';
+                    try {
+                        if (act === 'start')      await tasksService.start(id);
+                        else if (act === 'complete') await tasksService.complete(id);
+                        else if (act === 'cancel')   await tasksService.cancel(id);
+                        else if (act === 'delete')   await tasksService.delete(id);
+                        this._closeModal();
+                        this._showToast('Tarea actualizada');
+                        await this._renderTasksPanel();
+                        if (this.currentModal === 'tasks') await this._renderModalTaskList();
+                    } catch (err) {
+                        this._showToast('Error: ' + (err.message || 'No se pudo actualizar'));
+                        btn.disabled = false;
+                    }
                 });
             });
         }

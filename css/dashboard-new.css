@@ -1178,6 +1178,8 @@
 .app--dashboard .status-pill.in-progress { background: var(--dash-violet-dim); color: var(--dash-violet-light); border-color: var(--dash-border-violet); }
 .app--dashboard .status-pill.completed { background: rgba(34,197,94,0.12); color: #16a34a; border-color: rgba(34,197,94,0.35); }
 .app--dashboard .status-pill.cancelled { background: rgba(239,68,68,0.12); color: #dc2626; border-color: rgba(239,68,68,0.35); }
+.app--dashboard .status-pill.danger { background: rgba(239,68,68,0.12); color: #dc2626; border-color: rgba(239,68,68,0.35); }
+.app--dashboard .status-pill.ghost { background: rgba(148,163,184,0.08); color: var(--dash-text-secondary); border-color: var(--dash-border); }
 
 .app--dashboard .progress-track {
   width: 100%;

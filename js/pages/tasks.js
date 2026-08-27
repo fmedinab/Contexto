@@ -1,366 +1,104 @@
-import { formatPersonName } from '../services/mockData.js';
-import { patientsService } from '../services/patientsService.js';
 import { tasksService } from '../services/tasksService.js';
-import { showToast } from '../components/toast.js';
-import { showModal, closeModal } from '../components/modal.js';
 
 const STATUS_LABELS = {
-  PENDIENTE:    { label: 'Pendiente',    class: 'badge badge--info',  icon: 'bi-hourglass-split' },
-  EN_PROGRESO:  { label: 'En progreso',  class: 'badge badge--warn',  icon: 'bi-play-circle' },
-  COMPLETADA:   { label: 'Completada',   class: 'badge badge--ok',    icon: 'bi-check-circle' },
-  VENCIDA:      { label: 'Vencida',      class: 'badge badge--danger', icon: 'bi-exclamation-triangle' },
-  CANCELADA:    { label: 'Cancelada',    class: 'badge badge--ghost', icon: 'bi-x-circle' },
+  PENDIENTE:    { label: 'Pendiente',    color: 'pending' },
+  EN_PROGRESO:  { label: 'En progreso',  color: 'in-progress' },
+  COMPLETADA:   { label: 'Completada',   color: 'completed' },
+  VENCIDA:      { label: 'Vencida',      color: 'danger' },
+  CANCELADA:    { label: 'Cancelada',    color: 'ghost' },
 };
 
 const PRIORITY_LABELS = {
-  BAJA:    { label: 'Baja',    class: 'badge badge--ghost',  icon: 'bi-arrow-down' },
-  MEDIA:   { label: 'Media',   class: 'badge badge--info',   icon: 'bi-dash' },
-  ALTA:    { label: 'Alta',    class: 'badge badge--warn',   icon: 'bi-arrow-up' },
-  URGENTE: { label: 'Urgente', class: 'badge badge--danger', icon: 'bi-lightning' },
+  BAJA:    { label: 'Baja',    color: 'ghost' },
+  MEDIA:   { label: 'Media',   color: 'info' },
+  ALTA:    { label: 'Alta',    color: 'warn' },
+  URGENTE: { label: 'Urgente', color: 'danger' },
 };
 
-const CATEGORY_LABELS = {
-  Seguimiento:  { label: 'Seguimiento',  icon: 'bi-clipboard-check' },
-  Ejercicio:    { label: 'Ejercicio',    icon: 'bi-heart-pulse' },
-  Diario:       { label: 'Diario',       icon: 'bi-journal-text' },
-  Cuestionario: { label: 'Cuestionario', icon: 'bi-ui-checks-grid' },
-  Técnica:      { label: 'Técnica',      icon: 'bi-tools' },
-  Lectura:      { label: 'Lectura',      icon: 'bi-book' },
-  Otra:         { label: 'Otra',         icon: 'bi-three-dots' },
-};
+const CATEGORIES = ['Seguimiento', 'Ejercicio', 'Diario', 'Cuestionario', 'Técnica', 'Lectura', 'Otra'];
 
-function _dateDisplay(dateStr) {
-  if (!dateStr) return '—';
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' });
+function $(sel, ctx) { return (ctx || document).querySelector(sel); }
+function $$(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
+
+function escapeHtml(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+function _fmtDate(ds) {
+  if (!ds) return '—';
+  return new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' });
 }
 
-function _isOverdue(task) {
-  if (!task.dueDate || task.status === 'COMPLETADA' || task.status === 'CANCELADA' || task.status === 'VENCIDA') return false;
-  return new Date(task.dueDate + 'T23:59:59') < new Date();
+function _isOverdue(t) {
+  if (!t.dueDate || t.status === 'COMPLETADA' || t.status === 'CANCELADA' || t.status === 'VENCIDA') return false;
+  return new Date(t.dueDate + 'T23:59:59') < new Date();
 }
 
-function _daysUntilDue(task) {
-  if (!task.dueDate || task.status === 'COMPLETADA' || task.status === 'CANCELADA') return null;
+function _daysLeft(t) {
+  if (!t.dueDate || t.status === 'COMPLETADA' || t.status === 'CANCELADA') return null;
   const now = new Date(); now.setHours(0,0,0,0);
-  const due = new Date(task.dueDate + 'T00:00:00');
-  return Math.ceil((due - now) / (1000*60*60*24));
+  return Math.ceil((new Date(t.dueDate + 'T00:00:00') - now) / 86400000);
 }
 
-// ── Stats cards ────────────────────────────────────────────
-function _statsCardsHTML(stats) {
-  return `
-    <div class="stats">
-      <div class="stat-card"><span class="stat-value">${stats.total}</span><span class="stat-label">Total</span></div>
-      <div class="stat-card"><span class="stat-value stat-value--info">${stats.pending}</span><span class="stat-label">Pendientes</span></div>
-      <div class="stat-card"><span class="stat-value stat-value--warn">${stats.inProgress}</span><span class="stat-label">En progreso</span></div>
-      <div class="stat-card"><span class="stat-value stat-value--ok">${stats.completed}</span><span class="stat-label">Completadas</span></div>
-      <div class="stat-card"><span class="stat-value stat-value--danger">${stats.overdue}</span><span class="stat-label">Vencidas</span></div>
-      <div class="stat-card"><span class="stat-value stat-value--info">${stats.dueToday}</span><span class="stat-label">Vence hoy</span></div>
-      <div class="stat-card"><span class="stat-value stat-value--info">${stats.compliancePercent}%</span><span class="stat-label">Cumplimiento</span></div>
-    </div>`;
+function _progressHTML(p) {
+  return `<div class="progress-track"><div class="progress-fill" style="width:${p}%"></div></div><span style="font-size:12px;color:var(--dash-text-secondary);margin-left:6px;">${p}%</span>`;
 }
 
-// ── Tabla ──────────────────────────────────────────────────
-function _tasksTableHTML(tasks) {
-  if (!tasks.length) return '<p class="empty-state">No hay tareas terapéuticas registradas.</p>';
-  const rows = tasks.map(t => {
-    const st = STATUS_LABELS[t.status] || STATUS_LABELS.PENDIENTE;
-    const pr = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS.MEDIA;
-    const ca = CATEGORY_LABELS[t.category] || CATEGORY_LABELS.Otra;
-    const overdue = _isOverdue(t);
-    const daysLeft = _daysUntilDue(t);
-    let dueBadge = '';
-    if (t.dueDate && t.status !== 'COMPLETADA' && t.status !== 'CANCELADA') {
-      if (overdue)      dueBadge = `<span class="badge badge--danger">Vencida hace ${Math.abs(daysLeft)}d</span>`;
-      else if (daysLeft === 0) dueBadge = `<span class="badge badge--warn">Vence hoy</span>`;
-      else if (daysLeft <= 3)  dueBadge = `<span class="badge badge--info">Quedan ${daysLeft}d</span>`;
-      else               dueBadge = `<span class="badge badge--ghost">${_dateDisplay(t.dueDate)}</span>`;
-    }
-    return `
-      <tr class="${overdue ? 'row--overdue' : ''}" data-id="${t.id}">
-        <td><strong>${t.title || 'Sin título'}</strong></td>
-        <td>${t.patient || '—'}</td>
-        <td><span class="badge badge--ghost"><i class="bi ${ca.icon}"></i> ${ca.label}</span></td>
-        <td><span class="${st.class}"><i class="bi ${st.icon}"></i> ${st.label}</span></td>
-        <td><span class="${pr.class}"><i class="bi ${pr.icon}"></i> ${pr.label}</span></td>
-        <td>${dueBadge || '—'}</td>
-        <td class="col-progress">
-          <div class="progress-bar-wrap">
-            <div class="progress-bar" style="width:${t.progress}%"></div>
-            <span class="progress-bar-label">${t.progress}%</span>
-          </div>
-        </td>
-        <td class="col-actions">
-          <button class="icon-btn icon-btn--sm" data-action="detail" data-id="${t.id}" title="Ver detalle"><i class="bi bi-eye"></i></button>
-          <button class="icon-btn icon-btn--sm" data-action="edit" data-id="${t.id}" title="Editar"><i class="bi bi-pencil"></i></button>
-          ${t.status !== 'COMPLETADA' && t.status !== 'CANCELADA' ? `
-            <button class="icon-btn icon-btn--sm icon-btn--success" data-action="complete" data-id="${t.id}" title="Marcar completada"><i class="bi bi-check-lg"></i></button>
-          ` : ''}
-        </td>
-      </tr>`;
-  }).join('');
-  return `
-    <div class="table-responsive-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Título</th><th>Paciente</th><th>Categoría</th><th>Estado</th><th>Prioridad</th><th>Vence</th><th>Progreso</th><th></th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-}
-
-// ── Create/Edit form ───────────────────────────────────────
-function _taskFormHTML(task, patients) {
-  const isEdit = !!task;
-  const title = isEdit ? 'Editar tarea' : 'Nueva tarea terapéutica';
-  const statusOpts = Object.entries(STATUS_LABELS).map(([k,v]) =>
-    `<option value="${k}" ${task && task.status === k ? 'selected' : ''}>${v.label}</option>`
-  ).join('');
-  const priorityOpts = Object.entries(PRIORITY_LABELS).map(([k,v]) =>
-    `<option value="${k}" ${task && task.priority === k ? 'selected' : ''}>${v.label}</option>`
-  ).join('');
-  const categoryOpts = Object.entries(CATEGORY_LABELS).map(([k,v]) =>
-    `<option value="${k}" ${task && task.category === k ? 'selected' : ''}>${v.label}</option>`
-  ).join('');
-  const patientOpts = patients.map(p =>
-    `<option value="${p.id}" ${task && task.patientId === p.id ? 'selected' : ''}>${p.name}</option>`
-  ).join('');
-
-  return `
-    <form id="taskForm" class="modal-form">
-      <div class="form-grid">
-        <div class="form-group form-group--full">
-          <label for="task-title">Título *</label>
-          <input type="text" id="task-title" name="title" required maxlength="150"
-                 value="${isEdit ? (task.title || '').replace(/"/g, '&quot;') : ''}"
-                 placeholder="Ej: Practicar respiración 4-7-8">
-        </div>
-        <div class="form-group">
-          <label for="task-patient">Paciente *</label>
-          <select id="task-patient" name="patientId" required>
-            <option value="">Seleccionar paciente…</option>
-            ${patientOpts}
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="task-category">Categoría</label>
-          <select id="task-category" name="category">${categoryOpts}</select>
-        </div>
-        <div class="form-group">
-          <label for="task-priority">Prioridad</label>
-          <select id="task-priority" name="priority">${priorityOpts}</select>
-        </div>
-        <div class="form-group">
-          <label for="task-due">Fecha de vencimiento</label>
-          <input type="date" id="task-due" name="dueDate"
-                 value="${isEdit && task.dueDate ? task.dueDate : ''}">
-        </div>
-        ${isEdit ? `
-          <div class="form-group">
-            <label for="task-status">Estado</label>
-            <select id="task-status" name="status">${statusOpts}</select>
-          </div>
-          <div class="form-group">
-            <label for="task-progress">Progreso (${task.progress || 0}%)</label>
-            <input type="range" id="task-progress" name="progress" min="0" max="100"
-                   value="${task.progress || 0}" class="form-range">
-          </div>
-        ` : ''}
-        <div class="form-group form-group--full">
-          <label for="task-description">Descripción</label>
-          <textarea id="task-description" name="description" rows="3"
-                    placeholder="Describe la tarea, instrucciones específicas…">${isEdit ? (task.description || '') : ''}</textarea>
-        </div>
-        <div class="form-group form-group--full">
-          <label for="task-notes">Notas internas</label>
-          <textarea id="task-notes" name="notes" rows="2"
-                    placeholder="Notas privadas del profesional…">${isEdit ? (task.notes || '') : ''}</textarea>
-        </div>
-      </div>
-    </form>
-    <div class="modal-footer">
-      <button class="btn btn--ghost" data-action="cancel">Cancelar</button>
-      <button class="btn btn--primary" data-action="save">
-        <i class="bi bi-check-lg"></i> ${isEdit ? 'Guardar cambios' : 'Crear tarea'}
-      </button>
-    </div>`;
-}
-
-// ── Detail view ────────────────────────────────────────────
-function _taskDetailHTML(task) {
-  const st = STATUS_LABELS[t.status] || STATUS_LABELS.PENDIENTE;
-  const pr = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS.MEDIA;
-  const ca = CATEGORY_LABELS[t.category] || CATEGORY_LABELS.Otra;
-  const daysLeft = _daysUntilDue(task);
-  const overdue = _isOverdue(task);
-
-  let statusInfo = '';
-  if (overdue) statusInfo = `<span class="detail-alert detail-alert--danger"><i class="bi bi-exclamation-triangle"></i> Esta tarea está vencida</span>`;
-  else if (daysLeft === 0) statusInfo = `<span class="detail-alert detail-alert--warn"><i class="bi bi-clock"></i> Vence hoy</span>`;
-  else if (daysLeft !== null && daysLeft > 0 && daysLeft <= 3) statusInfo = `<span class="detail-alert detail-alert--info"><i class="bi bi-info-circle"></i> Quedan ${daysLeft} días</span>`;
-
-  return `
-    <div class="task-detail">
-      ${statusInfo}
-      <div class="detail-grid">
-        <div class="detail-row"><span class="detail-label">Título</span><span class="detail-value">${task.title}</span></div>
-        <div class="detail-row"><span class="detail-label">Paciente</span><span class="detail-value">${task.patient || '—'}</span></div>
-        <div class="detail-row"><span class="detail-label">Categoría</span><span class="detail-value"><i class="bi ${ca.icon}"></i> ${ca.label}</span></div>
-        <div class="detail-row"><span class="detail-label">Estado</span><span class="detail-value"><span class="${st.class}"><i class="bi ${st.icon}"></i> ${st.label}</span></span></div>
-        <div class="detail-row"><span class="detail-label">Prioridad</span><span class="detail-value"><span class="${pr.class}"><i class="bi ${pr.icon}"></i> ${pr.label}</span></span></div>
-        <div class="detail-row"><span class="detail-label">Asignada</span><span class="detail-value">${_dateDisplay(task.assignedDate)}</span></div>
-        <div class="detail-row"><span class="detail-label">Vence</span><span class="detail-value">${task.dueDate ? _dateDisplay(task.dueDate) + (overdue ? ' (VENCIDA)' : '') : 'Sin fecha límite'}</span></div>
-        <div class="detail-row"><span class="detail-label">Completada</span><span class="detail-value">${task.completedAt ? new Date(task.completedAt).toLocaleString('es-ES') : '—'}</span></div>
-      </div>
-      <div class="detail-section">
-        <span class="detail-label">Progreso</span>
-        <div class="progress-bar-wrap progress-bar-wrap--lg">
-          <div class="progress-bar" style="width:${task.progress}%"></div>
-          <span class="progress-bar-label">${task.progress}%</span>
-        </div>
-      </div>
-      ${task.description ? `<div class="detail-section"><span class="detail-label">Descripción</span><p class="detail-text">${task.description}</p></div>` : ''}
-      ${task.notes ? `<div class="detail-section"><span class="detail-label">Notas internas</span><p class="detail-text detail-text--muted">${task.notes}</p></div>` : ''}
-    </div>`;
-}
-
-// ── Detail modal ───────────────────────────────────────────
-async function _openDetailModal(taskId) {
-  const task = await tasksService.getById(taskId);
-  if (!task) { showToast('Tarea no encontrada', 'error'); return; }
-  const st = STATUS_LABELS[task.status];
-  const actionBtns = task.status !== 'COMPLETADA' && task.status !== 'CANCELADA' ? `
-    <div class="modal-footer modal-footer--actions">
-      ${task.status === 'PENDIENTE' ? `<button class="btn btn--primary" data-action="start"><i class="bi bi-play"></i> Iniciar</button>` : ''}
-      ${task.status === 'EN_PROGRESO' ? `<button class="btn btn--success" data-action="complete"><i class="bi bi-check-lg"></i> Completar</button>` : ''}
-      <button class="btn btn--ghost" data-action="editFromDetail"><i class="bi bi-pencil"></i> Editar</button>
-      <button class="btn btn--danger-light" data-action="cancelTask"><i class="bi bi-x-circle"></i> Cancelar</button>
-    </div>` : '';
-
-  showModal({ title: `Tarea: ${task.title}`, wide: true, hasLoading: false, html: _taskDetailHTML(task) + actionBtns });
-
-  const bind = (act, fn) => { const b = document.querySelector(`[data-action="${act}"]`); if (b) b.onclick = fn; };
-  bind('start',        () => { tasksService.start(task.id).then(() => { closeModal(); showToast('Tarea iniciada', 'success'); }).catch(e => showToast(e.message, 'error')); });
-  bind('complete',     () => { tasksService.complete(task.id).then(() => { closeModal(); showToast('Tarea completada', 'success'); }).catch(e => showToast(e.message, 'error')); });
-  bind('cancelTask',   () => { tasksService.cancel(task.id).then(() => { closeModal(); showToast('Tarea cancelada', 'info'); }).catch(e => showToast(e.message, 'error')); });
-  bind('editFromDetail', () => { closeModal(); setTimeout(() => _openEditModal(task.id), 200); });
-}
-
-// ── Create modal ───────────────────────────────────────────
-async function _openCreateModal() {
-  const patients = await tasksService.getPatients();
-  showModal({ title: 'Nueva tarea terapéutica', wide: true, hasLoading: false,
-    html: _taskFormHTML(null, patients),
-    onClose: () => document.body.classList.remove('modal-open'),
-  });
-
-  document.body.classList.add('modal-open');
-  document.querySelector('[data-action="save"]').onclick = async () => {
-    const form = document.getElementById('taskForm');
-    if (!form.reportValidity()) return;
-    const fd = new FormData(form);
-    try {
-      await tasksService.create({
-        title:       fd.get('title'),
-        patientId:   fd.get('patientId'),
-        category:    fd.get('category') || 'Seguimiento',
-        priority:    fd.get('priority') || 'MEDIA',
-        dueDate:     fd.get('dueDate') || null,
-        description: fd.get('description') || '',
-        notes:       fd.get('notes') || '',
-      });
-      closeModal();
-      showToast('Tarea creada correctamente', 'success');
-    } catch (e) { showToast('Error al crear tarea: ' + e.message, 'error'); }
-  };
-  document.querySelector('[data-action="cancel"]').onclick = () => closeModal();
-}
-
-// ── Edit modal ─────────────────────────────────────────────
-async function _openEditModal(taskId) {
-  const [task, patients] = await Promise.all([
-    tasksService.getById(taskId),
-    tasksService.getPatients(),
-  ]);
-  if (!task) { showToast('Tarea no encontrada', 'error'); return; }
-  showModal({ title: 'Editar tarea', wide: true, hasLoading: false,
-    html: _taskFormHTML(task, patients),
-    onClose: () => document.body.classList.remove('modal-open'),
-  });
-
-  document.body.classList.add('modal-open');
-  document.querySelector('[data-action="save"]').onclick = async () => {
-    const form = document.getElementById('taskForm');
-    if (!form.reportValidity()) return;
-    const fd = new FormData(form);
-    try {
-      const changes = {
-        title:       fd.get('title'),
-        patientId:   fd.get('patientId'),
-        category:    fd.get('category'),
-        priority:    fd.get('priority'),
-        status:      fd.get('status'),
-        progress:    parseInt(fd.get('progress') || '0'),
-        dueDate:     fd.get('dueDate') || null,
-        description: fd.get('description') || '',
-        notes:       fd.get('notes') || '',
-      };
-      if (changes.status === 'COMPLETADA' && task.status !== 'COMPLETADA') {
-        changes.completedAt = new Date().toISOString();
-      }
-      await tasksService.update(taskId, changes);
-      closeModal();
-      showToast('Tarea actualizada', 'success');
-    } catch (e) { showToast('Error al actualizar: ' + e.message, 'error'); }
-  };
-  document.querySelector('[data-action="cancel"]').onclick = () => closeModal();
-
-  const range = document.getElementById('task-progress');
-  if (range) {
-    range.oninput = () => {
-      const lbl = range.closest('.form-group').querySelector('label');
-      if (lbl) lbl.textContent = `Progreso (${range.value}%)`;
-    };
-  }
-}
-
-// ══════════════════════════════════════════════════════════
-// TasksPage
-// ══════════════════════════════════════════════════════════
 export class TasksPage {
   constructor() {
     this._filters = { status: '', priority: '', search: '' };
-    this._tasks = [];
+    this.currentModal = null;
+    this._onKeyDown = (e) => { if (e.key === 'Escape' && this.currentModal) this._closeModal(); };
     this._unsub = tasksService.onChange(() => this._load());
   }
 
-  destroy() { this._unsub(); }
+  destroy() {
+    this._unsub();
+    document.removeEventListener('keydown', this._onKeyDown);
+  }
 
   async render() {
-    const app = document.getElementById('app');
-    app.innerHTML = `
-      <div class="page-actions">
-        <button class="btn btn--primary" id="btnNewTask"><i class="bi bi-plus-lg"></i> Nueva tarea</button>
-      </div>
-      <div id="taskStatsWrap"></div>
-      <div class="filters-bar" id="taskFilters">
-        <input type="search" class="form-input" placeholder="Buscar tarea…" id="taskSearch" autocomplete="off">
-        <select class="form-select" id="taskStatusFilter"><option value="">Todos los estados</option>
-          ${Object.entries(STATUS_LABELS).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
-        </select>
-        <select class="form-select" id="taskPriorityFilter"><option value="">Todas las prioridades</option>
-          ${Object.entries(PRIORITY_LABELS).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
-        </select>
-      </div>
-      <div id="taskTableWrap"></div>`;
+    const pageBody = document.getElementById('pageBody');
+    if (!pageBody) return;
+    pageBody.innerHTML = `
+      <div class="ambient-bg" aria-hidden="true"></div>
+      <div class="patients-page">
+        <div class="patients-header">
+          <div class="patients-header-left">
+            <h1 class="patients-title">Tareas terapéuticas</h1>
+            <p class="patients-subtitle">Gestiona las tareas asignadas a tus pacientes.</p>
+          </div>
+          <div class="patients-header-actions">
+            <button class="btn btn-primary" id="btnNewTask"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Nueva tarea</button>
+          </div>
+        </div>
+        <div class="patients-stats" id="taskStats"></div>
+        <div class="patients-toolbar">
+          <input type="search" class="form-input" id="taskSearch" placeholder="Buscar tarea…" autocomplete="off">
+          <select class="form-select" id="taskStatusFilter"><option value="">Todos los estados</option>
+            ${Object.entries(STATUS_LABELS).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
+          </select>
+          <select class="form-select" id="taskPriorityFilter"><option value="">Todas las prioridades</option>
+            ${Object.entries(PRIORITY_LABELS).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
+          </select>
+        </div>
+        <div id="taskTable"></div>
+        <div class="modal-overlay" id="taskModalOverlay">
+          <div class="modal-box">
+            <div class="modal-header">
+              <h2 class="modal-title" id="taskModalTitle"></h2>
+              <button class="modal-close" id="taskModalClose" aria-label="Cerrar"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="modal-body" id="taskModalBody"></div>
+          </div>
+        </div>
+      </div>`;
 
-    document.getElementById('btnNewTask').onclick = () => _openCreateModal();
-    document.getElementById('taskSearch').oninput = (e) => { this._filters.search = e.target.value; this._load(); };
-    document.getElementById('taskStatusFilter').onchange = (e) => { this._filters.status = e.target.value; this._load(); };
-    document.getElementById('taskPriorityFilter').onchange = (e) => { this._filters.priority = e.target.value; this._load(); };
+    $('#btnNewTask').addEventListener('click', () => this._openForm());
+    $('#taskSearch').addEventListener('input', (e) => { this._filters.search = e.target.value; this._load(); });
+    $('#taskStatusFilter').addEventListener('change', (e) => { this._filters.status = e.target.value; this._load(); });
+    $('#taskPriorityFilter').addEventListener('change', (e) => { this._filters.priority = e.target.value; this._load(); });
+    $('#taskModalOverlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) this._closeModal(); });
+    $('#taskModalClose').addEventListener('click', () => this._closeModal());
+    document.addEventListener('keydown', this._onKeyDown);
 
     await this._load();
   }
@@ -371,29 +109,265 @@ export class TasksPage {
         tasksService.getStats(),
         tasksService.list(this._filters),
       ]);
-      this._tasks = tasks;
-      document.getElementById('taskStatsWrap').innerHTML = _statsCardsHTML(stats);
-      document.getElementById('taskTableWrap').innerHTML = _tasksTableHTML(tasks);
-      this._bindTable();
+      $('#taskStats').innerHTML = `
+        <div class="stat-card"><span class="stat-value">${stats.total}</span><span class="stat-label">Total</span></div>
+        <div class="stat-card"><span class="stat-value stat-value--info">${stats.pending}</span><span class="stat-label">Pendientes</span></div>
+        <div class="stat-card"><span class="stat-value stat-value--warn">${stats.inProgress}</span><span class="stat-label">En progreso</span></div>
+        <div class="stat-card"><span class="stat-value stat-value--ok">${stats.completed}</span><span class="stat-label">Completadas</span></div>
+        <div class="stat-card"><span class="stat-value stat-value--danger">${stats.overdue}</span><span class="stat-label">Vencidas</span></div>
+        <div class="stat-card"><span class="stat-value">${stats.compliancePercent}%</span><span class="stat-label">Cumplimiento</span></div>`;
+      this._renderTable(tasks);
     } catch (e) {
       console.error('TasksPage load error:', e);
-      showToast('Error al cargar tareas', 'error');
+      $('#taskTable').innerHTML = '<div class="patients-empty">Error al cargar tareas.</div>';
     }
   }
 
-  _bindTable() {
-    document.querySelectorAll('#taskTableWrap [data-action]').forEach(btn => {
-      btn.onclick = (e) => {
+  _renderTable(tasks) {
+    const wrap = $('#taskTable');
+    if (!tasks.length) { wrap.innerHTML = '<div class="patients-empty">No hay tareas terapéuticas registradas.</div>'; return; }
+    wrap.innerHTML = `
+      <div class="table-responsive-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Título</th><th>Paciente</th><th>Estado</th><th>Prioridad</th><th>Vence</th><th>Progreso</th><th></th>
+          </tr></thead>
+          <tbody>${tasks.map(t => {
+            const st = STATUS_LABELS[t.status] || STATUS_LABELS.PENDIENTE;
+            const pr = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS.MEDIA;
+            const overdue = _isOverdue(t);
+            const dl = _daysLeft(t);
+            let dueBadge = '—';
+            if (t.dueDate && t.status !== 'COMPLETADA' && t.status !== 'CANCELADA') {
+              if (overdue)        dueBadge = `<span class="status-pill danger">Vencida ${Math.abs(dl)}d</span>`;
+              else if (dl === 0)  dueBadge = '<span class="status-pill in-progress">Hoy</span>';
+              else if (dl <= 3)   dueBadge = `<span class="status-pill pending">${dl}d</span>`;
+              else                dueBadge = _fmtDate(t.dueDate);
+            }
+            return `
+              <tr class="${overdue ? 'row-overdue' : ''}" data-id="${t.id}">
+                <td><strong>${escapeHtml(t.title || 'Sin título')}</strong></td>
+                <td>${escapeHtml(t.patient || '—')}</td>
+                <td><span class="status-pill ${st.color}">${st.label}</span></td>
+                <td><span class="status-pill ${pr.color}">${pr.label}</span></td>
+                <td>${dueBadge}</td>
+                <td>${_progressHTML(t.progress)}</td>
+                <td class="col-actions">
+                  <button class="btn btn-sm" data-action="view" data-id="${t.id}">Ver</button>
+                  <button class="btn btn-sm" data-action="edit" data-id="${t.id}">Editar</button>
+                  ${t.status !== 'COMPLETADA' && t.status !== 'CANCELADA' ? `<button class="btn btn-sm btn-primary" data-action="complete" data-id="${t.id}">✓</button>` : ''}
+                </td>
+              </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>`;
+
+    $$('#taskTable [data-action]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = btn.dataset.id;
-        const action = btn.dataset.action;
-        if (action === 'detail')   _openDetailModal(id);
-        if (action === 'edit')     _openEditModal(id);
-        if (action === 'complete') tasksService.complete(id).then(() => showToast('Tarea completada', 'success')).catch(err => showToast(err.message, 'error'));
-      };
+        const a = btn.dataset.action;
+        if (a === 'view')     this._openDetail(id);
+        else if (a === 'edit') this._openForm(id);
+        else if (a === 'complete') this._handleTransition(id, 'COMPLETADA');
+      });
     });
-    document.querySelectorAll('#taskTableWrap tbody tr[data-id]').forEach(tr => {
-      tr.onclick = () => _openDetailModal(tr.dataset.id);
+    $$('#taskTable tbody tr[data-id]').forEach(tr => {
+      tr.addEventListener('click', () => this._openDetail(tr.dataset.id));
     });
+  }
+
+  /* ===== MODAL ===== */
+
+  _openModal(title, bodyHTML) {
+    this.currentModal = true;
+    const overlay = $('#taskModalOverlay');
+    $('#taskModalTitle').textContent = title;
+    $('#taskModalBody').innerHTML = bodyHTML;
+    if (overlay) { overlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  }
+
+  _closeModal() {
+    this.currentModal = null;
+    const overlay = $('#taskModalOverlay');
+    if (overlay) { overlay.classList.remove('open'); document.body.style.overflow = ''; }
+  }
+
+  /* ===== DETALLE ===== */
+
+  async _openDetail(id) {
+    this._openModal('Cargando...', '<div class="patients-empty"><p>Cargando…</p></div>');
+    try {
+      const task = await tasksService.getById(id);
+      if (!task) { this._openModal('Error', '<div class="patients-empty">Tarea no encontrada.</div>'); return; }
+
+      const st = STATUS_LABELS[task.status] || STATUS_LABELS.PENDIENTE;
+      const pr = PRIORITY_LABELS[task.priority] || PRIORITY_LABELS.MEDIA;
+      const overdue = _isOverdue(task);
+      const dl = _daysLeft(task);
+      const transitions = tasksService.getValidTransitions ? tasksService.getValidTransitions(task.status) : [];
+      const nextStatus = { PENDIENTE: 'EN_PROGRESO', EN_PROGRESO: 'COMPLETADA' };
+      const nextLabel  = { PENDIENTE: 'Iniciar', EN_PROGRESO: 'Completar' };
+      const nextBtn = nextStatus[task.status] ? `<button class="btn btn-primary" data-transition="${nextStatus[task.status]}">${nextLabel[task.status]}</button>` : '';
+
+      const bodyHTML = `
+        <div class="patient-detail-header">
+          <div class="patient-detail-avatar">${(task.patient || '?')[0]?.toUpperCase() || '?'}</div>
+          <div>
+            <h3 class="patient-detail-name">${escapeHtml(task.title)}</h3>
+            <span class="patient-detail-id">${escapeHtml(task.patient || 'Sin paciente')}</span>
+          </div>
+        </div>
+        <div class="detail-section-title">Detalles</div>
+        <div class="patient-detail-grid">
+          <div class="detail-field"><span class="detail-label">Estado</span><span class="detail-value"><span class="status-pill ${st.color}">${st.label}</span></span></div>
+          <div class="detail-field"><span class="detail-label">Prioridad</span><span class="detail-value"><span class="status-pill ${pr.color}">${pr.label}</span></span></div>
+          <div class="detail-field"><span class="detail-label">Categoría</span><span class="detail-value">${escapeHtml(task.category)}</span></div>
+          <div class="detail-field"><span class="detail-label">Asignada</span><span class="detail-value">${_fmtDate(task.assignedDate)}</span></div>
+          <div class="detail-field"><span class="detail-label">Vence</span><span class="detail-value">${task.dueDate ? _fmtDate(task.dueDate) + (overdue ? ' <span style="color:var(--dash-pink);">(VENCIDA)</span>' : '') : 'Sin fecha límite'}</span></div>
+          <div class="detail-field"><span class="detail-label">Completada</span><span class="detail-value">${task.completedAt ? new Date(task.completedAt).toLocaleString('es-ES') : '—'}</span></div>
+        </div>
+        <div class="detail-section-title">Progreso</div>
+        <div style="display:flex;align-items:center;">${_progressHTML(task.progress)}</div>
+        ${task.description ? `<div class="detail-section-title">Descripción</div><div class="detail-field full"><span class="detail-value">${escapeHtml(task.description)}</span></div>` : ''}
+        ${task.notes ? `<div class="detail-section-title">Notas</div><div class="detail-field full"><span class="detail-value" style="opacity:.7">${escapeHtml(task.notes)}</span></div>` : ''}
+        <div class="action-row">
+          ${nextBtn}
+          ${task.status !== 'COMPLETADA' && task.status !== 'CANCELADA' ? `<button class="btn" data-action-cancel>Cancelar tarea</button>` : ''}
+          <button class="btn" data-action-edit>Editar</button>
+          <button class="btn" id="modalCloseBtn">Cerrar</button>
+        </div>`;
+
+      this._openModal('Tarea: ' + task.title, bodyHTML);
+
+      $('#taskModalBody [data-transition]')?.addEventListener('click', async (e) => {
+        const newStatus = e.target.dataset.transition;
+        e.target.disabled = true;
+        e.target.textContent = 'Procesando…';
+        try {
+          if (newStatus === 'COMPLETADA') await tasksService.complete(task.id);
+          else await tasksService.start(task.id);
+          this._closeModal();
+          await this._load();
+        } catch (err) { alert('Error: ' + err.message); e.target.disabled = false; }
+      });
+      $('#taskModalBody [data-action-cancel]')?.addEventListener('click', async () => {
+        try { await tasksService.cancel(task.id); this._closeModal(); await this._load(); }
+        catch (err) { alert('Error: ' + err.message); }
+      });
+      $('#taskModalBody [data-action-edit]')?.addEventListener('click', () => { this._closeModal(); this._openForm(task.id); });
+      $('#modalCloseBtn')?.addEventListener('click', () => this._closeModal());
+    } catch (err) {
+      this._openModal('Error', '<div class="patients-empty">Error al cargar la tarea.</div><div class="action-row"><button class="btn btn-primary" id="modalCloseBtn">Cerrar</button></div>');
+      $('#modalCloseBtn')?.addEventListener('click', () => this._closeModal());
+    }
+  }
+
+  /* ===== TRANSICIONES ===== */
+
+  async _handleTransition(id, newStatus) {
+    try {
+      if (newStatus === 'COMPLETADA') await tasksService.complete(id);
+      else await tasksService.start(id);
+      await this._load();
+    } catch (err) { alert('Error: ' + err.message); }
+  }
+
+  /* ===== FORMULARIO (CREAR / EDITAR) ===== */
+
+  async _openForm(editId) {
+    this._openModal('Cargando...', '<div class="patients-empty"><p>Cargando…</p></div>');
+    try {
+      const patients = await tasksService.getPatients();
+      let task = null;
+      if (editId) task = await tasksService.getById(editId);
+      const isEdit = !!task;
+      const title = isEdit ? 'Editar tarea' : 'Nueva tarea terapéutica';
+
+      const patientOpts = patients.map(p => `<option value="${p.id}" ${task && task.patientId === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('');
+      const statusOpts = Object.entries(STATUS_LABELS).map(([k,v]) => `<option value="${k}" ${task && task.status === k ? 'selected' : ''}>${v.label}</option>`).join('');
+      const priorityOpts = Object.entries(PRIORITY_LABELS).map(([k,v]) => `<option value="${k}" ${task && task.priority === k ? 'selected' : ''}>${v.label}</option>`).join('');
+      const categoryOpts = CATEGORIES.map(c => `<option value="${c}" ${task && task.category === c ? 'selected' : ''}>${c}</option>`).join('');
+
+      const bodyHTML = `
+        <form class="form-grid" id="taskForm" novalidate>
+          <div class="form-field" style="grid-column:1/-1;">
+            <label for="tfTitle">Título *</label>
+            <input type="text" id="tfTitle" value="${isEdit ? escapeHtml(task.title) : ''}" placeholder="Ej: Practicar respiración 4-7-8" required>
+            <span class="form-error" id="tfTitleError"></span>
+          </div>
+          <div class="form-field"><label for="tfPatient">Paciente *</label><select id="tfPatient" required><option value="">Seleccionar…</option>${patientOpts}</select><span class="form-error" id="tfPatientError"></span></div>
+          <div class="form-field"><label for="tfCategory">Categoría</label><select id="tfCategory">${categoryOpts}</select></div>
+          <div class="form-field"><label for="tfPriority">Prioridad</label><select id="tfPriority">${priorityOpts}</select></div>
+          <div class="form-field"><label for="tfDue">Fecha límite</label><input type="date" id="tfDue" value="${isEdit && task.dueDate ? task.dueDate : ''}"></div>
+          ${isEdit ? `
+            <div class="form-field"><label for="tfStatus">Estado</label><select id="tfStatus">${statusOpts}</select></div>
+            <div class="form-field"><label for="tfProgress">Progreso (${task.progress || 0}%)</label><input type="range" id="tfProgress" min="0" max="100" value="${task.progress || 0}"></div>
+          ` : ''}
+          <div class="form-field" style="grid-column:1/-1;"><label for="tfDescription">Descripción</label><textarea id="tfDescription" rows="3" placeholder="Describe la tarea…">${isEdit ? escapeHtml(task.description || '') : ''}</textarea></div>
+          <div class="form-field" style="grid-column:1/-1;"><label for="tfNotes">Notas internas</label><textarea id="tfNotes" rows="2" placeholder="Notas privadas del profesional…">${isEdit ? escapeHtml(task.notes || '') : ''}</textarea></div>
+          <div class="action-row" style="grid-column:1/-1;">
+            <button type="submit" class="btn btn-primary">${isEdit ? 'Guardar cambios' : 'Crear tarea'}</button>
+            <button type="button" class="btn" id="formCancelBtn">Cancelar</button>
+          </div>
+        </form>`;
+
+      this._openModal(title, bodyHTML);
+
+      const form = $('#taskForm');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        $('#tfTitleError').textContent = '';
+        $('#tfPatientError').textContent = '';
+        let valid = true;
+        if (!$('#tfTitle').value.trim()) { $('#tfTitleError').textContent = 'El título es obligatorio'; valid = false; }
+        if (!$('#tfPatient').value) { $('#tfPatientError').textContent = 'Selecciona un paciente'; valid = false; }
+        if (!valid) return;
+
+        const submitBtn = form.querySelector('[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Guardando…'; }
+
+        const data = {
+          title:       $('#tfTitle').value.trim(),
+          patientId:   $('#tfPatient').value,
+          category:    $('#tfCategory').value || 'Seguimiento',
+          priority:    $('#tfPriority').value || 'MEDIA',
+          dueDate:     $('#tfDue').value || null,
+          description: $('#tfDescription').value.trim() || '',
+          notes:       $('#tfNotes').value.trim() || '',
+        };
+
+        if (isEdit) {
+          data.status = $('#tfStatus').value;
+          data.progress = parseInt($('#tfProgress').value || '0');
+          if (data.status === 'COMPLETADA' && task.status !== 'COMPLETADA') {
+            data.completedAt = new Date().toISOString();
+          }
+        }
+
+        try {
+          if (isEdit) await tasksService.update(editId, data);
+          else await tasksService.create(data);
+          this._closeModal();
+          await this._load();
+        } catch (err) {
+          alert('Error: ' + err.message);
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = isEdit ? 'Guardar cambios' : 'Crear tarea'; }
+        }
+      });
+
+      $('#formCancelBtn')?.addEventListener('click', () => this._closeModal());
+
+      const range = $('#tfProgress');
+      if (range) {
+        range.addEventListener('input', () => {
+          const lbl = range.closest('.form-field').querySelector('label');
+          if (lbl) lbl.textContent = `Progreso (${range.value}%)`;
+        });
+      }
+    } catch (err) {
+      this._openModal('Error', '<div class="patients-empty">Error al cargar el formulario.</div><div class="action-row"><button class="btn btn-primary" id="modalCloseBtn">Cerrar</button></div>');
+      $('#modalCloseBtn')?.addEventListener('click', () => this._closeModal());
+    }
   }
 }

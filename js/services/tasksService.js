@@ -53,15 +53,15 @@ class TasksService {
   async _resolvePatientNames(rows) {
     const ids = [...new Set(rows.filter(r => r.patient_id).map(r => r.patient_id))];
     if (!ids.length) return rows;
-    const { data: patients } = await supabase.from('patients').select('id, full_name, first_name, last_name').in('id', ids);
+    const { data: patients } = await supabase.from('patients').select('id, full_name').in('id', ids);
     if (!patients) return rows;
-    const map = Object.fromEntries(patients.map(p => [p.id, p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' ')]));
+    const map = Object.fromEntries(patients.map(p => [p.id, p.full_name || '']));
     return rows.map(r => ({ ...r, patient_name: map[r.patient_id] || null }));
   }
 
   // ── Marcar tareas vencidas ───────────────────────────────
   async _markOverdue() {
-    await supabase.rpc('check_overdue_tasks');
+    try { await supabase.rpc('check_overdue_tasks'); } catch { /* function may not exist yet */ }
   }
 
   // ── Listar ───────────────────────────────────────────────
@@ -183,17 +183,17 @@ class TasksService {
   async getPatientForTask(taskId) {
     const task = await this.getById(taskId);
     if (!task || !task.patientId) return null;
-    const { data } = await supabase.from('patients').select('id, full_name, first_name, last_name, email, phone').eq('id', task.patientId).single();
+    const { data } = await supabase.from('patients').select('id, full_name, email, phone').eq('id', task.patientId).single();
     return data || null;
   }
 
   // ── Pacientes disponibles (para select) ──────────────────
   async getPatients() {
-    const { data, error } = await supabase.from('patients').select('id, full_name, first_name, last_name').order('full_name');
+    const { data, error } = await supabase.from('patients').select('id, full_name').order('full_name');
     if (error) throw error;
     return (data || []).map(p => ({
       id:   p.id,
-      name: p.full_name || [p.first_name, p.last_name].filter(Boolean).join(' '),
+      name: p.full_name || '',
     }));
   }
 }
