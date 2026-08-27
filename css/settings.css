@@ -1,6 +1,41 @@
 /* css/settings.css */
 /* Página de configuración / Mi perfil — CONTEXTO */
 
+/* Dashboard-embedded settings topbar */
+.dash-settings-topbar {
+    margin-bottom: 20px;
+}
+
+.dash-settings-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    font-family: var(--font-sans);
+}
+
+.dash-settings-back:hover {
+    background: var(--bg-elevated);
+    border-color: var(--primary);
+}
+
+.dash-settings-back svg {
+    flex-shrink: 0;
+}
+
+#dashSettingsWrap .settings-page {
+    max-width: 100%;
+    padding: 0;
+}
+
 .settings-page {
     max-width: 720px;
     margin: 0 auto;

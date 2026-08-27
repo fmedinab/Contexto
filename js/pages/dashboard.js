@@ -69,6 +69,8 @@ export class DashboardPage {
         this.panelEvaluationTab = 'pending';
         this.activeTaskTab = 'PENDIENTE';
         this.panelTaskTab = 'PENDIENTE';
+        this._currentView = 'dashboard';
+        this._settingsPage = null;
     }
 
     async render() {
@@ -312,7 +314,55 @@ export class DashboardPage {
         if (this._orientationHandler) window.removeEventListener('orientationchange', this._orientationHandler);
         if (this._docClickHandler) document.removeEventListener('click', this._docClickHandler);
         if (this._docKeyHandler) document.removeEventListener('keydown', this._docKeyHandler);
+        if (this._bodyClickHandler) document.body.removeEventListener('click', this._bodyClickHandler);
         this.container = null;
+    }
+
+    async _showSettings() {
+        this._currentView = 'settings';
+        const grid = this.container.querySelector('.main-grid');
+        const footer = this.container.querySelector('.quote-footer');
+        if (grid) grid.style.display = 'none';
+        if (footer) footer.style.display = 'none';
+
+        let wrap = this.container.querySelector('#dashSettingsWrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'dashSettingsWrap';
+            wrap.style.cssText = 'width:100%;max-width:860px;margin:0 auto;padding:32px 24px 48px;';
+            this.container.querySelector('.app').appendChild(wrap);
+        }
+        wrap.style.display = '';
+        wrap.innerHTML = `
+            <div class="dash-settings-topbar">
+                <button class="dash-settings-back" id="dashSettingsBack">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Volver al dashboard
+                </button>
+            </div>
+            <div id="dashSettingsContent"></div>`;
+
+        const backBtn = wrap.querySelector('#dashSettingsBack');
+        if (backBtn) backBtn.addEventListener('click', () => this._showDashboard());
+
+        const { SettingsPage } = await import('./settings.js');
+        if (this._currentView !== 'settings') return;
+        this._settingsPage = new SettingsPage();
+        this._settingsPage.render(wrap.querySelector('#dashSettingsContent'));
+    }
+
+    _showDashboard() {
+        this._currentView = 'dashboard';
+        const wrap = this.container?.querySelector('#dashSettingsWrap');
+        if (wrap) wrap.style.display = 'none';
+        this._settingsPage = null;
+
+        if (this._currentView !== 'settings') {
+            const grid = this.container?.querySelector('.main-grid');
+            const footer = this.container?.querySelector('.quote-footer');
+            if (grid) grid.style.display = '';
+            if (footer) footer.style.display = '';
+        }
     }
 
     // ========== CLOCK ==========
@@ -612,10 +662,11 @@ export class DashboardPage {
         if (userMenuEl) {
             userMenuEl.addEventListener('click', (e) => {
                 const action = e.target.closest('[data-action]')?.dataset.action;
+                console.log('[Dashboard] user menu click, action:', action);
                 if (action === 'logout') {
                     window.app?.auth?.logout().catch(() => {});
                 } else if (action === 'profile' || action === 'preferences') {
-                    window.router?.navigate('/settings');
+                    this._showSettings();
                 }
                 userMenuEl.classList.remove('open');
             });
@@ -735,7 +786,7 @@ export class DashboardPage {
         }
 
         // Global delegation on document.body — survives innerHTML replacements
-        document.body.addEventListener('click', async (e) => {
+        this._bodyClickHandler = async (e) => {
             // Task action buttons [data-task-action] inside dashModalBody
             const actionBtn = e.target.closest('#dashModalBody [data-task-action]');
             if (actionBtn) {
@@ -803,7 +854,8 @@ export class DashboardPage {
                 window.router?.navigate(navTrigger.dataset.navigate);
                 return;
             }
-        });
+        };
+        document.body.addEventListener('click', this._bodyClickHandler);
 
         // Close modal on overlay click
         const overlay = $('#dashModalOverlay');

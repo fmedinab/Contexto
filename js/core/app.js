@@ -20,7 +20,6 @@ import { EvaluationsPage } from '../pages/evaluations.js';
 import { TasksPage } from '../pages/tasks.js';
 import { NotesPage } from '../pages/notes.js';
 import { ReportsPage } from '../pages/reports.js';
-import { SettingsPage } from '../pages/settings.js';
 
 import { pwaInstall } from '../pwa/install.js';
 
@@ -71,13 +70,12 @@ class App {
             .addRoute('/register', () => this.renderPage('register', new RegisterPage()))
             .addRoute('/forgot-password', () => this.renderPage('forgotPassword', new ForgotPasswordPage()))
             .addRoute('/dashboard', () => this.renderPage('dashboard', new DashboardPage()))
-            .addRoute('/patients', () => this.requireAuth(() => this.renderPage('patients', new PatientsPage())))
-            .addRoute('/appointments', () => this.requireAuth(() => this.renderPage('appointments', new AppointmentsPage())))
-            .addRoute('/evaluations', () => this.requireAuth(() => this.renderPage('evaluations', new EvaluationsPage())))
-            .addRoute('/tasks', () => this.requireAuth(() => this.renderPage('tasks', new TasksPage())))
-            .addRoute('/notes', () => this.requireAuth(() => this.renderPage('notes', new NotesPage())))
-            .addRoute('/reports', () => this.requireAuth(() => this.renderPage('reports', new ReportsPage())))
-            .addRoute('/settings', () => this.requireAuth(() => this.renderPage('settings', new SettingsPage())))
+            .addRoute('/patients', () => this.requireAuth(() => this.renderPage('patients', new PatientsPage()))())
+            .addRoute('/appointments', () => this.requireAuth(() => this.renderPage('appointments', new AppointmentsPage()))())
+            .addRoute('/evaluations', () => this.requireAuth(() => this.renderPage('evaluations', new EvaluationsPage()))())
+            .addRoute('/tasks', () => this.requireAuth(() => this.renderPage('tasks', new TasksPage()))())
+            .addRoute('/notes', () => this.requireAuth(() => this.renderPage('notes', new NotesPage()))())
+            .addRoute('/reports', () => this.requireAuth(() => this.renderPage('reports', new ReportsPage()))())
             .addRoute('*', () => {
                 this.renderPage('404', this._notFoundPage());
             });
@@ -114,12 +112,17 @@ class App {
     }
 
     renderPage(key, pageInstance) {
+        console.log('[App] renderPage() key:', key);
         if (this.pageInstances[key] && typeof this.pageInstances[key].destroy === 'function') {
             this.pageInstances[key].destroy();
         }
         this.pageInstances[key] = pageInstance;
         const pageBody = document.getElementById('pageBody');
-        if (pageBody) pageBody.innerHTML = '';
+        if (pageBody) {
+            pageBody.innerHTML = '';
+            pageBody.style.cssText = '';
+            pageBody.className = 'page-body';
+        }
 
         const appEl = document.getElementById('app');
         if (appEl) {
@@ -137,7 +140,9 @@ class App {
     requireAuth(handler) {
         return async () => {
             await this.auth.ready;
+            console.log('[App] requireAuth: isAuthenticated =', this.auth.isAuthenticated());
             if (!this.auth.isAuthenticated()) {
+                console.log('[App] requireAuth: NOT authenticated, redirecting to login');
                 router.navigate('/login');
                 return;
             }
