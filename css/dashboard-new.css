@@ -491,8 +491,9 @@
 }
 
 .app--dashboard .dropdown {
-  position: fixed;
-  right: clamp(10px, 2vw, 28px);
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
   min-width: 200px;
   background: var(--dash-bg-card-strong);
   border: 1px solid var(--dash-border-strong);
@@ -697,9 +698,10 @@
 .app--dashboard .orbit-section {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  min-height: 380px;
+  min-height: 520px;
+  padding-top: 8px;
   overflow: visible;
 }
 
@@ -1915,6 +1917,97 @@
   .app--dashboard .app {
     max-width: min(92%, 2200px);
   }
+
+  .app--dashboard .orbit-stage {
+    width: 560px;
+    height: 560px;
+    max-width: 560px;
+    max-height: 560px;
+  }
+
+  .app--dashboard .orbit-ring.ring-1 {
+    width: 500px;
+    height: 500px;
+  }
+
+  .app--dashboard .orbit-ring.ring-2 {
+    width: 420px;
+    height: 420px;
+  }
+
+  .app--dashboard .orbit-ring.ring-3 {
+    width: 330px;
+    height: 330px;
+  }
+
+  .app--dashboard .brain-core {
+    width: 224px;
+    height: 224px;
+  }
+
+  .app--dashboard .brain-core svg {
+    width: 92px;
+    height: 92px;
+  }
+
+  .app--dashboard .mod-pacientes { --ox: 0px; --oy: -204px; }
+  .app--dashboard .mod-citas { --ox: 165px; --oy: -120px; }
+  .app--dashboard .mod-evaluaciones { --ox: 194px; --oy: 25px; }
+  .app--dashboard .mod-tareas { --ox: 128px; --oy: 159px; }
+  .app--dashboard .mod-notas { --ox: -132px; --oy: 159px; }
+  .app--dashboard .mod-reportes { --ox: -204px; --oy: 25px; }
+  .app--dashboard .mod-mensajes { --ox: -165px; --oy: -120px; }
+}
+
+/* ========== ULTRAWIDE / 2K+ (1920+) ========== */
+@media (min-width: 1920px) {
+  .app--dashboard .app {
+    max-width: min(90%, 2600px);
+  }
+
+  .app--dashboard .main-grid {
+    grid-template-columns: 360px 1fr 380px;
+  }
+
+  .app--dashboard .orbit-stage {
+    width: 640px;
+    height: 640px;
+    max-width: 640px;
+    max-height: 640px;
+  }
+
+  .app--dashboard .orbit-ring.ring-1 {
+    width: 572px;
+    height: 572px;
+  }
+
+  .app--dashboard .orbit-ring.ring-2 {
+    width: 478px;
+    height: 478px;
+  }
+
+  .app--dashboard .orbit-ring.ring-3 {
+    width: 376px;
+    height: 376px;
+  }
+
+  .app--dashboard .brain-core {
+    width: 252px;
+    height: 252px;
+  }
+
+  .app--dashboard .brain-core svg {
+    width: 104px;
+    height: 104px;
+  }
+
+  .app--dashboard .mod-pacientes { --ox: 0px; --oy: -232px; }
+  .app--dashboard .mod-citas { --ox: 188px; --oy: -136px; }
+  .app--dashboard .mod-evaluaciones { --ox: 221px; --oy: 28px; }
+  .app--dashboard .mod-tareas { --ox: 146px; --oy: 181px; }
+  .app--dashboard .mod-notas { --ox: -150px; --oy: 181px; }
+  .app--dashboard .mod-reportes { --ox: -232px; --oy: 28px; }
+  .app--dashboard .mod-mensajes { --ox: -188px; --oy: -136px; }
 }
 
 /* ========== LAPTOP (1024 - 1280) ========== */
@@ -1986,9 +2079,9 @@
 @media (max-width: 1024px) {
   .app--dashboard .main-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
     min-height: calc(100dvh - 100px);
     gap: 0;
+    align-content: start;
   }
 
   .app--dashboard .greeting-card {
@@ -2025,11 +2118,26 @@
 
   .app--dashboard .header-content {
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 8px 14px;
+  }
+
+  .app--dashboard .brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .app--dashboard .header-right {
+    flex: 0 0 auto;
   }
 
   .app--dashboard .header-center {
+    order: 3;
+    width: 100%;
+    justify-content: center;
     font-size: 12px;
+    padding-top: 8px;
+    margin-top: 2px;
+    border-top: 1px solid var(--dash-border);
   }
 
   .app--dashboard .orbit-stage {
@@ -2095,6 +2203,7 @@
     grid-template-columns: 1fr;
     min-height: calc(100dvh - 100px);
     gap: 0;
+    align-content: start;
   }
 
   .app--dashboard .greeting-card {
@@ -2115,17 +2224,17 @@
 
   .app--dashboard .orbit-section {
     order: 2;
-    flex: 1;
-    min-height: 0;
+    min-height: calc(100dvh - 100px);
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
     justify-content: center;
-    padding-top: 8px;
+    padding: 8px 0 28px;
   }
 
   .app--dashboard .col-left {
     order: 3;
     grid-template-columns: 1fr;
+    margin-top: 18px;
   }
 
   .app--dashboard .col-right {
@@ -2133,80 +2242,84 @@
     grid-template-columns: 1fr;
   }
 
+  /* ---- Composición móvil: cerebro protagonista + grid de módulos ---- */
   .app--dashboard .orbit-stage {
-    width: min(360px, 80vw);
-    height: min(360px, 80vw);
-    max-width: 360px;
-    max-height: 360px;
+    width: 100%;
+    height: auto;
+    max-width: 540px;
+    margin: 0 auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    align-items: stretch;
+    align-content: space-evenly;
   }
 
-  .app--dashboard .orbit-ring.ring-1 {
-    width: min(340px, 76vw);
-    height: min(340px, 76vw);
+  .app--dashboard .orbit-ring,
+  .app--dashboard .orbit-particle,
+  .app--dashboard #dashParticleField {
+    display: none !important;
   }
 
-  .app--dashboard .orbit-ring.ring-2 {
-    width: min(280px, 62vw);
-    height: min(280px, 62vw);
+  .app--dashboard .brain-core {
+    order: -1;
+    grid-column: 1 / -1;
+    position: static;
+    transform: none !important;
+    width: clamp(120px, 40vw, 184px);
+    height: clamp(120px, 40vw, 184px);
+    margin: 0 auto 6px;
   }
 
-  .app--dashboard .orbit-ring.ring-3 {
-    width: min(220px, 50vw);
-    height: min(220px, 50vw);
+  .app--dashboard .brain-core:hover {
+    transform: scale(1.04) !important;
   }
 
-  .app--dashboard .mod-pacientes {
-    --ox: 0px;
-    --oy: -155px;
-  }
-
-  .app--dashboard .mod-citas {
-    --ox: 128px;
-    --oy: -90px;
-  }
-
-  .app--dashboard .mod-evaluaciones {
-    --ox: 148px;
-    --oy: 18px;
-  }
-
-  .app--dashboard .mod-tareas {
-    --ox: 95px;
-    --oy: 115px;
-  }
-
-  .app--dashboard .mod-notas {
-    --ox: -100px;
-    --oy: 115px;
-  }
-
-  .app--dashboard .mod-reportes {
-    --ox: -148px;
-    --oy: 18px;
-  }
-
-  .app--dashboard .mod-mensajes {
-    --ox: -128px;
-    --oy: -90px;
+  .app--dashboard .brain-core svg {
+    width: clamp(48px, 15vw, 76px);
+    height: clamp(48px, 15vw, 76px);
   }
 
   .app--dashboard .module-orbit {
-    width: 90px;
-    padding: 10px 6px;
-    font-size: 11px;
-    border-radius: 16px;
-    gap: 6px;
+    position: static;
+    transform: none !important;
+    width: auto;
+    height: auto;
+    min-height: 84px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 10px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 18px;
   }
 
   .app--dashboard .module-orbit .mod-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
   }
 
   .app--dashboard .module-orbit .mod-icon svg {
-    width: 15px;
-    height: 15px;
+    width: 21px;
+    height: 21px;
+  }
+
+  .app--dashboard .mod-mensajes {
+    grid-column: 1 / -1;
+  }
+
+  .app--dashboard .orbit-hint {
+    grid-column: 1 / -1;
+    position: static;
+    transform: none;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--dash-text-secondary);
   }
 
   /* Header: keep inline, no wrapping clock */
@@ -2302,6 +2415,12 @@
     display: none;
   }
 
+  .app--dashboard .dropdown {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+
   .app--dashboard .user-trigger {
     padding: 4px 10px 4px 4px;
     gap: 6px;
@@ -2332,6 +2451,7 @@
     grid-template-columns: 1fr;
     gap: 0;
     min-height: calc(100dvh - 100px);
+    align-content: start;
   }
 
   .app--dashboard .greeting-card {
@@ -2376,87 +2496,46 @@
     gap: 12px;
   }
 
+  .app--dashboard .orbit-section {
+    min-height: calc(100dvh - 140px);
+  }
+
   .app--dashboard .orbit-stage {
-    width: min(320px, 88vw);
-    height: min(320px, 88vw);
-    max-width: 320px;
-    max-height: 320px;
-    margin: 0 auto;
+    gap: 10px;
+    max-width: 460px;
   }
 
-  .app--dashboard .orbit-ring.ring-1 {
-    width: min(320px, 86vw);
-    height: min(320px, 86vw);
+  .app--dashboard .brain-core {
+    width: clamp(110px, 36vw, 150px);
+    height: clamp(110px, 36vw, 150px);
   }
 
-  .app--dashboard .orbit-ring.ring-2 {
-    width: min(265px, 70vw);
-    height: min(265px, 70vw);
-  }
-
-  .app--dashboard .orbit-ring.ring-3 {
-    width: min(210px, 56vw);
-    height: min(210px, 56vw);
-  }
-
-  .app--dashboard .mod-pacientes {
-    --ox: 0px;
-    --oy: -140px;
-  }
-
-  .app--dashboard .mod-citas {
-    --ox: 118px;
-    --oy: -80px;
-  }
-
-  .app--dashboard .mod-evaluaciones {
-    --ox: 138px;
-    --oy: 16px;
-  }
-
-  .app--dashboard .mod-tareas {
-    --ox: 85px;
-    --oy: 105px;
-  }
-
-  .app--dashboard .mod-notas {
-    --ox: -85px;
-    --oy: 105px;
-  }
-
-  .app--dashboard .mod-reportes {
-    --ox: -138px;
-    --oy: 16px;
-  }
-
-  .app--dashboard .mod-mensajes {
-    --ox: -118px;
-    --oy: -80px;
+  .app--dashboard .brain-core svg {
+    width: clamp(42px, 13vw, 60px);
+    height: clamp(42px, 13vw, 60px);
   }
 
   .app--dashboard .module-orbit {
-    width: 88px;
-    padding: 10px 6px;
-    font-size: 10.5px;
+    min-height: 78px;
+    padding: 14px 10px;
+    font-size: 13px;
+    gap: 8px;
     border-radius: 16px;
-    gap: 5px;
-    min-height: 0;
   }
 
   .app--dashboard .module-orbit .mod-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
+    width: 38px;
+    height: 38px;
   }
 
   .app--dashboard .module-orbit .mod-icon svg {
-    width: 16px;
-    height: 16px;
+    width: 19px;
+    height: 19px;
   }
 
   .app--dashboard .orbit-hint {
-    font-size: 9px;
-    bottom: 2px;
+    font-size: 12px;
+    color: var(--dash-text-secondary);
   }
 
   .app--dashboard .orbit-hint svg {
@@ -2740,6 +2819,7 @@
   .app--dashboard .main-grid {
     min-height: calc(100dvh - 100px);
     gap: 0;
+    align-content: start;
   }
 
   .app--dashboard .orbit-section {
@@ -2766,85 +2846,48 @@
     gap: 10px;
   }
 
+  .app--dashboard .orbit-section {
+    min-height: calc(100dvh - 160px);
+  }
+
   .app--dashboard .orbit-stage {
-    width: min(270px, 85vw);
-    height: min(270px, 85vw);
-    max-width: 270px;
-    max-height: 270px;
+    gap: 8px;
+    max-width: 360px;
   }
 
-  .app--dashboard .orbit-ring.ring-1 {
-    width: min(270px, 80vw);
-    height: min(270px, 80vw);
+  .app--dashboard .brain-core {
+    width: clamp(104px, 34vw, 132px);
+    height: clamp(104px, 34vw, 132px);
+    margin-bottom: 4px;
   }
 
-  .app--dashboard .orbit-ring.ring-2 {
-    width: min(220px, 66vw);
-    height: min(220px, 66vw);
-  }
-
-  .app--dashboard .orbit-ring.ring-3 {
-    width: min(175px, 52vw);
-    height: min(175px, 52vw);
-  }
-
-  .app--dashboard .mod-pacientes {
-    --ox: 0px;
-    --oy: -115px;
-  }
-
-  .app--dashboard .mod-citas {
-    --ox: 96px;
-    --oy: -66px;
-  }
-
-  .app--dashboard .mod-evaluaciones {
-    --ox: 112px;
-    --oy: 13px;
-  }
-
-  .app--dashboard .mod-tareas {
-    --ox: 70px;
-    --oy: 88px;
-  }
-
-  .app--dashboard .mod-notas {
-    --ox: -70px;
-    --oy: 88px;
-  }
-
-  .app--dashboard .mod-reportes {
-    --ox: -112px;
-    --oy: 13px;
-  }
-
-  .app--dashboard .mod-mensajes {
-    --ox: -96px;
-    --oy: -66px;
+  .app--dashboard .brain-core svg {
+    width: clamp(40px, 12vw, 54px);
+    height: clamp(40px, 12vw, 54px);
   }
 
   .app--dashboard .module-orbit {
-    width: 78px;
-    padding: 8px 5px;
-    font-size: 9.5px;
+    min-height: 72px;
+    padding: 12px 8px;
+    font-size: 12px;
+    gap: 7px;
     border-radius: 14px;
-    gap: 4px;
-    min-height: 0;
   }
 
   .app--dashboard .module-orbit .mod-icon {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
+    width: 34px;
+    height: 34px;
   }
 
   .app--dashboard .module-orbit .mod-icon svg {
-    width: 15px;
-    height: 15px;
+    width: 17px;
+    height: 17px;
   }
 
   .app--dashboard .orbit-hint {
-    display: none;
+    font-size: 11.5px;
+    color: var(--dash-text-secondary);
+    margin-top: 10px;
   }
 
   /* Summary */

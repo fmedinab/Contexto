@@ -652,11 +652,8 @@ export class DashboardPage {
         const userMenu = $('#dashUserMenu');
         if (userTrigger && userMenu) {
             this._repositionDropdown = () => {
-                const dropdown = userMenu.querySelector('.dropdown');
-                if (dropdown && userMenu.classList.contains('open')) {
-                    const triggerRect = userTrigger.getBoundingClientRect();
-                    dropdown.style.top = (triggerRect.bottom + 8) + 'px';
-                }
+                // Posicionamiento relativo al trigger gestionado por CSS (.dropdown absoluto).
+                // Se conserva el listener para mantener el cierre sincronizado en scroll/resize.
             };
 
             userTrigger.addEventListener('click', (e) => {
