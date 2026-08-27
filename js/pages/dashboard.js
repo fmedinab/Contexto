@@ -144,11 +144,11 @@ export class DashboardPage {
                 </header>
 
                 <div class="main-grid">
+                    <div class="greeting-card">
+                        <h1 class="greeting-title">${greeting.text} <span class="heart" aria-hidden="true">♡</span></h1>
+                        <p class="greeting-quote">"${greeting.phrase}"</p>
+                    </div>
                     <div class="col col-left">
-                        <div class="greeting-card">
-                            <h1 class="greeting-title">${greeting.text} <span class="heart" aria-hidden="true">♡</span></h1>
-                            <p class="greeting-quote">"${greeting.phrase}"</p>
-                        </div>
                         <section class="card">
                             <div class="card-title">Resumen del día</div>
                             <div class="summary-list" id="dashSummary"></div>

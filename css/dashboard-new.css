@@ -454,8 +454,15 @@
 .app--dashboard .main-grid {
   display: grid;
   grid-template-columns: 300px 1fr 340px;
+  grid-template-rows: auto;
   gap: 22px;
   align-items: start;
+}
+
+.app--dashboard .greeting-card {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 0 0 8px;
 }
 
 .app--dashboard .col { display: flex; flex-direction: column; gap: 18px; }
@@ -1362,9 +1369,12 @@
     grid-template-columns: 1fr;
     grid-template-rows: auto auto auto;
   }
-  .app--dashboard .col-left { order: 2; }
-  .app--dashboard .orbit-section { order: 1; min-height: 480px; }
-  .app--dashboard .col-right { order: 3; }
+  .app--dashboard .greeting-card { order: 1; grid-column: 1 / -1; text-align: center; }
+  .app--dashboard .greeting-title { justify-content: center; }
+  .app--dashboard .greeting-quote { max-width: 100%; text-align: center; }
+  .app--dashboard .orbit-section { order: 2; min-height: 480px; }
+  .app--dashboard .col-left { order: 3; }
+  .app--dashboard .col-right { order: 4; }
   .app--dashboard .header-content { flex-wrap: wrap; gap: 8px; }
   .app--dashboard .header-center { font-size: 12px; }
   .app--dashboard .orbit-stage { width: min(440px, 80vw); height: min(440px, 80vw); max-width: 440px; max-height: 440px; }
@@ -1375,7 +1385,6 @@
   .app--dashboard .brain-core svg { width: min(65px, 12vw); height: min(65px, 12vw); }
   .app--dashboard .quote-footer { margin-top: 20px; }
   .app--dashboard .col-left { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-  .app--dashboard .col-left .greeting-card { grid-column: 1 / -1; }
   .app--dashboard .col-right { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
   .app--dashboard .col-right .emotion-card { grid-column: 1 / -1; }
   .app--dashboard .modal-box.modal-wide { max-width: min(760px, 90vw); }
@@ -1383,9 +1392,13 @@
 
 /* ========== MOBILE LARGE (480 - 768) ========== */
 @media (max-width: 768px) {
-  .app--dashboard .col-left { grid-template-columns: 1fr; }
-  .app--dashboard .col-right { grid-template-columns: 1fr; }
-  .app--dashboard .orbit-section { min-height: min(420px, 75vw); }
+  .app--dashboard .main-grid { grid-template-columns: 1fr; }
+  .app--dashboard .greeting-card { order: 1; text-align: center; padding: 0 0 8px; grid-column: 1 / -1; }
+  .app--dashboard .greeting-title { justify-content: center; }
+  .app--dashboard .greeting-quote { max-width: 100%; text-align: center; }
+  .app--dashboard .orbit-section { order: 2; min-height: min(420px, 75vw); }
+  .app--dashboard .col-left { order: 3; grid-template-columns: 1fr; }
+  .app--dashboard .col-right { order: 4; grid-template-columns: 1fr; }
   .app--dashboard .orbit-stage { width: min(380px, 85vw); height: min(380px, 85vw); max-width: 380px; max-height: 380px; }
   .app--dashboard .orbit-ring.ring-1 { width: min(340px, 76vw); height: min(340px, 76vw); }
   .app--dashboard .orbit-ring.ring-2 { width: min(280px, 62vw); height: min(280px, 62vw); }
@@ -1401,7 +1414,7 @@
   .app--dashboard .module-orbit .mod-icon { width: 30px; height: 30px; border-radius: 9px; }
   .app--dashboard .module-orbit .mod-icon svg { width: 15px; height: 15px; }
 
-  /* Header: center moves to second row, right stays inline */
+  /* Header: keep inline, no wrapping clock */
   .app--dashboard .header-content {
     flex-wrap: wrap;
     gap: 6px;
@@ -1423,58 +1436,58 @@
   .app--dashboard .header-border-svg { display: none; }
   .app--dashboard .header-content {
     padding: 8px 12px;
-    gap: 6px;
+    gap: 0;
+    justify-content: space-between;
   }
-  .app--dashboard .brand { gap: 8px; }
-  .app--dashboard .brand-icon { width: 36px; height: 36px; border-radius: 10px; }
-  .app--dashboard .brand-icon svg { width: 22px; height: 22px; }
-  .app--dashboard .brand-text .brand-name { font-size: clamp(14px, 4vw, 16px); }
-  .app--dashboard .brand-text .brand-sub { display: none; }
+  .app--dashboard .brand { gap: 0; }
+  .app--dashboard .brand-icon { width: 38px; height: 38px; border-radius: 10px; }
+  .app--dashboard .brand-icon svg { width: 24px; height: 24px; }
+  .app--dashboard .brand-text { display: none; }
   .app--dashboard .header-center {
-    font-size: 11px;
-    gap: 6px;
+    display: none;
   }
-  .app--dashboard .header-center .clock-date { display: none; }
-  .app--dashboard .header-center .clock-time { font-size: 12px; }
-  .app--dashboard .header-right { gap: 4px; }
-  .app--dashboard .icon-btn { width: 36px; height: 36px; border-radius: 10px; }
-  .app--dashboard .icon-btn svg { width: 16px; height: 16px; }
+  .app--dashboard .header-right { gap: 6px; }
+  .app--dashboard .icon-btn { width: 40px; height: 40px; border-radius: 11px; }
+  .app--dashboard .icon-btn svg { width: 17px; height: 17px; }
   .app--dashboard .header-divider { display: none; }
-  .app--dashboard .user-trigger { padding: 3px 8px 3px 3px; gap: 6px; }
-  .app--dashboard .avatar { width: 32px; height: 32px; font-size: 11px; }
-  .app--dashboard .user-text .user-name { font-size: 12px; }
+  .app--dashboard .user-trigger { padding: 4px 10px 4px 4px; gap: 6px; }
+  .app--dashboard .avatar { width: 34px; height: 34px; font-size: 12px; }
+  .app--dashboard .user-text .user-name { font-size: 13px; font-weight: 600; }
   .app--dashboard .user-text .user-role { display: none; }
-  .app--dashboard .chevron { width: 12px; height: 12px; }
+  .app--dashboard .chevron { width: 13px; height: 13px; }
 
-  /* Grid: orbit first, then cards */
+  /* Grid: greeting FIRST, then orbit, then data */
   .app--dashboard .main-grid {
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  .app--dashboard .col-left { order: 2; display: flex; flex-direction: column; gap: 12px; }
-  .app--dashboard .col-right { order: 3; display: flex; flex-direction: column; gap: 12px; }
-  .app--dashboard .orbit-section { order: 1; min-height: min(340px, 90vw); }
-  .app--dashboard .orbit-stage { width: min(300px, 85vw); height: min(300px, 85vw); max-width: 300px; max-height: 300px; margin: 0 auto; }
-  .app--dashboard .orbit-ring.ring-1 { width: min(265px, 75vw); height: min(265px, 75vw); }
-  .app--dashboard .orbit-ring.ring-2 { width: min(215px, 60vw); height: min(215px, 60vw); }
-  .app--dashboard .orbit-ring.ring-3 { width: min(165px, 46vw); height: min(165px, 46vw); }
-  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -118px; }
-  .app--dashboard .mod-citas        { --ox: 96px;   --oy: -68px;  }
-  .app--dashboard .mod-evaluaciones { --ox: 112px;  --oy: 12px;   }
-  .app--dashboard .mod-tareas       { --ox: 72px;   --oy: 88px;   }
-  .app--dashboard .mod-notas        { --ox: -76px;  --oy: 88px;   }
-  .app--dashboard .mod-reportes     { --ox: -112px; --oy: 12px;   }
-  .app--dashboard .mod-mensajes     { --ox: -96px;  --oy: -68px;  }
-  .app--dashboard .module-orbit { width: 72px; padding: 7px 4px; font-size: 9.5px; border-radius: 13px; gap: 4px; min-height: 0; }
-  .app--dashboard .module-orbit .mod-icon { width: 24px; height: 24px; border-radius: 7px; }
-  .app--dashboard .module-orbit .mod-icon svg { width: 12px; height: 12px; }
+  .app--dashboard .greeting-card { order: 1; text-align: center; padding: 0 0 8px; grid-column: 1 / -1; }
+  .app--dashboard .greeting-title { justify-content: center; font-size: clamp(18px, 5vw, 22px); }
+  .app--dashboard .greeting-quote { max-width: 100%; text-align: center; font-size: 12px; }
+  .app--dashboard .orbit-section { order: 2; min-height: min(360px, 92vw); }
+  .app--dashboard .col-left { order: 3; display: flex; flex-direction: column; gap: 12px; }
+  .app--dashboard .col-right { order: 4; display: flex; flex-direction: column; gap: 12px; }
+  .app--dashboard .orbit-stage { width: min(320px, 88vw); height: min(320px, 88vw); max-width: 320px; max-height: 320px; margin: 0 auto; }
+  .app--dashboard .orbit-ring.ring-1 { width: min(285px, 78vw); height: min(285px, 78vw); }
+  .app--dashboard .orbit-ring.ring-2 { width: min(235px, 64vw); height: min(235px, 64vw); }
+  .app--dashboard .orbit-ring.ring-3 { width: min(185px, 50vw); height: min(185px, 50vw); }
+  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -125px; }
+  .app--dashboard .mod-citas        { --ox: 108px;  --oy: -72px;  }
+  .app--dashboard .mod-evaluaciones { --ox: 125px;  --oy: 15px;   }
+  .app--dashboard .mod-tareas       { --ox: 78px;   --oy: 95px;   }
+  .app--dashboard .mod-notas        { --ox: -78px;  --oy: 95px;   }
+  .app--dashboard .mod-reportes     { --ox: -125px; --oy: 15px;   }
+  .app--dashboard .mod-mensajes     { --ox: -108px; --oy: -72px;  }
+  .app--dashboard .module-orbit { width: 88px; padding: 10px 6px; font-size: 10.5px; border-radius: 16px; gap: 5px; min-height: 0; }
+  .app--dashboard .module-orbit .mod-icon { width: 32px; height: 32px; border-radius: 9px; }
+  .app--dashboard .module-orbit .mod-icon svg { width: 16px; height: 16px; }
   .app--dashboard .orbit-hint { font-size: 9px; bottom: 2px; }
   .app--dashboard .orbit-hint svg { width: 14px; height: 14px; }
 
   /* Cards */
   .app--dashboard .card { padding: clamp(10px, 3vw, 14px); border-radius: 14px; }
   .app--dashboard .greeting-title { font-size: clamp(17px, 4.5vw, 20px); }
-  .app--dashboard .greeting-quote { font-size: 11px; max-width: 100%; }
+  .app--dashboard .greeting-quote { font-size: 11px; max-width: 100%; text-align: center; }
 
   /* Modals */
   .app--dashboard .modal-box { padding: clamp(14px, 3vw, 18px); max-height: 90vh; max-height: 90dvh; border-radius: 20px; }
@@ -1528,44 +1541,47 @@
 @media (max-width: 375px) {
   .app--dashboard .app { padding: 8px 8px 0; }
 
-  /* Header: logo stays, clock hides, buttons ≥ 44px */
-  .app--dashboard .header-content { padding: 6px 10px; gap: 4px; }
-  .app--dashboard .brand { gap: 6px; }
-  .app--dashboard .brand-icon { width: 34px; height: 34px; border-radius: 9px; }
-  .app--dashboard .brand-icon svg { width: 20px; height: 20px; }
-  .app--dashboard .brand-text .brand-name { font-size: 13px; }
-  .app--dashboard .brand-text .brand-sub { display: none; }
+  /* Header: logo only, centered, big touch targets */
+  .app--dashboard .header-content { padding: 6px 10px; justify-content: center; }
+  .app--dashboard .brand { gap: 0; }
+  .app--dashboard .brand-icon { width: 40px; height: 40px; border-radius: 10px; }
+  .app--dashboard .brand-icon svg { width: 26px; height: 26px; }
+  .app--dashboard .brand-text { display: none; }
   .app--dashboard .header-center { display: none; }
+  .app--dashboard .header-right { gap: 6px; }
   .app--dashboard .icon-btn { width: 44px; height: 44px; border-radius: 12px; }
   .app--dashboard .icon-btn svg { width: 18px; height: 18px; }
-  .app--dashboard .user-trigger { padding: 4px 8px 4px 4px; gap: 6px; }
-  .app--dashboard .avatar { width: 34px; height: 34px; font-size: 11px; }
-  .app--dashboard .user-text .user-name { font-size: 12px; font-weight: 600; }
+  .app--dashboard .user-trigger { padding: 4px 10px 4px 4px; gap: 6px; }
+  .app--dashboard .avatar { width: 36px; height: 36px; font-size: 12px; }
+  .app--dashboard .user-text .user-name { font-size: 13px; font-weight: 600; }
   .app--dashboard .user-text .user-role { display: none; }
-  .app--dashboard .chevron { width: 12px; height: 12px; }
+  .app--dashboard .chevron { width: 13px; height: 13px; }
 
-  /* Orbit ultra-small: ensure all nodes fit within viewport */
-  .app--dashboard .orbit-section { min-height: min(310px, 95vw); }
-  .app--dashboard .orbit-stage { width: min(270px, 84vw); height: min(270px, 84vw); max-width: 270px; max-height: 270px; }
-  .app--dashboard .orbit-ring.ring-1 { width: min(240px, 75vw); height: min(240px, 75vw); }
-  .app--dashboard .orbit-ring.ring-2 { width: min(200px, 62vw); height: min(200px, 62vw); }
-  .app--dashboard .orbit-ring.ring-3 { width: min(155px, 48vw); height: min(155px, 48vw); }
-  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -105px; }
-  .app--dashboard .mod-citas        { --ox: 84px;   --oy: -60px;  }
-  .app--dashboard .mod-evaluaciones { --ox: 98px;   --oy: 10px;   }
-  .app--dashboard .mod-tareas       { --ox: 62px;   --oy: 76px;   }
-  .app--dashboard .mod-notas        { --ox: -66px;  --oy: 76px;   }
-  .app--dashboard .mod-reportes     { --ox: -98px;  --oy: 10px;   }
-  .app--dashboard .mod-mensajes     { --ox: -84px;  --oy: -60px;  }
-  .app--dashboard .module-orbit { width: 64px; padding: 6px 3px; font-size: 8.5px; border-radius: 12px; gap: 3px; min-height: 0; }
-  .app--dashboard .module-orbit .mod-icon { width: 22px; height: 22px; border-radius: 6px; }
-  .app--dashboard .module-orbit .mod-icon svg { width: 11px; height: 11px; }
-  .app--dashboard .orbit-hint { display: none; }
-
-  /* Greeting */
-  .app--dashboard .greeting-title { font-size: 16px; }
+  /* Greeting: centered, compact */
+  .app--dashboard .greeting-card { order: 1; text-align: center; padding: 0 0 6px; grid-column: 1 / -1; }
+  .app--dashboard .greeting-title { justify-content: center; font-size: 17px; }
   .app--dashboard .greeting-title .heart { font-size: 14px; }
-  .app--dashboard .greeting-quote { font-size: 10.5px; }
+  .app--dashboard .greeting-quote { font-size: 11px; max-width: 100%; text-align: center; }
+
+  /* Grid: greeting → orbit → data */
+  .app--dashboard .orbit-section { order: 2; min-height: min(320px, 95vw); }
+  .app--dashboard .col-left { order: 3; display: flex; flex-direction: column; gap: 10px; }
+  .app--dashboard .col-right { order: 4; display: flex; flex-direction: column; gap: 10px; }
+  .app--dashboard .orbit-stage { width: min(280px, 86vw); height: min(280px, 86vw); max-width: 280px; max-height: 280px; }
+  .app--dashboard .orbit-ring.ring-1 { width: min(250px, 76vw); height: min(250px, 76vw); }
+  .app--dashboard .orbit-ring.ring-2 { width: min(205px, 62vw); height: min(205px, 62vw); }
+  .app--dashboard .orbit-ring.ring-3 { width: min(160px, 48vw); height: min(160px, 48vw); }
+  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -108px; }
+  .app--dashboard .mod-citas        { --ox: 90px;   --oy: -62px;  }
+  .app--dashboard .mod-evaluaciones { --ox: 105px;  --oy: 12px;   }
+  .app--dashboard .mod-tareas       { --ox: 65px;   --oy: 82px;   }
+  .app--dashboard .mod-notas        { --ox: -65px;  --oy: 82px;   }
+  .app--dashboard .mod-reportes     { --ox: -105px; --oy: 12px;   }
+  .app--dashboard .mod-mensajes     { --ox: -90px;  --oy: -62px;  }
+  .app--dashboard .module-orbit { width: 78px; padding: 8px 5px; font-size: 9.5px; border-radius: 14px; gap: 4px; min-height: 0; }
+  .app--dashboard .module-orbit .mod-icon { width: 30px; height: 30px; border-radius: 9px; }
+  .app--dashboard .module-orbit .mod-icon svg { width: 15px; height: 15px; }
+  .app--dashboard .orbit-hint { display: none; }
 
   /* Summary */
   .app--dashboard .summary-icon { width: 32px; height: 32px; border-radius: 9px; }
