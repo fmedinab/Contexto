@@ -614,7 +614,7 @@ export class DashboardPage {
                 const action = e.target.closest('[data-action]')?.dataset.action;
                 if (action === 'logout') {
                     window.app?.auth?.logout().catch(() => {});
-                } else if (action === 'profile') {
+                } else if (action === 'profile' || action === 'preferences') {
                     window.router?.navigate('/settings');
                 }
                 userMenuEl.classList.remove('open');
