@@ -5,7 +5,7 @@
 import {
     getClinicianProfile, getGreeting, getSummary,
     getAppointments, getTasks,
-    getReports, getMessages, getEmotionalState, getQuote,
+    getMessages, getEmotionalState, getQuote,
     formatDate, formatTime, getInitials, formatAppointmentDate
 } from '../services/mockData.js';
 import { patientService, THERAPY_TYPES, STATUS_LABELS } from '../services/patientsService.js';
@@ -13,6 +13,7 @@ import { appointmentService, STATUS_LABELS as APPT_STATUS_LABELS, STATUS_COLORS 
 import { evaluationService, INSTRUMENTS, STATUS_LABELS as EVAL_STATUS_LABELS } from '../services/evaluationsService.js';
 import { tasksService } from '../services/tasksService.js';
 import { notesService } from '../services/notesService.js';
+import { reportsService } from '../services/reportsService.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -897,7 +898,7 @@ export class DashboardPage {
             case 'evaluations': body.innerHTML = await this._evaluationsModalHTML(); await this._renderModalEvalList(); break;
             case 'tasks': body.innerHTML = await this._tasksModalHTML(); await this._renderModalTaskList(); break;
             case 'notes': body.innerHTML = await this._notesModalHTML(); await this._renderModalNotesList(); break;
-            case 'reports': body.innerHTML = this._reportsModalHTML(); this._renderReportsChart(); break;
+            case 'reports': await this._reportsModalHTML(); this._renderReportsChart(); break;
             case 'messages': body.innerHTML = this._messagesModalHTML(); break;
             case 'patientDetail': body.innerHTML = this._patientDetailHTML(payload); break;
             case 'appointmentDetail': body.innerHTML = await this._appointmentDetailHTML(payload); break;
@@ -1232,39 +1233,53 @@ export class DashboardPage {
         }
     }
 
-    _reportsModalHTML() {
-        const reports = getReports();
-        return `
-            <div class="indicator-grid">${reports.indicators.map(i => `
-                <div class="indicator-box">
-                    <div class="indicator-value">${i.value}</div>
-                    <div class="indicator-label">${i.label}</div>
-                    <div class="indicator-delta">${i.delta} vs. mes anterior</div>
-                </div>
-            `).join('')}</div>
-            <div class="data-title" style="margin-top:6px; font-size:12px; color:var(--dash-text-secondary); text-transform:uppercase; letter-spacing:.04em;">Sesiones por mes</div>
-            <div class="mini-chart" id="dashReportsChart"></div>
-        `;
+    async _reportsModalHTML() {
+        const body = $('#dashModalBody');
+        if (!body) return;
+        body.innerHTML = '<div style="text-align:center;padding:24px;"><span class="spinner spinner--sm"></span></div>';
+        try {
+            const { indicators } = await reportsService.getSummary();
+            body.innerHTML = `
+                <div class="indicator-grid">${indicators.map(i => `
+                    <div class="indicator-box">
+                        <div class="indicator-value">${i.value}</div>
+                        <div class="indicator-label">${i.label}</div>
+                        <div class="indicator-delta">${i.delta} vs. mes anterior</div>
+                    </div>
+                `).join('')}</div>
+                <div class="data-title" style="margin-top:6px; font-size:12px; color:var(--dash-text-secondary); text-transform:uppercase; letter-spacing:.04em;">Sesiones por mes</div>
+                <div class="mini-chart" id="dashReportsChart"></div>
+            `;
+        } catch (e) {
+            body.innerHTML = '<div class="data-rows" style="text-align:center;padding:24px;">Error al cargar reportes.</div>';
+        }
     }
 
-    _renderReportsChart() {
+    async _renderReportsChart() {
         const el = $('#dashReportsChart');
         if (!el) return;
-        const values = getReports().monthlySessions;
-        const w = Math.max(200, el.offsetWidth || 680);
-        const h = 90, gap = 6;
-        const barW = (w - gap * (values.length - 1)) / values.length;
-        const max = Math.max(...values);
-        const bars = values.map((v, i) => {
-            const bh = (v / max) * (h - 10);
-            const x = i * (barW + gap);
-            const y = h - bh;
-            return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="3" fill="url(#barGrad)" />`;
-        }).join('');
-        el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%; height:100%;">
-            <defs><linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs>
-            ${bars}
-        </svg>`;
+        try {
+            const monthly = await reportsService.getMonthlySessions();
+            const values = monthly.map(m => m.value);
+            const labels = monthly.map(m => m.month);
+            const w = Math.max(200, el.offsetWidth || 680);
+            const h = 90, gap = 6;
+            const barW = (w - gap * (values.length - 1)) / values.length;
+            const max = Math.max(...values, 1);
+            const bars = values.map((v, i) => {
+                const bh = (v / max) * (h - 10);
+                const x = i * (barW + gap);
+                const y = h - bh;
+                return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="3" fill="url(#barGrad)" />
+                        <text x="${(x + barW / 2).toFixed(1)}" y="${(h - 2).toFixed(1)}" text-anchor="middle" fill="var(--dash-text-tertiary)" font-size="7">${labels[i]}</text>`;
+            }).join('');
+            el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%; height:100%;">
+                <defs><linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient></defs>
+                ${bars}
+            </svg>`;
+        } catch (e) {
+            el.innerHTML = '<div style="text-align:center;padding:12px;color:var(--dash-text-tertiary);font-size:12px;">Error al cargar gráfico.</div>';
+        }
     }
 
     _messagesModalHTML() {

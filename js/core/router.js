@@ -92,7 +92,8 @@ export class Router {
             '/appointments': 'Citas — CONTEXTO',
             '/evaluations': 'Evaluaciones — CONTEXTO',
             '/tasks': 'Tareas terapéuticas — CONTEXTO',
-            '/notes': 'Notas clínicas — CONTEXTO'
+            '/notes': 'Notas clínicas — CONTEXTO',
+            '/reports': 'Reportes — CONTEXTO'
         };
         return titles[path] || 'CONTEXTO';
     }
