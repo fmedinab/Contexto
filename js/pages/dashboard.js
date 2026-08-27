@@ -11,6 +11,7 @@ import {
 import { patientService, THERAPY_TYPES, STATUS_LABELS } from '../services/patientsService.js';
 import { appointmentService, STATUS_LABELS as APPT_STATUS_LABELS, STATUS_COLORS as APPT_STATUS_COLORS } from '../services/appointmentsService.js';
 import { evaluationService, INSTRUMENTS, STATUS_LABELS as EVAL_STATUS_LABELS } from '../services/evaluationsService.js';
+import { tasksService } from '../services/tasksService.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -65,6 +66,8 @@ export class DashboardPage {
         this.currentModal = null;
         this.activeEvaluationTab = 'pending';
         this.panelEvaluationTab = 'pending';
+        this.activeTaskTab = 'PENDIENTE';
+        this.panelTaskTab = 'PENDIENTE';
     }
 
     async render() {
@@ -233,6 +236,16 @@ export class DashboardPage {
                             <div id="dashEvalList"></div>
                             <button class="card-footer-link" data-modal="evaluations">Ver todas las evaluaciones</button>
                         </section>
+                        <section class="card" id="dashTasksPanel">
+                            <div class="card-title">Tareas terapéuticas</div>
+                            <div class="tabs" id="dashTaskTabs">
+                                <button class="tab-btn active" data-tab="PENDIENTE">Pendientes <span class="tab-count" id="dashTaskPendingCount">—</span></button>
+                                <button class="tab-btn" data-tab="EN_PROGRESO">En progreso <span class="tab-count" id="dashTaskInProgressCount">—</span></button>
+                                <button class="tab-btn" data-tab="COMPLETADA">Completadas <span class="tab-count" id="dashTaskCompletedCount">—</span></button>
+                            </div>
+                            <div id="dashTaskList"></div>
+                            <button class="card-footer-link" data-modal="tasks">Ver todas las tareas</button>
+                        </section>
                     </div>
                 </div>
 
@@ -259,6 +272,7 @@ export class DashboardPage {
         await this._renderAppointments();
         this._renderEmotionChart();
         await this._renderEvaluationsPanel();
+        await this._renderTasksPanel();
 
         patientService.onChange(() => {
             this._renderPatients();
@@ -271,6 +285,10 @@ export class DashboardPage {
         evaluationService.onChange(async () => {
             await this._renderEvaluationsPanel();
             if (this.currentModal === 'evaluations') await this._renderModalEvalList();
+        });
+        tasksService.onChange(async () => {
+            await this._renderTasksPanel();
+            if (this.currentModal === 'tasks') await this._renderModalTaskList();
         });
         this._initParticles();
         this._startClock();
@@ -477,6 +495,45 @@ export class DashboardPage {
         }
     }
 
+    async _renderTasksPanel() {
+        const container = $('#dashTaskList');
+        if (!container) return;
+        const tab = this.panelTaskTab;
+        try {
+            const [allTasks, pending, inProgress, completed] = await Promise.all([
+                tasksService.list(),
+                tasksService.list({ status: 'PENDIENTE' }),
+                tasksService.list({ status: 'EN_PROGRESO' }),
+                tasksService.list({ status: 'COMPLETADA' }),
+            ]);
+            $('#dashTaskPendingCount').textContent = pending.length;
+            $('#dashTaskInProgressCount').textContent = inProgress.length;
+            $('#dashTaskCompletedCount').textContent = completed.length;
+            $$('#dashTaskTabs .tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+            const items = { PENDIENTE: pending, EN_PROGRESO: inProgress, COMPLETADA: completed }[tab] || [];
+            if (!items.length) {
+                container.innerHTML = `<div class="empty-state">No hay tareas en esta categoría.</div>`;
+                return;
+            }
+            const _dd = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' }) : '—';
+            container.innerHTML = items.slice(0, 3).map(t => {
+                const stClass = t.status === 'COMPLETADA' ? 'completed' : t.status === 'EN_PROGRESO' ? 'in-progress' : t.status === 'VENCIDA' ? 'danger' : 'pending';
+                return `
+                <div class="eval-row">
+                    <div class="eval-icon">${icon('checklist', 14)}</div>
+                    <div class="eval-info">
+                        <div class="eval-name">${escapeHtml(t.title)}</div>
+                        <div class="eval-meta">${escapeHtml(t.patient || 'Sin paciente')} · Vence: ${_dd(t.dueDate)}</div>
+                    </div>
+                    <span class="status-pill ${stClass}">${t.progress}%</span>
+                </div>`;
+            }).join('');
+        } catch (err) {
+            console.error('Error panel tareas:', err);
+            container.innerHTML = `<div class="empty-state">Error al cargar tareas.</div>`;
+        }
+    }
+
     // ========== EVENTS ==========
 
     _bindEvents() {
@@ -596,6 +653,17 @@ export class DashboardPage {
                 if (!btn) return;
                 this.panelEvaluationTab = btn.dataset.tab;
                 await this._renderEvaluationsPanel();
+            });
+        }
+
+        // Task tabs
+        const taskTabs = $('#dashTaskTabs');
+        if (taskTabs) {
+            taskTabs.addEventListener('click', async (e) => {
+                const btn = e.target.closest('.tab-btn');
+                if (!btn) return;
+                this.panelTaskTab = btn.dataset.tab;
+                await this._renderTasksPanel();
             });
         }
 
@@ -731,7 +799,7 @@ export class DashboardPage {
             case 'patients': body.innerHTML = this._patientsModalHTML(); await this._renderModalPatientList(); break;
             case 'appointments': body.innerHTML = await this._appointmentsModalHTML(); break;
             case 'evaluations': body.innerHTML = await this._evaluationsModalHTML(); await this._renderModalEvalList(); break;
-            case 'tasks': body.innerHTML = this._tasksModalHTML(); break;
+            case 'tasks': body.innerHTML = await this._tasksModalHTML(); await this._renderModalTaskList(); break;
             case 'notes': body.innerHTML = this._notesModalHTML(); break;
             case 'reports': body.innerHTML = this._reportsModalHTML(); this._renderReportsChart(); break;
             case 'messages': body.innerHTML = this._messagesModalHTML(); break;
@@ -884,32 +952,54 @@ export class DashboardPage {
         }
     }
 
-    _tasksModalHTML() {
-        const tasks = getTasks();
-        const groups = [['pending', 'Pendientes'], ['inProgress', 'En progreso'], ['completed', 'Completadas']];
+    async _tasksModalHTML() {
+        const tab = this.activeTaskTab || 'PENDIENTE';
+        let counts = { pending: 0, inProgress: 0, completed: 0 };
+        try {
+            const [pending, inProgress, completed] = await Promise.all([
+                tasksService.list({ status: 'PENDIENTE' }),
+                tasksService.list({ status: 'EN_PROGRESO' }),
+                tasksService.list({ status: 'COMPLETADA' })
+            ]);
+            counts = { pending: pending.length, inProgress: inProgress.length, completed: completed.length };
+        } catch { /* use zeros */ }
+        const _dateDisp = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' }) : '—';
         return `
             <div class="action-row" style="justify-content:flex-end;">
                 <button class="btn btn-primary" id="dashBtnNewTask">${icon('plus', 14)} Nueva tarea</button>
             </div>
-            ${groups.map(([key, label]) => `
-                <div class="data-title" style="margin:6px 0 -2px; color:var(--dash-text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:.04em;">${label}</div>
-                <div class="data-rows">
-                    ${(tasks[key] || []).map(t => `
-                        <div class="data-row" style="flex-direction:column; align-items:stretch;">
-                            <div style="display:flex; gap:12px; align-items:center;">
-                                <div class="patient-avatar">${getInitials(t.patient)}</div>
-                                <div class="data-main">
-                                    <div class="data-title">${t.description}</div>
-                                    <div class="data-sub">${t.patient} · Vence: ${t.due} · Prioridad: ${t.priority}</div>
-                                </div>
-                                <span class="status-pill ${key === 'completed' ? 'completed' : key === 'inProgress' ? 'in-progress' : 'pending'}">${t.progress}%</span>
-                            </div>
-                            <div class="progress-track"><div class="progress-fill" style="width:${t.progress}%;"></div></div>
-                        </div>
-                    `).join('') || `<div class="empty-state">Sin tareas en esta categoría.</div>`}
-                </div>
-            `).join('')}
+            <div class="tabs">
+                <button class="tab-btn ${tab === 'PENDIENTE' ? 'active' : ''}" data-modal-tab="PENDIENTE">Pendientes <span class="tab-count">${counts.pending}</span></button>
+                <button class="tab-btn ${tab === 'EN_PROGRESO' ? 'active' : ''}" data-modal-tab="EN_PROGRESO">En progreso <span class="tab-count">${counts.inProgress}</span></button>
+                <button class="tab-btn ${tab === 'COMPLETADA' ? 'active' : ''}" data-modal-tab="COMPLETADA">Completadas <span class="tab-count">${counts.completed}</span></button>
+            </div>
+            <div class="data-rows" id="dashModalTaskList"></div>
         `;
+    }
+
+    async _renderModalTaskList() {
+        const el = $('#dashModalTaskList');
+        if (!el) return;
+        const tab = this.activeTaskTab || 'PENDIENTE';
+        try {
+            const items = await tasksService.list({ status: tab });
+            if (!items.length) { el.innerHTML = `<div class="empty-state">No hay tareas en esta categoría.</div>`; return; }
+            el.innerHTML = items.map(t => {
+                const stClass = t.status === 'COMPLETADA' ? 'completed' : t.status === 'EN_PROGRESO' ? 'in-progress' : t.status === 'VENCIDA' ? 'danger' : 'pending';
+                return `
+                <div class="data-row" data-task-id="${t.id}" style="cursor:pointer;">
+                    <div class="patient-avatar">${(t.patient || '?')[0]?.toUpperCase() || '?'}</div>
+                    <div class="data-main" style="min-width:0;">
+                        <div class="data-title">${escapeHtml(t.title)}</div>
+                        <div class="data-sub">${escapeHtml(t.patient || 'Sin paciente')} · Vence: ${_dateDisp(t.dueDate)} · ${t.priority}</div>
+                    </div>
+                    <span class="status-pill ${stClass}">${t.progress}%</span>
+                </div>
+                <div class="progress-track"><div class="progress-fill" style="width:${t.progress}%;"></div></div>`;
+            }).join('');
+        } catch {
+            el.innerHTML = `<div class="empty-state">Error al cargar tareas.</div>`;
+        }
     }
 
     _notesModalHTML() {
@@ -1222,17 +1312,21 @@ export class DashboardPage {
     }
 
     async _newTaskFormHTML() {
-        const { data: patients } = await patientService.getAll();
-        const patientOptions = (patients || []).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+        const patients = await tasksService.getPatients();
+        const patientOptions = patients.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
         return `
             <form class="form-grid" id="dashFormNewTask">
-                <div class="form-field"><label for="tPatient">Paciente</label><select id="tPatient">${patientOptions}</select></div>
-                <div class="form-field"><label for="tDesc">Descripción</label><input type="text" id="tDesc" placeholder="Ej. Registro diario de emociones"></div>
-                <div class="form-field"><label for="tDue">Fecha límite</label><input type="date" id="tDue"></div>
-                <div class="form-field"><label for="tPriority">Prioridad</label>
-                    <select id="tPriority"><option>Alta</option><option>Media</option><option>Baja</option></select>
+                <div class="form-field"><label for="tPatient">Paciente *</label><select id="tPatient" required><option value="">Seleccionar…</option>${patientOptions}</select></div>
+                <div class="form-field"><label for="tTitle">Título *</label><input type="text" id="tTitle" placeholder="Ej: Practicar respiración 4-7-8" required></div>
+                <div class="form-field"><label for="tCategory">Categoría</label>
+                    <select id="tCategory"><option>Seguimiento</option><option>Ejercicio</option><option>Diario</option><option>Cuestionario</option><option>Técnica</option><option>Lectura</option><option>Otra</option></select>
                 </div>
-                <div class="action-row"><button type="submit" class="btn btn-primary">Asignar tarea</button><button type="button" class="btn" id="dashCancelNewTask">Cancelar</button></div>
+                <div class="form-field"><label for="tPriority">Prioridad</label>
+                    <select id="tPriority"><option value="BAJA">Baja</option><option value="MEDIA" selected>Media</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select>
+                </div>
+                <div class="form-field"><label for="tDue">Fecha límite</label><input type="date" id="tDue"></div>
+                <div class="form-field" style="grid-column:1/-1;"><label for="tDesc">Descripción</label><textarea id="tDesc" placeholder="Describe la tarea, instrucciones específicas…"></textarea></div>
+                <div class="action-row" style="grid-column:1/-1;"><button type="submit" class="btn btn-primary">Asignar tarea</button><button type="button" class="btn" id="dashCancelNewTask">Cancelar</button></div>
             </form>
         `;
     }
@@ -1297,7 +1391,22 @@ export class DashboardPage {
         }
 
         if (type === 'tasks') {
+            $$('#dashModalBody [data-modal-tab]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    this.activeTaskTab = btn.dataset.modalTab;
+                    $$('#dashModalBody .tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+                    await this._renderModalTaskList();
+                });
+            });
             $('#dashBtnNewTask')?.addEventListener('click', () => this._openModal('newTask'));
+            $$('#dashModalBody [data-task-id]').forEach(row => {
+                row.addEventListener('click', async () => {
+                    try {
+                        const task = await tasksService.getById(row.dataset.taskId);
+                        if (task) this._showToast(`Tarea: ${task.title} — ${task.progress}%`);
+                    } catch { this._showToast('Error al cargar tarea'); }
+                });
+            });
         }
 
         if (type === 'notes') {
@@ -1396,7 +1505,30 @@ export class DashboardPage {
         }
 
         if (type === 'newTask') {
-            $('#dashFormNewTask')?.addEventListener('submit', e => { e.preventDefault(); this._showToast('Tarea terapéutica asignada.'); this._closeModal(); });
+            $('#dashFormNewTask')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const patientId = $('#tPatient')?.value || '';
+                const title = $('#tTitle')?.value.trim() || '';
+                if (!patientId || !title) { this._showToast('Selecciona un paciente y escribe un título.'); return; }
+                const submitBtn = e.target.querySelector('[type="submit"]');
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...'; }
+                try {
+                    await tasksService.create({
+                        patientId,
+                        title,
+                        category:    $('#tCategory')?.value || 'Seguimiento',
+                        priority:    $('#tPriority')?.value || 'MEDIA',
+                        dueDate:     $('#tDue')?.value || null,
+                        description: $('#tDesc')?.value.trim() || '',
+                    });
+                    this._closeModal();
+                    this._showToast('Tarea terapéutica creada correctamente.');
+                    await this._renderTasksPanel();
+                } catch (err) {
+                    this._showToast('Error: ' + (err.message || 'No se pudo crear la tarea'));
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Asignar tarea'; }
+                }
+            });
             $('#dashCancelNewTask')?.addEventListener('click', () => this._openModal('tasks'));
         }
 

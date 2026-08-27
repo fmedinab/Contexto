@@ -90,7 +90,8 @@ export class Router {
             '/dashboard': '',
             '/patients': 'Pacientes — CONTEXTO',
             '/appointments': 'Citas — CONTEXTO',
-            '/evaluations': 'Evaluaciones — CONTEXTO'
+            '/evaluations': 'Evaluaciones — CONTEXTO',
+            '/tasks': 'Tareas terapéuticas — CONTEXTO'
         };
         return titles[path] || 'CONTEXTO';
     }
