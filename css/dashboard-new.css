@@ -2238,7 +2238,7 @@
   .app--dashboard .col-left {
     order: 3;
     grid-template-columns: 1fr;
-    margin-top: 44px;
+    margin-top: 18vh;
     border-top: 1px solid var(--dash-border);
     padding-top: 20px;
     position: relative;
