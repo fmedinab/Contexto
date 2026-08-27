@@ -118,7 +118,7 @@
 .app--dashboard .content-wrapper { margin-left: 0; max-width: 100%; padding: 0; }
 .app--dashboard .page-container { max-width: 100%; margin: 0; }
 .app--dashboard .page-header { display: none !important; }
-.app--dashboard .page-body { padding: 0; }
+.app--dashboard .page-body { padding: 0; overflow-y: auto; }
 .app--dashboard .app-footer { display: none !important; margin-left: 0; }
 
 /* ========== FONDO AMBIENTAL ========== */
@@ -1367,12 +1367,14 @@
 @media (max-width: 1024px) {
   .app--dashboard .main-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto 1fr auto;
+    min-height: calc(100dvh - 100px);
+    gap: 0;
   }
   .app--dashboard .greeting-card { order: 1; grid-column: 1 / -1; text-align: center; }
   .app--dashboard .greeting-title { justify-content: center; }
   .app--dashboard .greeting-quote { max-width: 100%; text-align: center; }
-  .app--dashboard .orbit-section { order: 2; min-height: 480px; }
+  .app--dashboard .orbit-section { order: 2; min-height: 480px; display: flex; align-items: center; justify-content: center; }
   .app--dashboard .col-left { order: 3; }
   .app--dashboard .col-right { order: 4; }
   .app--dashboard .header-content { flex-wrap: wrap; gap: 8px; }
@@ -1392,11 +1394,11 @@
 
 /* ========== MOBILE LARGE (480 - 768) ========== */
 @media (max-width: 768px) {
-  .app--dashboard .main-grid { grid-template-columns: 1fr; }
+  .app--dashboard .main-grid { grid-template-columns: 1fr; min-height: calc(100dvh - 100px); gap: 0; }
   .app--dashboard .greeting-card { order: 1; text-align: center; padding: 0 0 8px; grid-column: 1 / -1; }
   .app--dashboard .greeting-title { justify-content: center; }
   .app--dashboard .greeting-quote { max-width: 100%; text-align: center; }
-  .app--dashboard .orbit-section { order: 2; min-height: min(420px, 75vw); }
+  .app--dashboard .orbit-section { order: 2; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
   .app--dashboard .col-left { order: 3; grid-template-columns: 1fr; }
   .app--dashboard .col-right { order: 4; grid-template-columns: 1fr; }
   .app--dashboard .orbit-stage { width: min(380px, 85vw); height: min(380px, 85vw); max-width: 380px; max-height: 380px; }
@@ -1457,28 +1459,29 @@
   .app--dashboard .user-text .user-role { display: none; }
   .app--dashboard .chevron { width: 13px; height: 13px; }
 
-  /* Grid: greeting FIRST, then orbit, then data */
+  /* Grid: greeting FIRST, then orbit (fills remaining viewport), then data below fold */
   .app--dashboard .main-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 0;
+    min-height: calc(100dvh - 100px);
   }
-  .app--dashboard .greeting-card { order: 1; text-align: center; padding: 0 0 8px; grid-column: 1 / -1; }
+  .app--dashboard .greeting-card { order: 1; text-align: center; padding: 0 0 6px; grid-column: 1 / -1; }
   .app--dashboard .greeting-title { justify-content: center; font-size: clamp(18px, 5vw, 22px); }
   .app--dashboard .greeting-quote { max-width: 100%; text-align: center; font-size: 12px; }
-  .app--dashboard .orbit-section { order: 2; min-height: min(360px, 92vw); }
+  .app--dashboard .orbit-section { order: 2; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
   .app--dashboard .col-left { order: 3; display: flex; flex-direction: column; gap: 12px; }
   .app--dashboard .col-right { order: 4; display: flex; flex-direction: column; gap: 12px; }
-  .app--dashboard .orbit-stage { width: min(320px, 88vw); height: min(320px, 88vw); max-width: 320px; max-height: 320px; margin: 0 auto; }
-  .app--dashboard .orbit-ring.ring-1 { width: min(285px, 78vw); height: min(285px, 78vw); }
-  .app--dashboard .orbit-ring.ring-2 { width: min(235px, 64vw); height: min(235px, 64vw); }
-  .app--dashboard .orbit-ring.ring-3 { width: min(185px, 50vw); height: min(185px, 50vw); }
-  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -125px; }
-  .app--dashboard .mod-citas        { --ox: 108px;  --oy: -72px;  }
-  .app--dashboard .mod-evaluaciones { --ox: 125px;  --oy: 15px;   }
-  .app--dashboard .mod-tareas       { --ox: 78px;   --oy: 95px;   }
-  .app--dashboard .mod-notas        { --ox: -78px;  --oy: 95px;   }
-  .app--dashboard .mod-reportes     { --ox: -125px; --oy: 15px;   }
-  .app--dashboard .mod-mensajes     { --ox: -108px; --oy: -72px;  }
+  .app--dashboard .orbit-stage { width: min(340px, 92vw); height: min(340px, 92vw); max-width: 340px; max-height: 340px; margin: 0 auto; }
+  .app--dashboard .orbit-ring.ring-1 { width: min(320px, 86vw); height: min(320px, 86vw); }
+  .app--dashboard .orbit-ring.ring-2 { width: min(265px, 70vw); height: min(265px, 70vw); }
+  .app--dashboard .orbit-ring.ring-3 { width: min(210px, 56vw); height: min(210px, 56vw); }
+  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -140px; }
+  .app--dashboard .mod-citas        { --ox: 118px;  --oy: -80px;  }
+  .app--dashboard .mod-evaluaciones { --ox: 138px;  --oy: 16px;   }
+  .app--dashboard .mod-tareas       { --ox: 85px;   --oy: 105px;  }
+  .app--dashboard .mod-notas        { --ox: -85px;  --oy: 105px;  }
+  .app--dashboard .mod-reportes     { --ox: -138px; --oy: 16px;   }
+  .app--dashboard .mod-mensajes     { --ox: -118px; --oy: -80px;  }
   .app--dashboard .module-orbit { width: 88px; padding: 10px 6px; font-size: 10.5px; border-radius: 16px; gap: 5px; min-height: 0; }
   .app--dashboard .module-orbit .mod-icon { width: 32px; height: 32px; border-radius: 9px; }
   .app--dashboard .module-orbit .mod-icon svg { width: 16px; height: 16px; }
@@ -1566,21 +1569,22 @@
   .app--dashboard .greeting-title .heart { font-size: 14px; }
   .app--dashboard .greeting-quote { font-size: 11px; max-width: 100%; text-align: center; }
 
-  /* Grid: greeting → orbit → data */
-  .app--dashboard .orbit-section { order: 2; min-height: min(320px, 95vw); }
+  /* Grid: greeting → orbit (fills viewport) → data below fold */
+  .app--dashboard .main-grid { min-height: calc(100dvh - 100px); gap: 0; }
+  .app--dashboard .orbit-section { order: 2; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
   .app--dashboard .col-left { order: 3; display: flex; flex-direction: column; gap: 10px; }
   .app--dashboard .col-right { order: 4; display: flex; flex-direction: column; gap: 10px; }
-  .app--dashboard .orbit-stage { width: min(280px, 86vw); height: min(280px, 86vw); max-width: 280px; max-height: 280px; }
-  .app--dashboard .orbit-ring.ring-1 { width: min(250px, 76vw); height: min(250px, 76vw); }
-  .app--dashboard .orbit-ring.ring-2 { width: min(205px, 62vw); height: min(205px, 62vw); }
-  .app--dashboard .orbit-ring.ring-3 { width: min(160px, 48vw); height: min(160px, 48vw); }
-  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -108px; }
-  .app--dashboard .mod-citas        { --ox: 90px;   --oy: -62px;  }
-  .app--dashboard .mod-evaluaciones { --ox: 105px;  --oy: 12px;   }
-  .app--dashboard .mod-tareas       { --ox: 65px;   --oy: 82px;   }
-  .app--dashboard .mod-notas        { --ox: -65px;  --oy: 82px;   }
-  .app--dashboard .mod-reportes     { --ox: -105px; --oy: 12px;   }
-  .app--dashboard .mod-mensajes     { --ox: -90px;  --oy: -62px;  }
+  .app--dashboard .orbit-stage { width: min(290px, 88vw); height: min(290px, 88vw); max-width: 290px; max-height: 290px; }
+  .app--dashboard .orbit-ring.ring-1 { width: min(270px, 80vw); height: min(270px, 80vw); }
+  .app--dashboard .orbit-ring.ring-2 { width: min(220px, 66vw); height: min(220px, 66vw); }
+  .app--dashboard .orbit-ring.ring-3 { width: min(175px, 52vw); height: min(175px, 52vw); }
+  .app--dashboard .mod-pacientes    { --ox: 0px;    --oy: -115px; }
+  .app--dashboard .mod-citas        { --ox: 96px;   --oy: -66px;  }
+  .app--dashboard .mod-evaluaciones { --ox: 112px;  --oy: 13px;   }
+  .app--dashboard .mod-tareas       { --ox: 70px;   --oy: 88px;   }
+  .app--dashboard .mod-notas        { --ox: -70px;  --oy: 88px;   }
+  .app--dashboard .mod-reportes     { --ox: -112px; --oy: 13px;   }
+  .app--dashboard .mod-mensajes     { --ox: -96px;  --oy: -66px;  }
   .app--dashboard .module-orbit { width: 78px; padding: 8px 5px; font-size: 9.5px; border-radius: 14px; gap: 4px; min-height: 0; }
   .app--dashboard .module-orbit .mod-icon { width: 30px; height: 30px; border-radius: 9px; }
   .app--dashboard .module-orbit .mod-icon svg { width: 15px; height: 15px; }
