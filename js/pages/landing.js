@@ -163,7 +163,7 @@ export class LandingPage {
                 <section class="lp-section" id="especialidades">
                     <div class="lp-container">
                         <div class="lp-section-head lp-reveal">
-                            <span class="lp-eyebrow">Especialidades y enfoque</span>
+                            <span class="lp-eyebrow lp-eyebrow--brand">Especialidades y enfoque</span>
                             <h2 class="lp-section-title">Ciencia conductual contextual,<br>aplicada con calidez humana.</h2>
                             <p class="lp-section-desc">No tratamos síntomas aislados: entendemos a cada persona dentro de su historia, su entorno y sus vínculos. Nuestro modelo clínico se sostiene en cuatro pilares que trabajamos siempre en conjunto.</p>
                         </div>
@@ -173,10 +173,10 @@ export class LandingPage {
                                 ${this._approachDiagram()}
                             </div>
                             <div class="lp-pillars-grid">
-                                ${this._pillar('#6366f1', 'CONDUCTA', 'Lo que haces frente a cada situación: tus hábitos, respuestas y patrones de acción observables.')}
-                                ${this._pillar('#06b6d4', 'COGNICIÓN', 'Tus pensamientos, creencias e interpretaciones, y cómo influyen en tus decisiones diarias.')}
-                                ${this._pillar('#8b5cf6', 'EMOCIÓN', 'La forma en que sientes, reconoces y regulas tus emociones en distintos momentos de tu vida.')}
-                                ${this._pillar('#a78bfa', 'CONTEXTO', 'El entorno, tus vínculos y las circunstancias reales que rodean cada comportamiento.')}
+                                ${this._pillar('#7E8F79', 'CONDUCTA', 'Lo que haces frente a cada situación: tus hábitos, respuestas y patrones de acción observables.')}
+                                ${this._pillar('#1D3348', 'COGNICIÓN', 'Tus pensamientos, creencias e interpretaciones, y cómo influyen en tus decisiones diarias.')}
+                                ${this._pillar('#5F757C', 'EMOCIÓN', 'La forma en que sientes, reconoces y regulas tus emociones en distintos momentos de tu vida.')}
+                                ${this._pillar('#C7A15F', 'CONTEXTO', 'El entorno, tus vínculos y las circunstancias reales que rodean cada comportamiento.')}
                             </div>
                         </div>
                     </div>
@@ -291,55 +291,31 @@ export class LandingPage {
 
             </main>
 
-            <!-- ============ FOOTER / CONTACTO ============ -->
-            <footer class="lp-footer" id="contacto">
+            <!-- ============ CONTACTO ============ -->
+            <section class="lp-section lp-section--alt" id="contacto">
                 <div class="lp-container">
-                    <div class="lp-footer-top">
-                        <div class="lp-footer-brand">
-                            <a href="#inicio" class="lp-brand" data-scroll="inicio">
-                                ${this._brandMark('#fbf7ee')}
-                                <span>
-                                    <span class="lp-brand-name">CONTEXTO</span>
-                                    <span class="lp-brand-sub">Psicología</span>
-                                </span>
-                            </a>
-                            <p>Centro de Ciencias Comportamentales.<br>Plataforma de gestión psicológica para profesionales y pacientes.<br><a href="mailto:contacto@contextopsicologia.com">contacto@contextopsicologia.com</a> · <a href="tel:+50212345678">+502 1234 5678</a></p>
+                    <div class="lp-section-head is-center lp-reveal">
+                        <span class="lp-eyebrow" style="justify-content:center;">Contacto</span>
+                        <h2 class="lp-section-title">Hablemos de tu<br>bienestar y contexto.</h2>
+                        <p class="lp-section-desc" style="margin-left:auto;margin-right:auto;">Escríbenos o agendamos tu primera consulta. Estamos para acompañarte en cada paso del proceso.</p>
+                    </div>
+                    <div class="lp-contact-grid">
+                        <div class="lp-contact-info lp-reveal">
+                            <h4>CONTEXTO Psicología</h4>
+                            <p>Centro de Ciencias Comportamentales. Atención presencial y online para acompañarte donde estés.</p>
+                            <ul class="lp-contact-list">
+                                <li><i class="fa-solid fa-envelope"></i> <a href="mailto:contacto@contextopsicologia.com">contacto@contextopsicologia.com</a></li>
+                                <li><i class="fa-solid fa-phone"></i> <a href="tel:+50212345678">+502 1234 5678</a></li>
+                                <li><i class="fa-solid fa-clock"></i> Lun a Vie · 8:00 - 20:00</li>
+                                <li><i class="fa-solid fa-location-dot"></i> Atención presencial y online</li>
+                            </ul>
                             <div class="lp-footer-social">
                                 <a href="#" aria-label="Instagram" data-noop><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>
                                 <a href="#" aria-label="Facebook" data-noop><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 9h3V5h-3a4 4 0 0 0-4 4v2H7v4h3v7h4v-7h3l1-4h-4v-2a1 1 0 0 1 1-1Z"/></svg></a>
                                 <a href="#" aria-label="WhatsApp" data-noop><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg></a>
                             </div>
                         </div>
-
-                        <div class="lp-footer-col">
-                            <h4>Navegación</h4>
-                            <nav class="lp-footer-links" aria-label="Enlaces del pie">
-                                <a href="#inicio" data-scroll="inicio">Inicio</a>
-                                <a href="#servicios" data-scroll="servicios">Servicios</a>
-                                <a href="#especialidades" data-scroll="especialidades">Especialidades</a>
-                                <a href="#nosotros" data-scroll="nosotros">Nosotros</a>
-                                <a href="/login" class="lp-btn lp-btn--brand" data-link>Agendar cita</a>
-                            </nav>
-                        </div>
-
-                        <div class="lp-footer-col">
-                            <h4>Contacto</h4>
-                            <div class="lp-footer-contact">
-                                <span><i class="fa-solid fa-envelope"></i> contacto@contextopsicologia.com</span>
-                                <span><i class="fa-solid fa-phone"></i> +502 1234 5678</span>
-                                <span><i class="fa-solid fa-clock"></i> Lun a Vie · 8:00 - 20:00</span>
-                                <span><i class="fa-solid fa-location-dot"></i> Atención presencial y online</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Formulario de contacto (placeholder demostrativo) -->
-                    <div class="lp-contact-grid" style="margin-top:36px; padding-bottom:36px;">
-                        <div>
-                            <h4 style="color:#fff; font-size:15px; margin:0 0 14px; letter-spacing:0.04em;">Escríbenos</h4>
-                            <p style="color:rgba(244,244,251,0.6); font-size:13.5px; line-height:1.7; margin:0;">Si prefieres, déjanos tus datos y te contactamos para coordinar tu primera consulta. Los campos con <span style="color:var(--lp-cyan);">*</span> son obligatorios.</p>
-                        </div>
-                        <form class="lp-contact-form" id="lpContactForm" novalidate>
+                        <form class="lp-contact-form lp-reveal" id="lpContactForm" novalidate>
                             <div class="lp-form-group">
                                 <label class="lp-form-label" for="lpName">Nombre <span style="color:var(--lp-cyan);">*</span></label>
                                 <input class="lp-input" type="text" id="lpName" name="name" placeholder="Tu nombre" required autocomplete="name">
@@ -356,11 +332,49 @@ export class LandingPage {
                             <p class="lp-form-note">Demo: este formulario no envía datos a un servidor.</p>
                         </form>
                     </div>
+                </div>
+            </section>
+
+            <!-- ============ FOOTER ============ -->
+            <footer class="lp-footer" id="lpFooter">
+                <div class="lp-container">
+                    <div class="lp-footer-top">
+                        <div class="lp-footer-brand">
+                            <a href="#inicio" class="lp-brand" data-scroll="inicio">
+                                ${this._brandMark('#fbf7ee')}
+                                <span>
+                                    <span class="lp-brand-name">CONTEXTO</span>
+                                    <span class="lp-brand-sub">Psicología</span>
+                                </span>
+                            </a>
+                            <p>Centro de Ciencias Comportamentales.<br><a href="mailto:contacto@contextopsicologia.com">contacto@contextopsicologia.com</a> · <a href="tel:+50212345678">+502 1234 5678</a></p>
+                        </div>
+
+                        <nav class="lp-footer-col" aria-label="Navegación del pie">
+                            <h4>Navegación</h4>
+                            <div class="lp-footer-links">
+                                <a href="#inicio" data-scroll="inicio">Inicio</a>
+                                <a href="#servicios" data-scroll="servicios">Servicios</a>
+                                <a href="#especialidades" data-scroll="especialidades">Especialidades</a>
+                                <a href="#nosotros" data-scroll="nosotros">Nosotros</a>
+                                <a href="/login" class="lp-btn lp-btn--brand" data-link>Agendar cita</a>
+                            </div>
+                        </nav>
+
+                        <div class="lp-footer-col">
+                            <h4>Contacto</h4>
+                            <div class="lp-footer-contact">
+                                <span><i class="fa-solid fa-envelope"></i> contacto@contextopsicologia.com</span>
+                                <span><i class="fa-solid fa-phone"></i> +502 1234 5678</span>
+                                <span><i class="fa-solid fa-clock"></i> Lun a Vie · 8:00 - 20:00</span>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="lp-footer-bottom">
                         <span>© 2026 CONTEXTO Psicología</span>
                         <span>Centro de Ciencias Comportamentales</span>
-                        <span><a href="#inicio" data-scroll="inicio">Privacidad</a> · <a href="#inicio" data-scroll="inicio">Términos</a></span>
+                        <span><a href="#inicio" data-scroll="inicio">Privacidad</a> · <a href="#inicio" data-scroll="inicio">Términos</a> · <a href="#inicio" data-scroll="inicio">Volver arriba</a></span>
                     </div>
                 </div>
             </footer>
@@ -430,13 +444,13 @@ export class LandingPage {
             <path class="lp-soft-line" d="M266 82C230 62 184 62 148 84c-38 23-62 65-62 112" stroke-width="6" stroke-linecap="round"/>
             <circle class="lp-soft-line-2" cx="200" cy="200" r="78" stroke-width="1.2" stroke-dasharray="2 7"/>
             <circle class="lp-dot-ring" cx="200" cy="132" r="24.75"/>
-            <circle cx="200" cy="132" r="24" fill="#6366f1"/>
+            <circle cx="200" cy="132" r="24" fill="#7E8F79"/>
             <circle class="lp-dot-ring" cx="136" cy="200" r="24.75"/>
-            <circle cx="136" cy="200" r="24" fill="#06b6d4"/>
+            <circle cx="136" cy="200" r="24" fill="#1D3348"/>
             <circle class="lp-dot-ring" cx="264" cy="200" r="24.75"/>
-            <circle cx="264" cy="200" r="24" fill="#8b5cf6"/>
+            <circle cx="264" cy="200" r="24" fill="#5F757C"/>
             <circle class="lp-dot-ring" cx="200" cy="268" r="24.75"/>
-            <circle cx="200" cy="268" r="24" fill="#a78bfa"/>
+            <circle cx="200" cy="268" r="24" fill="#C7A15F"/>
         </svg>`;
     }
 
