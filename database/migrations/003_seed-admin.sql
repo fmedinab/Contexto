@@ -52,3 +52,22 @@ FROM public.profiles p
     JOIN public.roles r ON r.id = ur.role_id
 WHERE
     p.email = 'admin@context.test';
+
+-- Confirmar email del admin manualmente
+UPDATE auth.users
+SET
+    email_confirmed_at = now(),
+    confirmation_token = ''
+WHERE
+    email = 'admin@context.test'
+    AND email_confirmed_at IS NULL;
+
+-- Verificar
+SELECT
+    id,
+    email,
+    email_confirmed_at,
+    created_at
+FROM auth.users
+WHERE
+    email = 'admin@context.test';

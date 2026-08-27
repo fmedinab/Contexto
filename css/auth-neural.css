@@ -210,6 +210,25 @@
     height: 1rem;
 }
 
+.form-error-banner {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: #fca5a5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: bannerSlide 0.3s ease;
+}
+
+@keyframes bannerSlide {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .form-hint {
     font-family: var(--font-mono);
     font-size: 0.65rem;

@@ -127,6 +127,8 @@ export class LoginPage {
 
         document.getElementById('loginEmailError').textContent = '';
         document.getElementById('loginPasswordError').textContent = '';
+        const existingBanner = document.getElementById('loginErrorBanner');
+        if (existingBanner) existingBanner.remove();
 
         let hasError = false;
 
@@ -150,10 +152,40 @@ export class LoginPage {
             window.app.toast.success('Bienvenido', 'Has iniciado sesión correctamente.');
             window.router.navigate('/dashboard');
         } catch (error) {
-            window.app.toast.error('Error de acceso', error.message || 'Credenciales inválidas.');
+            const msg = this._friendlyError(error);
+            const form = document.getElementById('loginForm');
+            const banner = document.createElement('div');
+            banner.id = 'loginErrorBanner';
+            banner.className = 'form-error-banner';
+            banner.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${msg}`;
+            form.parentNode.insertBefore(banner, form);
+            window.app.toast.error('Error de acceso', msg);
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<span>Entrar</span>';
         }
+    }
+
+    _friendlyError(error) {
+        const raw = (error.message || '').toLowerCase();
+        if (raw.includes('invalid login credentials') || raw.includes('invalid email or password')) {
+            return 'Correo o contraseña incorrectos. Verifica tus datos.';
+        }
+        if (raw.includes('email not confirmed') || raw.includes('email address has not been confirmed')) {
+            return 'El correo aún no está confirmado. Revisa tu bandeja de entrada.';
+        }
+        if (raw.includes('user not found') || raw.includes('no user found')) {
+            return 'No existe una cuenta con este correo electrónico.';
+        }
+        if (raw.includes('too many requests') || raw.includes('rate limit')) {
+            return 'Demasiados intentos. Espera unos minutos y vuelve a intentar.';
+        }
+        if (raw.includes('password should be at least')) {
+            return 'La contraseña debe tener al menos 6 caracteres.';
+        }
+        if (raw.includes('fetch') || raw.includes('network') || raw.includes('failed to fetch')) {
+            return 'Error de conexión. Verifica tu internet y vuelve a intentar.';
+        }
+        return error.message || 'Credenciales inválidas. Intenta de nuevo.';
     }
 }
