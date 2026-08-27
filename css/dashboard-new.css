@@ -245,6 +245,30 @@
 
 .app--dashboard .brand-icon svg { width: 24px; height: 24px; }
 
+.app--dashboard .brand-icon .brand-logo-svg {
+    width: 100%;
+    height: 100%;
+}
+
+.app--dashboard.light-mode .brand-icon .brand-logo-svg path[stroke="#c4b5fd"] {
+    stroke: #7c3aed;
+}
+.app--dashboard.light-mode .brand-icon .brand-logo-svg circle[fill="#86efac"] {
+    fill: #7E8F79;
+}
+.app--dashboard.light-mode .brand-icon .brand-logo-svg circle[fill="#93c5fd"] {
+    fill: #1D3348;
+}
+.app--dashboard.light-mode .brand-icon .brand-logo-svg circle[fill="#67e8f9"] {
+    fill: #5F757C;
+}
+.app--dashboard.light-mode .brand-icon .brand-logo-svg circle[fill="#fcd34d"] {
+    fill: #C7A15F;
+}
+.app--dashboard.light-mode .brand-icon .brand-logo-svg path[stroke="#a5b4fc"] {
+    stroke: #c9c2b0;
+}
+
 .app--dashboard .brand-text .brand-name {
   font-family: var(--dash-font-display);
   font-size: 20px;
@@ -1376,6 +1400,20 @@
   .app--dashboard .module-orbit { width: 90px; padding: 10px 6px; font-size: 11px; border-radius: 16px; gap: 6px; }
   .app--dashboard .module-orbit .mod-icon { width: 30px; height: 30px; border-radius: 9px; }
   .app--dashboard .module-orbit .mod-icon svg { width: 15px; height: 15px; }
+
+  /* Header: center moves to second row, right stays inline */
+  .app--dashboard .header-content {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .app--dashboard .header-center {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    font-size: 12px;
+    padding-top: 4px;
+    border-top: 1px solid var(--dash-border);
+  }
 }
 
 /* ========== MOBILE MEDIUM (375 - 480) ========== */
@@ -1387,10 +1425,10 @@
     padding: 8px 12px;
     gap: 6px;
   }
-  .app--dashboard .brand { gap: 5px; }
-  .app--dashboard .brand-icon { width: 30px; height: 30px; border-radius: 9px; }
-  .app--dashboard .brand-icon svg { width: 17px; height: 17px; }
-  .app--dashboard .brand-text .brand-name { font-size: clamp(13px, 3.5vw, 15px); }
+  .app--dashboard .brand { gap: 8px; }
+  .app--dashboard .brand-icon { width: 36px; height: 36px; border-radius: 10px; }
+  .app--dashboard .brand-icon svg { width: 22px; height: 22px; }
+  .app--dashboard .brand-text .brand-name { font-size: clamp(14px, 4vw, 16px); }
   .app--dashboard .brand-text .brand-sub { display: none; }
   .app--dashboard .header-center {
     font-size: 11px;
@@ -1398,13 +1436,13 @@
   }
   .app--dashboard .header-center .clock-date { display: none; }
   .app--dashboard .header-center .clock-time { font-size: 12px; }
-  .app--dashboard .header-right { gap: 3px; }
-  .app--dashboard .icon-btn { width: 32px; height: 32px; border-radius: 10px; }
-  .app--dashboard .icon-btn svg { width: 15px; height: 15px; }
+  .app--dashboard .header-right { gap: 4px; }
+  .app--dashboard .icon-btn { width: 36px; height: 36px; border-radius: 10px; }
+  .app--dashboard .icon-btn svg { width: 16px; height: 16px; }
   .app--dashboard .header-divider { display: none; }
-  .app--dashboard .user-trigger { padding: 3px 6px 3px 3px; gap: 5px; }
-  .app--dashboard .avatar { width: 30px; height: 30px; font-size: 10px; }
-  .app--dashboard .user-text .user-name { font-size: 11px; }
+  .app--dashboard .user-trigger { padding: 3px 8px 3px 3px; gap: 6px; }
+  .app--dashboard .avatar { width: 32px; height: 32px; font-size: 11px; }
+  .app--dashboard .user-text .user-name { font-size: 12px; }
   .app--dashboard .user-text .user-role { display: none; }
   .app--dashboard .chevron { width: 12px; height: 12px; }
 
@@ -1490,17 +1528,21 @@
 @media (max-width: 375px) {
   .app--dashboard .app { padding: 8px 8px 0; }
 
-  /* Header ultra-compacto */
-  .app--dashboard .header-content { padding: 6px 8px; gap: 4px; }
-  .app--dashboard .brand-icon { width: 28px; height: 28px; border-radius: 8px; }
-  .app--dashboard .brand-icon svg { width: 16px; height: 16px; }
-  .app--dashboard .brand-text { display: none; }
+  /* Header: logo stays, clock hides, buttons ≥ 44px */
+  .app--dashboard .header-content { padding: 6px 10px; gap: 4px; }
+  .app--dashboard .brand { gap: 6px; }
+  .app--dashboard .brand-icon { width: 34px; height: 34px; border-radius: 9px; }
+  .app--dashboard .brand-icon svg { width: 20px; height: 20px; }
+  .app--dashboard .brand-text .brand-name { font-size: 13px; }
+  .app--dashboard .brand-text .brand-sub { display: none; }
   .app--dashboard .header-center { display: none; }
-  .app--dashboard .icon-btn { width: 28px; height: 28px; border-radius: 8px; }
-  .app--dashboard .icon-btn svg { width: 13px; height: 13px; }
-  .app--dashboard .avatar { width: 28px; height: 28px; font-size: 9px; }
-  .app--dashboard .user-text { display: none; }
-  .app--dashboard .chevron { width: 10px; height: 10px; }
+  .app--dashboard .icon-btn { width: 44px; height: 44px; border-radius: 12px; }
+  .app--dashboard .icon-btn svg { width: 18px; height: 18px; }
+  .app--dashboard .user-trigger { padding: 4px 8px 4px 4px; gap: 6px; }
+  .app--dashboard .avatar { width: 34px; height: 34px; font-size: 11px; }
+  .app--dashboard .user-text .user-name { font-size: 12px; font-weight: 600; }
+  .app--dashboard .user-text .user-role { display: none; }
+  .app--dashboard .chevron { width: 12px; height: 12px; }
 
   /* Orbit ultra-small: ensure all nodes fit within viewport */
   .app--dashboard .orbit-section { min-height: min(310px, 95vw); }
@@ -1540,8 +1582,8 @@
   .app--dashboard .modal-box { padding: 12px; border-radius: 16px; }
   .app--dashboard .modal-title-group .modal-title { font-size: 16px; }
   .app--dashboard .modal-title-group .modal-subtitle { font-size: 11px; }
-  .app--dashboard .modal-close { width: 30px; height: 30px; border-radius: 8px; }
-  .app--dashboard .modal-close svg { width: 13px; height: 13px; }
+  .app--dashboard .modal-close { width: 44px; height: 44px; border-radius: 12px; }
+  .app--dashboard .modal-close svg { width: 16px; height: 16px; }
   .app--dashboard .modal-body { gap: 10px; }
   .app--dashboard .core-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
   .app--dashboard .core-module { padding: 10px 6px; font-size: 10px; border-radius: 10px; gap: 6px; }

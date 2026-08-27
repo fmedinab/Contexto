@@ -92,14 +92,18 @@ export class DashboardPage {
                     <div class="header-content">
                         <div class="brand">
                             <div class="brand-icon" aria-hidden="true">
-                                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                                    <path d="M20 12c-2.5 0-4.5 2-4.5 4.3 0 1-.6 1.4-1.2 2-.9.9-1.3 1.8-1.3 3 0 1 .4 1.8 1 2.4-.5.6-.8 1.3-.8 2.1 0 1.8 1.5 3.2 3.3 3.2h3.5V12Z" stroke="#c4b5fd" stroke-width="1.3" stroke-linejoin="round"/>
-                                    <path d="M20 12c2.5 0 4.5 2 4.5 4.3 0 1 .6 1.4 1.2 2 .9.9 1.3 1.8 1.3 3 0 1-.4 1.8-1 2.4.5.6.8 1.3.8 2.1 0 1.8-1.5 3.2-3.3 3.2H20V12Z" stroke="#7dd3fc" stroke-width="1.3" stroke-linejoin="round"/>
+                                <svg class="brand-logo-svg" viewBox="0 0 100 100" fill="none">
+                                    <path d="M64 15C43 15 26 32 26 53c0 21 17 38 38 38" stroke="#c4b5fd" stroke-width="6" stroke-linecap="round"/>
+                                    <circle cx="50" cy="35" r="8" fill="#86efac"/>
+                                    <circle cx="35" cy="53" r="8" fill="#93c5fd"/>
+                                    <circle cx="65" cy="53" r="8" fill="#67e8f9"/>
+                                    <circle cx="50" cy="71" r="8" fill="#fcd34d"/>
+                                    <path d="M50 43a11 11 0 0 0-11 10M39 55a11 11 0 0 0 11 8M50 63a11 11 0 0 0 11-8M61 53a11 11 0 0 0-11-10" stroke="#a5b4fc" stroke-width="1.5"/>
                                 </svg>
                             </div>
                             <div class="brand-text">
-                                <div class="brand-name">Mente Serena</div>
-                                <div class="brand-sub">Consultorio de Psicología</div>
+                                <div class="brand-name">CONTEXTO</div>
+                                <div class="brand-sub">Psicología</div>
                             </div>
                         </div>
                         <div class="header-center">
