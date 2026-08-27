@@ -347,7 +347,7 @@ export class LandingPage {
                                     <span class="lp-brand-sub">Psicología</span>
                                 </span>
                             </a>
-                            <p>Centro de Ciencias Comportamentales.<br><a href="mailto:contacto@contextopsicologia.com">contacto@contextopsicologia.com</a> · <a href="tel:+50212345678">+502 1234 5678</a></p>
+                            <p>Centro de Ciencias Comportamentales. Atención presencial y online.</p>
                         </div>
 
                         <nav class="lp-footer-col" aria-label="Navegación del pie">
@@ -357,7 +357,6 @@ export class LandingPage {
                                 <a href="#servicios" data-scroll="servicios">Servicios</a>
                                 <a href="#especialidades" data-scroll="especialidades">Especialidades</a>
                                 <a href="#nosotros" data-scroll="nosotros">Nosotros</a>
-                                <a href="/login" class="lp-btn lp-btn--brand" data-link>Agendar cita</a>
                             </div>
                         </nav>
 
@@ -366,15 +365,13 @@ export class LandingPage {
                             <div class="lp-footer-contact">
                                 <span><i class="fa-solid fa-envelope"></i> contacto@contextopsicologia.com</span>
                                 <span><i class="fa-solid fa-phone"></i> +502 1234 5678</span>
-                                <span><i class="fa-solid fa-clock"></i> Lun a Vie · 8:00 - 20:00</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="lp-footer-bottom">
-                        <span>© 2026 CONTEXTO Psicología</span>
-                        <span>Centro de Ciencias Comportamentales</span>
-                        <span><a href="#inicio" data-scroll="inicio">Privacidad</a> · <a href="#inicio" data-scroll="inicio">Términos</a> · <a href="#inicio" data-scroll="inicio">Volver arriba</a></span>
+                        <span>© 2026 CONTEXTO Psicología · Centro de Ciencias Comportamentales</span>
+                        <span><a href="#inicio" data-scroll="inicio">Privacidad</a> · <a href="#inicio" data-scroll="inicio">Términos</a></span>
                     </div>
                 </div>
             </footer>

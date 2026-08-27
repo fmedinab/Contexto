@@ -163,14 +163,6 @@
 }
 .lp-btn--light:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25); }
 
-/* Botón de marca (colores originales de la plantilla: oro/navy) */
-.lp-btn--brand {
-    background: linear-gradient(135deg, #d3ac6a, #b0854a);
-    color: #241d10;
-    box-shadow: 0 8px 24px rgba(199, 161, 95, 0.28);
-}
-.lp-btn--brand:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(199, 161, 95, 0.4); }
-
 /* ---------------------------------------------------------
    Header
    --------------------------------------------------------- */
