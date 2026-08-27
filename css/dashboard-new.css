@@ -2209,7 +2209,7 @@
   .app--dashboard .greeting-card {
     order: 1;
     text-align: center;
-    padding: 0 0 8px;
+    padding: 0 0 4px;
     grid-column: 1 / -1;
   }
 
@@ -2224,17 +2224,19 @@
 
   .app--dashboard .orbit-section {
     order: 2;
-    min-height: calc(100dvh - 120px);
+    min-height: 0;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    padding: 4px 0 12px;
+    padding: 2px 0 12px;
   }
 
   .app--dashboard .col-left {
     order: 3;
     grid-template-columns: 1fr;
-    margin-top: 18px;
+    margin-top: 22px;
+    border-top: 1px solid var(--dash-border);
+    padding-top: 18px;
   }
 
   .app--dashboard .col-right {
@@ -2252,7 +2254,7 @@
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 8px;
     align-items: stretch;
     align-content: start;
   }
@@ -2268,9 +2270,9 @@
     grid-column: 1 / -1;
     position: static;
     transform: none !important;
-    width: clamp(112px, 36vw, 168px);
-    height: clamp(112px, 36vw, 168px);
-    margin: 0 auto 6px;
+    width: clamp(100px, 34vw, 160px);
+    height: clamp(100px, 34vw, 160px);
+    margin: 0 auto 4px;
   }
 
   .app--dashboard .brain-core:hover {
@@ -2278,8 +2280,8 @@
   }
 
   .app--dashboard .brain-core svg {
-    width: clamp(44px, 13vw, 68px);
-    height: clamp(44px, 13vw, 68px);
+    width: clamp(40px, 12vw, 64px);
+    height: clamp(40px, 12vw, 64px);
   }
 
   .app--dashboard .module-orbit {
@@ -2287,26 +2289,26 @@
     transform: none !important;
     width: auto;
     height: auto;
-    min-height: 76px;
+    min-height: 66px;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 8px;
-    padding: 12px 10px;
-    font-size: 13.5px;
+    gap: 7px;
+    padding: 10px 8px;
+    font-size: 13px;
     font-weight: 600;
     border-radius: 18px;
   }
 
   .app--dashboard .module-orbit .mod-icon {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 12px;
   }
 
   .app--dashboard .module-orbit .mod-icon svg {
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
   }
 
   .app--dashboard .mod-mensajes {
@@ -2497,7 +2499,7 @@
   }
 
   .app--dashboard .orbit-section {
-    min-height: calc(100dvh - 140px);
+    min-height: 0;
   }
 
   .app--dashboard .orbit-stage {
@@ -2847,7 +2849,7 @@
   }
 
   .app--dashboard .orbit-section {
-    min-height: calc(100dvh - 160px);
+    min-height: 0;
   }
 
   .app--dashboard .orbit-stage {
