@@ -50,7 +50,6 @@ const MODAL_TITLES = {
     notes: ['Notas clínicas', 'Historial de notas de sesión por paciente.'],
     reports: ['Reportes', 'Indicadores generales del consultorio.'],
     messages: ['Mensajes', 'Conversaciones recientes con tus pacientes.'],
-    taskDetail: ['Detalle de tarea', ''],
     patientDetail: ['Expediente del paciente', ''],
     appointmentDetail: ['Detalle de la cita', ''],
     newAppointment: ['Nueva cita', 'Programa una nueva cita para un paciente.'],
@@ -705,6 +704,46 @@ export class DashboardPage {
             });
         }
 
+        // Task row click delegation (survives innerHTML replacements)
+        const modalBody = $('#dashModalBody');
+        if (modalBody) {
+            modalBody.addEventListener('click', async (e) => {
+                // Task row click → open detail
+                const taskRow = e.target.closest('[data-task-id]');
+                if (taskRow && !e.target.closest('[data-task-action]')) {
+                    const taskId = taskRow.dataset.taskId;
+                    try {
+                        const task = await tasksService.getById(taskId);
+                        if (task) {
+                            this._showTaskDetail(task);
+                        }
+                    } catch { this._showToast('Error al cargar tarea'); }
+                    return;
+                }
+                // Task action buttons
+                const actionBtn = e.target.closest('[data-task-action]');
+                if (actionBtn) {
+                    e.stopPropagation();
+                    const act = actionBtn.dataset.taskAction;
+                    const id = actionBtn.dataset.taskId;
+                    actionBtn.disabled = true;
+                    try {
+                        if (act === 'start')      await tasksService.start(id);
+                        else if (act === 'complete') await tasksService.complete(id);
+                        else if (act === 'cancel')   await tasksService.cancel(id);
+                        else if (act === 'delete')   await tasksService.delete(id);
+                        this._closeModal();
+                        this._showToast('Tarea actualizada');
+                        await this._renderTasksPanel();
+                    } catch (err) {
+                        this._showToast('Error: ' + (err.message || 'No se pudo actualizar'));
+                        actionBtn.disabled = false;
+                    }
+                    return;
+                }
+            });
+        }
+
         // Close modal on Escape
         this._docKeyHandler = (e) => {
             if (e.key === 'Escape' && this.currentModal) this._closeModal();
@@ -735,7 +774,7 @@ export class DashboardPage {
         const modalSubtitle = type === 'patientForm' && payload?.patient
             ? (payload.isEdit ? `Editar: ${payload.patient.name}` : 'Nuevo paciente')
             : subtitle;
-        const wide = ['core', 'patients', 'appointments', 'evaluations', 'reports', 'tasks', 'taskDetail'].includes(type);
+        const wide = ['core', 'patients', 'appointments', 'evaluations', 'reports', 'tasks'].includes(type);
 
         box.className = 'modal-box' + (wide ? ' modal-wide' : '');
 
@@ -804,7 +843,6 @@ export class DashboardPage {
             case 'notes': body.innerHTML = this._notesModalHTML(); break;
             case 'reports': body.innerHTML = this._reportsModalHTML(); this._renderReportsChart(); break;
             case 'messages': body.innerHTML = this._messagesModalHTML(); break;
-            case 'taskDetail': body.innerHTML = this._taskDetailHTML(payload); break;
             case 'patientDetail': body.innerHTML = this._patientDetailHTML(payload); break;
             case 'appointmentDetail': body.innerHTML = await this._appointmentDetailHTML(payload); break;
             case 'newAppointment': body.innerHTML = await this._newAppointmentFormHTML(); break;
@@ -1005,33 +1043,11 @@ export class DashboardPage {
     }
 
     async _openTaskDetailModal(task) {
-        const STATUS_MAP = {
-            PENDIENTE:   { label: 'Pendiente',   color: 'pending' },
-            EN_PROGRESO: { label: 'En progreso', color: 'in-progress' },
-            COMPLETADA:  { label: 'Completada',  color: 'completed' },
-            VENCIDA:     { label: 'Vencida',     color: 'danger' },
-            CANCELADA:   { label: 'Cancelada',   color: 'cancelled' },
-        };
-        const PRIORITY_MAP = {
-            BAJA:    'Baja',   MEDIA: 'Media',
-            ALTA:    'Alta',   URGENTE: 'Urgente',
-        };
-        const st = STATUS_MAP[task.status] || STATUS_MAP.PENDIENTE;
-        const _dd = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) : '—';
-        const isActive = task.status !== 'COMPLETADA' && task.status !== 'CANCELADA';
-        let actions = '';
-        if (isActive) {
-            if (task.status === 'PENDIENTE') actions += `<button class="btn btn-primary" data-task-action="start" data-task-id="${task.id}">Iniciar</button>`;
-            if (task.status === 'EN_PROGRESO') actions += `<button class="btn btn-primary" data-task-action="complete" data-task-id="${task.id}">Completar</button>`;
-            actions += `<button class="btn btn-danger" data-task-action="cancel" data-task-id="${task.id}">Cancelar</button>`;
-        }
-        actions += `<button class="btn btn-danger" data-task-action="delete" data-task-id="${task.id}" style="margin-left:auto;">Eliminar</button>`;
-
-        this._taskDetailData = task;
-        this._openModal('taskDetail', task);
+        this._showTaskDetail(task);
     }
 
-    _taskDetailHTML(task) {
+    _showTaskDetail(task) {
+        this.currentModal = 'taskDetail';
         const STATUS_MAP = {
             PENDIENTE:   { label: 'Pendiente',   color: 'pending' },
             EN_PROGRESO: { label: 'En progreso', color: 'in-progress' },
@@ -1050,7 +1066,17 @@ export class DashboardPage {
             actions += `<button class="btn btn-danger" data-task-action="cancel" data-task-id="${task.id}">Cancelar</button>`;
         }
         actions += `<button class="btn btn-danger" data-task-action="delete" data-task-id="${task.id}" style="margin-left:auto;">Eliminar</button>`;
-        return `
+
+        const box = $('#dashModalBox');
+        if (!box) return;
+        const titleEl = box.querySelector('.modal-title');
+        if (titleEl) titleEl.textContent = task.title;
+        const subtitleEl = box.querySelector('.modal-subtitle');
+        if (subtitleEl) subtitleEl.textContent = task.patient || '';
+
+        const body = $('#dashModalBody');
+        if (!body) return;
+        body.innerHTML = `
             <div class="data-row" style="background:transparent;">
                 <div class="patient-avatar">${(task.patient || '?')[0]?.toUpperCase() || '?'}</div>
                 <div class="data-main">
@@ -1473,41 +1499,6 @@ export class DashboardPage {
                 });
             });
             $('#dashBtnNewTask')?.addEventListener('click', () => this._openModal('newTask'));
-            $$('#dashModalBody [data-task-id]').forEach(row => {
-                row.addEventListener('click', async (e) => {
-                    if (e.target.closest('[data-task-action]')) return;
-                    const taskId = row.dataset.taskId;
-                    try {
-                        const task = await tasksService.getById(taskId);
-                        if (!task) return;
-                        this._openTaskDetailModal(task);
-                    } catch { this._showToast('Error al cargar tarea'); }
-                });
-            });
-        }
-
-        if (type === 'taskDetail') {
-            $$('[data-task-action]', $('#dashModalBody')).forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const act = btn.dataset.taskAction;
-                    const id = btn.dataset.taskId;
-                    btn.disabled = true; btn.textContent = 'Procesando…';
-                    try {
-                        if (act === 'start')      await tasksService.start(id);
-                        else if (act === 'complete') await tasksService.complete(id);
-                        else if (act === 'cancel')   await tasksService.cancel(id);
-                        else if (act === 'delete')   await tasksService.delete(id);
-                        this._closeModal();
-                        this._showToast('Tarea actualizada');
-                        await this._renderTasksPanel();
-                        if (this.currentModal === 'tasks') await this._renderModalTaskList();
-                    } catch (err) {
-                        this._showToast('Error: ' + (err.message || 'No se pudo actualizar'));
-                        btn.disabled = false;
-                    }
-                });
-            });
         }
 
         if (type === 'notes') {

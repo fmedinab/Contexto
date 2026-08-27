@@ -34,18 +34,18 @@ class TasksService {
 
   _uiToDBRow(ui) {
     const row = {};
-    if (ui.patientId)           row.patient_id = ui.patientId;
-    if (ui.ownerId)             row.owner_id = ui.ownerId;
-    if (ui.title)               row.title = ui.title;
-    if (ui.description !== undefined) row.description = ui.description;
-    if (ui.category)            row.category = ui.category;
-    if (ui.status)              row.status = ui.status;
-    if (ui.priority)            row.priority = ui.priority;
-    if (ui.progress !== undefined) row.progress = ui.progress;
-    if (ui.assignedDate)        row.assigned_date = ui.assignedDate;
-    if (ui.dueDate !== undefined) row.due_date = ui.dueDate;
-    if (ui.completedAt)         row.completed_at = ui.completedAt;
-    if (ui.notes !== undefined) row.notes = ui.notes;
+    if ('patientId' in ui)      row.patient_id = ui.patientId;
+    if ('ownerId' in ui)        row.owner_id = ui.ownerId;
+    if ('title' in ui)          row.title = ui.title;
+    if ('description' in ui)    row.description = ui.description;
+    if ('category' in ui)       row.category = ui.category;
+    if ('status' in ui)         row.status = ui.status;
+    if ('priority' in ui)       row.priority = ui.priority;
+    if ('progress' in ui)       row.progress = ui.progress;
+    if ('assignedDate' in ui)   row.assigned_date = ui.assignedDate;
+    if ('dueDate' in ui)        row.due_date = ui.dueDate;
+    if ('completedAt' in ui)    row.completed_at = ui.completedAt;
+    if ('notes' in ui)          row.notes = ui.notes;
     return row;
   }
 
