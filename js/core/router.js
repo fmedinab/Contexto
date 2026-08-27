@@ -63,8 +63,14 @@ export class Router {
         let handler = this.routes[path] || this.routes['*'];
 
         if (!handler) {
-            console.warn(`Ruta no encontrada: ${path}`);
-            handler = this.routes['404'] || (() => {});
+            const errorModule = await import('../pages/errors.js').catch(() => null);
+            if (errorModule) {
+                errorModule.renderErrorPage(404);
+            } else {
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;font-family:system-ui;"><h1>404 — Página no encontrada</h1></div>';
+            }
+            document.title = '404 — CONTEXTO';
+            return;
         }
 
         try {
@@ -77,7 +83,13 @@ export class Router {
             document.title = this._buildTitle(path);
         } catch (error) {
             console.error(`Error en ruta ${path}:`, error);
-            window.app?.toast?.error('Error', 'No se pudo cargar la página solicitada.');
+            const errorModule = await import('../pages/errors.js').catch(() => null);
+            if (errorModule) {
+                errorModule.renderErrorPage(500);
+            } else {
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;font-family:system-ui;"><h1>500 — Error del servidor</h1></div>';
+            }
+            document.title = '500 — CONTEXTO';
         }
     }
 

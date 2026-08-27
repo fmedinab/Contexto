@@ -1,0 +1,294 @@
+/* css/errors.css */
+/* Páginas de error personalizadas — CONTEXTO */
+
+/* ===== Layout ===== */
+.app--error {
+    background: var(--bg-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.error-page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px 24px;
+    overflow: hidden;
+}
+
+.error-page--inline {
+    padding: 48px 24px;
+}
+
+/* ===== Icon ===== */
+.error-icon {
+    width: 180px;
+    height: 180px;
+    margin-bottom: 16px;
+    animation: errIconFloat 4s ease-in-out infinite;
+}
+
+.error-icon--sm {
+    width: 120px;
+    height: 120px;
+}
+
+.error-icon svg {
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 24px var(--err-accent, #8b5cf6));
+}
+
+@keyframes errIconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+}
+
+/* ===== Code ===== */
+.error-code {
+    font-family: var(--font-sans);
+    font-size: clamp(64px, 12vw, 120px);
+    font-weight: 900;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--err-accent, #8b5cf6), color-mix(in srgb, var(--err-accent, #8b5cf6), white 40%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    animation: errCodeGlow 3s ease-in-out infinite alternate;
+    letter-spacing: -0.03em;
+}
+
+.error-code--sm {
+    font-size: clamp(40px, 8vw, 64px);
+}
+
+@keyframes errCodeGlow {
+    0% { filter: drop-shadow(0 0 8px transparent); opacity: 0.85; }
+    100% { filter: drop-shadow(0 0 20px var(--err-accent, #8b5cf6)); opacity: 1; }
+}
+
+/* ===== Title & Message ===== */
+.error-title {
+    font-family: var(--font-sans);
+    font-size: clamp(20px, 3vw, 28px);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+}
+
+.error-title--sm {
+    font-size: clamp(16px, 2.5vw, 22px);
+}
+
+.error-message {
+    font-size: clamp(14px, 1.6vw, 16px);
+    color: var(--text-secondary);
+    max-width: 420px;
+    margin: 0 0 28px;
+    line-height: 1.5;
+}
+
+.error-message--sm {
+    font-size: clamp(13px, 1.4vw, 15px);
+    margin-bottom: 20px;
+}
+
+/* ===== Buttons ===== */
+.error-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.error-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 44px;
+}
+
+.error-btn--primary {
+    background: linear-gradient(135deg, #8b5cf6, #38bdf8);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.error-btn--primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(139, 92, 246, 0.45);
+}
+
+.error-btn--primary:active {
+    transform: translateY(0);
+}
+
+.error-btn--ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+.error-btn--ghost:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+}
+
+/* ===== Floating Particles ===== */
+.error-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.err-particle {
+    position: absolute;
+    bottom: -10px;
+    border-radius: 50%;
+    opacity: 0;
+    animation: errParticleRise linear infinite;
+}
+
+@keyframes errParticleRise {
+    0% { transform: translateY(0) scale(1); opacity: 0; }
+    10% { opacity: 0.7; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(-100vh) scale(0.3); opacity: 0; }
+}
+
+/* ===== SVG Animations ===== */
+
+/* Orbiting circles (404, 500) */
+.err-orbit {
+    transform-origin: 100px 100px;
+    animation: errSpin 12s linear infinite;
+}
+
+.err-orbit-reverse {
+    transform-origin: 100px 100px;
+    animation: errSpinReverse 8s linear infinite;
+}
+
+@keyframes errSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes errSpinReverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+}
+
+/* Floating dots */
+.err-dot-1 {
+    animation: errDotFloat1 3s ease-in-out infinite;
+}
+.err-dot-2 {
+    animation: errDotFloat2 4s ease-in-out infinite;
+}
+.err-dot-3 {
+    animation: errDotFloat3 3.5s ease-in-out infinite;
+}
+
+@keyframes errDotFloat1 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(6px, -8px); }
+}
+@keyframes errDotFloat2 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-8px, 6px); }
+}
+@keyframes errDotFloat3 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(5px, 5px); }
+}
+
+/* 404 code text pulse */
+.err-code-text {
+    animation: errTextPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes errTextPulse {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+/* 500 pulse rings */
+.err-pulse-ring {
+    animation: errPulseRing 2s ease-in-out infinite;
+}
+.err-pulse-ring-delay {
+    animation: errPulseRing 2s ease-in-out infinite 0.5s;
+}
+
+@keyframes errPulseRing {
+    0%, 100% { opacity: 0.15; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(1.06); }
+}
+
+/* 500 cross flash */
+.err-cross {
+    animation: errCrossFlash 3s ease-in-out infinite;
+}
+
+@keyframes errCrossFlash {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 0.4; }
+}
+
+/* 403 lock bounce */
+.err-lock-body {
+    animation: errLockBounce 2s ease-in-out infinite;
+}
+
+@keyframes errLockBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+/* Offline waves */
+.err-wave-1 { animation: errWavePulse 2.5s ease-in-out infinite; }
+.err-wave-2 { animation: errWavePulse 2.5s ease-in-out infinite 0.3s; }
+.err-wave-3 { animation: errWavePulse 2.5s ease-in-out infinite 0.6s; }
+
+@keyframes errWavePulse {
+    0%, 100% { opacity: 0.15; transform: scaleX(0.95); }
+    50% { opacity: 0.6; transform: scaleX(1.05); }
+}
+
+.err-dot-center {
+    animation: errDotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes errDotPulse {
+    0%, 100% { r: 8; opacity: 0.8; }
+    50% { r: 10; opacity: 1; }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 480px) {
+    .error-icon { width: 130px; height: 130px; }
+    .error-icon--sm { width: 90px; height: 90px; }
+    .error-actions { flex-direction: column; width: 100%; }
+    .error-btn { width: 100%; justify-content: center; }
+}
+
+@media (max-width: 375px) {
+    .error-icon { width: 110px; height: 110px; }
+    .error-code { font-size: 56px; }
+}

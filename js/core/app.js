@@ -104,17 +104,9 @@ class App {
 
     _notFoundPage() {
         return {
-            render: () => {
-                const container = document.getElementById('pageBody');
-                if (!container) return;
-                container.innerHTML = `
-                    <div class="error-state">
-                        <div class="error-state-icon" aria-hidden="true">⚠</div>
-                        <p class="error-state-title">Página no encontrada</p>
-                        <p class="error-state-description">La página que buscas no existe.</p>
-                        <button class="btn btn--primary" onclick="window.router.navigate('/dashboard')">Ir al dashboard</button>
-                    </div>
-                `;
+            render: async () => {
+                const { renderErrorPage } = await import('../pages/errors.js');
+                renderErrorPage(404);
             }
         };
     }
