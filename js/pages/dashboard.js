@@ -682,8 +682,41 @@ export class DashboardPage {
             });
         }
 
-        // Modal triggers (data-modal) and Navigate triggers (data-navigate)
-        document.body.addEventListener('click', (e) => {
+        // Global delegation on document.body — survives innerHTML replacements
+        document.body.addEventListener('click', async (e) => {
+            // Task action buttons [data-task-action] inside dashModalBody
+            const actionBtn = e.target.closest('#dashModalBody [data-task-action]');
+            if (actionBtn) {
+                e.stopPropagation();
+                const act = actionBtn.dataset.taskAction;
+                const id = actionBtn.dataset.taskId;
+                actionBtn.disabled = true;
+                try {
+                    if (act === 'start')        await tasksService.start(id);
+                    else if (act === 'complete') await tasksService.complete(id);
+                    else if (act === 'cancel')   await tasksService.cancel(id);
+                    else if (act === 'delete')   await tasksService.delete(id);
+                    this._closeModal();
+                    this._showToast('Tarea actualizada');
+                    await this._renderTasksPanel();
+                } catch (err) {
+                    this._showToast('Error: ' + (err.message || 'No se pudo actualizar'));
+                    actionBtn.disabled = false;
+                }
+                return;
+            }
+            // Task row click inside dashModalBody → open detail
+            const taskRow = e.target.closest('#dashModalBody [data-task-id]');
+            if (taskRow && !e.target.closest('[data-task-action]')) {
+                const taskId = taskRow.dataset.taskId;
+                try {
+                    const task = await tasksService.getById(taskId);
+                    if (task) this._showTaskDetail(task);
+                } catch { this._showToast('Error al cargar tarea'); }
+                return;
+            }
+
+            // Modal triggers (data-modal) and Navigate triggers (data-navigate)
             const trigger = e.target.closest('[data-modal]');
             if (trigger) {
                 this._openModal(trigger.dataset.modal);
@@ -701,46 +734,6 @@ export class DashboardPage {
         if (overlay) {
             overlay.addEventListener('click', (e) => {
                 if (e.target === e.currentTarget) this._closeModal();
-            });
-        }
-
-        // Task row click delegation (survives innerHTML replacements)
-        const modalBody = $('#dashModalBody');
-        if (modalBody) {
-            modalBody.addEventListener('click', async (e) => {
-                // Task row click → open detail
-                const taskRow = e.target.closest('[data-task-id]');
-                if (taskRow && !e.target.closest('[data-task-action]')) {
-                    const taskId = taskRow.dataset.taskId;
-                    try {
-                        const task = await tasksService.getById(taskId);
-                        if (task) {
-                            this._showTaskDetail(task);
-                        }
-                    } catch { this._showToast('Error al cargar tarea'); }
-                    return;
-                }
-                // Task action buttons
-                const actionBtn = e.target.closest('[data-task-action]');
-                if (actionBtn) {
-                    e.stopPropagation();
-                    const act = actionBtn.dataset.taskAction;
-                    const id = actionBtn.dataset.taskId;
-                    actionBtn.disabled = true;
-                    try {
-                        if (act === 'start')      await tasksService.start(id);
-                        else if (act === 'complete') await tasksService.complete(id);
-                        else if (act === 'cancel')   await tasksService.cancel(id);
-                        else if (act === 'delete')   await tasksService.delete(id);
-                        this._closeModal();
-                        this._showToast('Tarea actualizada');
-                        await this._renderTasksPanel();
-                    } catch (err) {
-                        this._showToast('Error: ' + (err.message || 'No se pudo actualizar'));
-                        actionBtn.disabled = false;
-                    }
-                    return;
-                }
             });
         }
 

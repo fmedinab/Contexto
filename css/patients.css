@@ -730,3 +730,84 @@
 
   .app--dashboard .dash-modal-stats-row { flex-wrap: wrap; gap: 8px; }
 }
+
+/* ========== DATA TABLE (shared by Tasks page) ========== */
+.app--dashboard .table-responsive-wrap {
+  background: var(--dash-bg-card);
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-md);
+  overflow: hidden;
+}
+
+.app--dashboard .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.app--dashboard .data-table thead th {
+  text-align: left;
+  padding: 14px 18px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-text-tertiary);
+  border-bottom: 1px solid var(--dash-border);
+  background: var(--dash-bg-secondary);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.app--dashboard .data-table tbody tr {
+  border-bottom: 1px solid var(--dash-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.app--dashboard .data-table tbody tr:last-child { border-bottom: none; }
+.app--dashboard .data-table tbody tr:hover { background: var(--dash-bg-card-strong); }
+
+.app--dashboard .data-table td {
+  padding: 14px 18px;
+  vertical-align: middle;
+  color: var(--dash-text-primary);
+}
+
+.app--dashboard .data-table .col-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.app--dashboard .data-table .row-overdue {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.app--dashboard .data-table .row-overdue:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ========== STAT VALUE COLORS ========== */
+.app--dashboard .stat-value.stat-value--info  { color: var(--dash-blue, #60a5fa); }
+.app--dashboard .stat-value.stat-value--warn  { color: #f59e0b; }
+.app--dashboard .stat-value.stat-value--ok    { color: #10b981; }
+.app--dashboard .stat-value.stat-value--danger { color: #ef4444; }
+
+/* ========== RESPONSIVE — DATA TABLE MOBILE ========== */
+@media (max-width: 640px) {
+  .app--dashboard .table-responsive-wrap { border-radius: var(--dash-radius-sm); }
+  .app--dashboard .data-table td,
+  .app--dashboard .data-table thead th { padding: 10px 12px; }
+  .app--dashboard .data-table thead { display: none; }
+  .app--dashboard .data-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 12px;
+    align-items: center;
+  }
+  .app--dashboard .data-table tbody tr td { padding: 2px 0; }
+  .app--dashboard .data-table tbody tr td:first-child { flex: 1; }
+  .app--dashboard .data-table tbody tr td:nth-child(n+2) { flex-basis: 100%; }
+  .app--dashboard .data-table .col-actions { text-align: left; flex-basis: 100%; display: flex; gap: 6px; }
+}
