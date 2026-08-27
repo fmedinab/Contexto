@@ -4,7 +4,6 @@
 
 import {
     getClinicianProfile, getGreeting, getSummary,
-    getAppointments, getTasks,
     getMessages, getEmotionalState, getQuote,
     formatDate, formatTime, getInitials, formatAppointmentDate
 } from '../services/mockData.js';
@@ -277,7 +276,7 @@ export class DashboardPage {
         this._renderSummary();
         this._renderPatients();
         await this._renderAppointments();
-        this._renderEmotionChart();
+        await this._renderEmotionChart();
         await this._renderEvaluationsPanel();
         await this._renderTasksPanel();
         await this._renderNotesPanel();
@@ -378,24 +377,28 @@ export class DashboardPage {
 
     // ========== RENDER SECTIONS ==========
 
-    _renderSummary() {
-        const s = getSummary();
+    async _renderSummary() {
         const el = $('#dashSummary');
         if (!el) return;
-        el.innerHTML = `
-            <div class="summary-item">
-                <div class="summary-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg></div>
-                <div><div class="summary-value">${s.todayAppointments}</div><div class="summary-label">Citas de hoy</div></div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg></div>
-                <div><div class="summary-value">${s.newEvaluations}</div><div class="summary-label">Nueva evaluación</div></div>
-            </div>
-            <div class="summary-item">
-                <div class="summary-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10"/></svg></div>
-                <div><div class="summary-value">${s.pendingTasks}</div><div class="summary-label">Tareas pendientes</div></div>
-            </div>
-        `;
+        try {
+            const s = await getSummary();
+            el.innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg></div>
+                    <div><div class="summary-value">${s.todayAppointments}</div><div class="summary-label">Citas de hoy</div></div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg></div>
+                    <div><div class="summary-value">${s.newEvaluations}</div><div class="summary-label">Nueva evaluación</div></div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10"/></svg></div>
+                    <div><div class="summary-value">${s.pendingTasks}</div><div class="summary-label">Tareas pendientes</div></div>
+                </div>
+            `;
+        } catch (e) {
+            el.innerHTML = '<div style="text-align:center;color:var(--dash-text-tertiary);font-size:12px;padding:12px;">Error al cargar resumen</div>';
+        }
     }
 
     async _renderPatients(filter = '') {
@@ -451,32 +454,41 @@ export class DashboardPage {
         }
     }
 
-    _renderEmotionChart() {
+    async _renderEmotionChart() {
         const wrap = $('#dashEmotionChart');
+        const labelEl = document.querySelector('.emotion-label');
+        const pctEl = document.querySelector('.emotion-pct');
         if (!wrap) return;
-        const points = getEmotionalState().points;
-        const w = Math.max(200, wrap.offsetWidth || 320);
-        const h = 70, pad = 4;
-        const max = Math.max(...points), min = Math.min(...points);
-        const stepX = (w - pad * 2) / (points.length - 1);
-        const coords = points.map((p, i) => {
-            const x = pad + i * stepX;
-            const y = h - pad - ((p - min) / (max - min || 1)) * (h - pad * 2);
-            return [x, y];
-        });
-        const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c[0].toFixed(1)},${c[1].toFixed(1)}`).join(' ');
-        const areaPath = `${linePath} L${coords[coords.length - 1][0]},${h} L${coords[0][0]},${h} Z`;
-        wrap.innerHTML = `
-            <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-                <defs>
-                    <linearGradient id="emoGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
-                        <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
-                    </linearGradient>
-                </defs>
-                <path d="${areaPath}" fill="url(#emoGrad)" />
-                <path d="${linePath}" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>`;
+        try {
+            const state = await getEmotionalState();
+            const points = state.points;
+            const w = Math.max(200, wrap.offsetWidth || 320);
+            const h = 70, pad = 4;
+            const max = Math.max(...points, 1), min = Math.min(...points);
+            const stepX = (w - pad * 2) / (points.length - 1);
+            const coords = points.map((p, i) => {
+                const x = pad + i * stepX;
+                const y = h - pad - ((p - min) / (max - min || 1)) * (h - pad * 2);
+                return [x, y];
+            });
+            const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c[0].toFixed(1)},${c[1].toFixed(1)}`).join(' ');
+            const areaPath = `${linePath} L${coords[coords.length - 1][0]},${h} L${coords[0][0]},${h} Z`;
+            wrap.innerHTML = `
+                <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="emoGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.35"/>
+                            <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="${areaPath}" fill="url(#emoGrad)" />
+                    <path d="${linePath}" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>`;
+            if (labelEl) labelEl.textContent = state.label;
+            if (pctEl) pctEl.innerHTML = `${state.percentage}% ${icon('chevRight', 11)}`;
+        } catch (e) {
+            wrap.innerHTML = '<div style="text-align:center;color:var(--dash-text-tertiary);font-size:11px;padding:8px;">Error al cargar</div>';
+        }
     }
 
     async _renderEvaluationsPanel() {

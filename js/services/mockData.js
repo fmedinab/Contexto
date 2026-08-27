@@ -1,8 +1,9 @@
 // js/services/mockData.js
-// Datos mock unificados para toda la app — Mente Serena.
-// Fuente única de verdad para desarrollo. Preparado para reemplazo por API Supabase.
+// Helpers y datos curados para la app — CONTEXTO.
+// Perfil, saludo, resumen y estado emocional se calculan desde Supabase.
 
 import { authService } from './authService.js';
+import { supabase } from '../../config/supabase.js';
 
 // ========== CLINICIAN ==========
 const MOCK_CLINICIAN = {
@@ -297,14 +298,23 @@ export function getStatusLabel(status) {
 // ========== EXPORTS — DASHBOARD (para dashboard-new.js) ==========
 export function getClinicianProfile() {
     const user = authService.getCurrentUser();
-    if (user?.user_metadata) {
-        return {
-            name: user.user_metadata.first_name || MOCK_CLINICIAN.name,
-            role: MOCK_CLINICIAN.role,
-            avatarInitials: MOCK_CLINICIAN.avatarInitials
-        };
+    const email = user?.email || '';
+    const meta = user?.user_metadata || {};
+
+    let name = meta.full_name || meta.first_name || '';
+    if (!name && email) {
+        name = email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     }
-    return MOCK_CLINICIAN;
+    if (!name) name = 'Usuario';
+
+    const role = meta.role || 'Profesional';
+
+    const parts = name.trim().split(/\s+/);
+    const initials = parts.length >= 2
+        ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+        : name.slice(0, 2).toUpperCase();
+
+    return { name, role, avatarInitials: initials };
 }
 
 export function getGreeting() {
@@ -322,7 +332,26 @@ export function getGreeting() {
     };
 }
 
-export function getSummary() { return MOCK_SUMMARY; }
+export async function getSummary() {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+
+    const [apptsRes, evalsRes, tasksRes] = await Promise.all([
+        supabase.from('appointments').select('id', { count: 'exact', head: true })
+            .gte('appointment_date', todayStart).lt('appointment_date', todayEnd),
+        supabase.from('assessments').select('id', { count: 'exact', head: true })
+            .eq('status', 'PENDIENTE'),
+        supabase.from('therapeutic_tasks').select('id', { count: 'exact', head: true })
+            .in('status', ['PENDIENTE', 'EN_PROGRESO']),
+    ]);
+
+    return {
+        todayAppointments: apptsRes.count || 0,
+        newEvaluations: evalsRes.count || 0,
+        pendingTasks: tasksRes.count || 0,
+    };
+}
 export function getDashboardPatients() { return DASHBOARD_PATIENTS; }
 export function getAppointments() { return MOCK_APPOINTMENTS; }
 export function getEvaluations() { return MOCK_EVALUATIONS; }
@@ -330,7 +359,26 @@ export function getTasks() { return MOCK_TASKS; }
 export function getNotes() { return MOCK_NOTES; }
 export function getReports() { return MOCK_REPORTS; }
 export function getMessages() { return MOCK_MESSAGES; }
-export function getEmotionalState() { return MOCK_EMOTIONAL_STATE; }
+export async function getEmotionalState() {
+    const now = new Date();
+    const points = [];
+    const labels = [];
+    for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const start = d.toISOString().slice(0, 10);
+        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+        const { count } = await supabase.from('assessments').select('id', { count: 'exact', head: true })
+            .gte('created_at', start).lte('created_at', end + 'T23:59:59Z');
+        points.push(count || 0);
+        labels.push(d.toLocaleDateString('es-ES', { month: 'short' }));
+    }
+    const current = points[points.length - 1];
+    const prev = points[points.length - 2] || 0;
+    const pct = current > 0 ? Math.min(Math.round((current / Math.max(...points, 1)) * 100), 100) : 0;
+    const trend = current >= prev ? 'up' : 'down';
+    const label = pct >= 70 ? 'Ambiente positivo' : pct >= 40 ? 'Estable' : 'Requiere atención';
+    return { label, percentage: pct, trend, points, labels };
+}
 export function getQuote() { return MOCK_QUOTE; }
 
 // ========== EXPORTS — UTILIDADES COMUNES ==========
