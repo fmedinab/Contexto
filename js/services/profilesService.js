@@ -13,10 +13,30 @@ class ProfilesService {
             .single();
 
         if (error && error.code === 'PGRST116') {
-            return this._createProfileFromUser(user);
+            try { return await this._createProfileFromUser(user); } catch { return this._fallbackProfile(user); }
         }
-        if (error) throw error;
+        if (error) {
+            console.warn('profiles table error, using fallback:', error.message);
+            return this._fallbackProfile(user);
+        }
         return data;
+    }
+
+    _fallbackProfile(user) {
+        const meta = user.user_metadata || {};
+        return {
+            id: user.id,
+            email: user.email,
+            full_name: meta.full_name || meta.first_name || user.email.split('@')[0],
+            dni: meta.dni || null,
+            phone: meta.phone || null,
+            avatar_url: meta.avatar_url || null,
+            birth_date: meta.birth_date || null,
+            currency: meta.currency || 'PEN',
+            language: meta.language || 'es',
+            role: meta.role || 'Profesional',
+            created_at: user.created_at,
+        };
     }
 
     async _createProfileFromUser(user) {
@@ -47,20 +67,23 @@ class ProfilesService {
         const user = authService.getCurrentUser();
         if (!user) throw new Error('No hay sesión activa');
 
-        const { data, error } = await supabase
-            .from('profiles')
-            .update({ ...updates, updated_at: new Date().toISOString() })
-            .eq('id', user.id)
-            .select()
-            .single();
+        const meta = { ...user.user_metadata, full_name: updates.full_name };
+        const { error: metaError } = await supabase.auth.updateUser({ data: meta });
+        if (metaError) console.warn('Metadata update failed:', metaError.message);
 
-        if (error) throw error;
-
-        await supabase.auth.updateUser({
-            data: { full_name: updates.full_name || user.user_metadata?.full_name }
-        });
-
-        return data;
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .update({ ...updates, updated_at: new Date().toISOString() })
+                .eq('id', user.id)
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        } catch (e) {
+            console.warn('profiles table update failed, using auth metadata fallback:', e.message);
+            return this._fallbackProfile({ ...user, user_metadata: meta });
+        }
     }
 
     async changePassword(newPassword) {
