@@ -4,7 +4,7 @@
 
 import {
     getClinicianProfile, getGreeting, getSummary,
-    getAppointments, getTasks, getNotes,
+    getAppointments, getTasks,
     getReports, getMessages, getEmotionalState, getQuote,
     formatDate, formatTime, getInitials, formatAppointmentDate
 } from '../services/mockData.js';
@@ -12,6 +12,7 @@ import { patientService, THERAPY_TYPES, STATUS_LABELS } from '../services/patien
 import { appointmentService, STATUS_LABELS as APPT_STATUS_LABELS, STATUS_COLORS as APPT_STATUS_COLORS } from '../services/appointmentsService.js';
 import { evaluationService, INSTRUMENTS, STATUS_LABELS as EVAL_STATUS_LABELS } from '../services/evaluationsService.js';
 import { tasksService } from '../services/tasksService.js';
+import { notesService } from '../services/notesService.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -246,6 +247,11 @@ export class DashboardPage {
                             <div id="dashTaskList"></div>
                             <button class="card-footer-link" data-modal="tasks">Ver todas las tareas</button>
                         </section>
+                        <section class="card" id="dashNotesPanel">
+                            <div class="card-title">Notas clínicas</div>
+                            <div id="dashNotesList"></div>
+                            <button class="card-footer-link" data-modal="notes">Ver todas las notas</button>
+                        </section>
                     </div>
                 </div>
 
@@ -273,6 +279,7 @@ export class DashboardPage {
         this._renderEmotionChart();
         await this._renderEvaluationsPanel();
         await this._renderTasksPanel();
+        await this._renderNotesPanel();
 
         patientService.onChange(() => {
             this._renderPatients();
@@ -289,6 +296,10 @@ export class DashboardPage {
         tasksService.onChange(async () => {
             await this._renderTasksPanel();
             if (this.currentModal === 'tasks') await this._renderModalTaskList();
+        });
+        notesService.onChange(async () => {
+            await this._renderNotesPanel();
+            if (this.currentModal === 'notes') await this._renderModalNotesList();
         });
         this._initParticles();
         this._startClock();
@@ -534,6 +545,34 @@ export class DashboardPage {
         }
     }
 
+    async _renderNotesPanel() {
+        const container = $('#dashNotesList');
+        if (!container) return;
+        try {
+            const notes = await notesService.list({ limit: 3 });
+            if (!notes.length) {
+                container.innerHTML = `<div class="empty-state">No hay notas clínicas registradas.</div>`;
+                return;
+            }
+            const _dd = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' }) : '—';
+            container.innerHTML = notes.map(n => {
+                const riskColor = n.riskLevel === 'ALTO' || n.riskLevel === 'CRISIS' ? 'danger' : n.riskLevel === 'MODERADO' ? 'info' : '';
+                return `
+                <div class="eval-row">
+                    <div class="eval-icon">${icon('notes', 14)}</div>
+                    <div class="eval-info">
+                        <div class="eval-name">${escapeHtml(n.patient || 'Sin paciente')} <span style="font-size:11px;color:var(--dash-text-tertiary);margin-left:4px;">${escapeHtml(n.sessionType)}</span></div>
+                        <div class="eval-meta">${_dd(n.sessionDate)}${n.title ? ' · ' + escapeHtml(n.title) : ''}</div>
+                    </div>
+                    ${riskColor ? `<span class="status-pill ${riskColor}" style="font-size:10px;">${n.riskLevel}</span>` : ''}
+                </div>`;
+            }).join('');
+        } catch (err) {
+            console.error('Error panel notas:', err);
+            container.innerHTML = `<div class="empty-state">Error al cargar notas.</div>`;
+        }
+    }
+
     // ========== EVENTS ==========
 
     _bindEvents() {
@@ -716,6 +755,30 @@ export class DashboardPage {
                 return;
             }
 
+            // Note row click inside dashModalBody → open detail
+            const noteRow = e.target.closest('#dashModalBody [data-note-id]');
+            if (noteRow) {
+                const noteId = noteRow.dataset.noteId;
+                // Check if it's a delete action button
+                const deleteBtn = e.target.closest('[data-note-action="delete"]');
+                if (deleteBtn) {
+                    e.stopPropagation();
+                    if (!confirm('¿Eliminar esta nota clínica permanentemente?')) return;
+                    try {
+                        await notesService.delete(noteId);
+                        this._closeModal();
+                        this._showToast('Nota eliminada.');
+                        await this._renderNotesPanel();
+                    } catch (err) { this._showToast('Error al eliminar: ' + (err.message || '')); }
+                    return;
+                }
+                try {
+                    const note = await notesService.getById(noteId);
+                    if (note) this._showNoteDetail(note);
+                } catch { this._showToast('Error al cargar nota'); }
+                return;
+            }
+
             // Modal triggers (data-modal) and Navigate triggers (data-navigate)
             const trigger = e.target.closest('[data-modal]');
             if (trigger) {
@@ -833,7 +896,7 @@ export class DashboardPage {
             case 'appointments': body.innerHTML = await this._appointmentsModalHTML(); break;
             case 'evaluations': body.innerHTML = await this._evaluationsModalHTML(); await this._renderModalEvalList(); break;
             case 'tasks': body.innerHTML = await this._tasksModalHTML(); await this._renderModalTaskList(); break;
-            case 'notes': body.innerHTML = this._notesModalHTML(); break;
+            case 'notes': body.innerHTML = await this._notesModalHTML(); await this._renderModalNotesList(); break;
             case 'reports': body.innerHTML = this._reportsModalHTML(); this._renderReportsChart(); break;
             case 'messages': body.innerHTML = this._messagesModalHTML(); break;
             case 'patientDetail': body.innerHTML = this._patientDetailHTML(payload); break;
@@ -1095,22 +1158,78 @@ export class DashboardPage {
             <div class="action-row">${actions}</div>`;
     }
 
-    _notesModalHTML() {
+    _showNoteDetail(note) {
+        const RISK_MAP = { BAJO: 'Bajo', MODERADO: 'Moderado', ALTO: 'Alto', CRISIS: 'Crisis' };
+        const riskColor = note.riskLevel === 'ALTO' || note.riskLevel === 'CRISIS' ? 'danger' : note.riskLevel === 'MODERADO' ? 'info' : 'completed';
+        const _dd = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }) : '—';
+
+        const box = $('#dashModalBox');
+        if (!box) return;
+        const titleEl = box.querySelector('.modal-title');
+        if (titleEl) titleEl.textContent = note.title || 'Nota clínica';
+        const subtitleEl = box.querySelector('.modal-subtitle');
+        if (subtitleEl) subtitleEl.textContent = note.patient || '';
+
+        const body = $('#dashModalBody');
+        if (!body) return;
+        body.innerHTML = `
+            <div class="data-row" style="background:transparent;">
+                <div class="patient-avatar">${(note.patient || '?')[0]?.toUpperCase() || '?'}</div>
+                <div class="data-main">
+                    <div class="data-title" style="font-size:15px;">${escapeHtml(note.title || note.patient || 'Nota clínica')}</div>
+                    <div class="data-sub">${escapeHtml(note.patient || 'Sin paciente')} · ${escapeHtml(note.sessionType)}</div>
+                </div>
+                <span class="status-pill ${riskColor}">${RISK_MAP[note.riskLevel] || note.riskLevel}</span>
+            </div>
+            <div class="detail-section-title">Detalles</div>
+            <div class="patient-detail-grid">
+                <div class="detail-field"><span class="detail-label">Tipo de sesión</span><span class="detail-value">${escapeHtml(note.sessionType)}</span></div>
+                <div class="detail-field"><span class="detail-label">Fecha</span><span class="detail-value">${_dd(note.sessionDate)}</span></div>
+                <div class="detail-field"><span class="detail-label">Riesgo</span><span class="detail-value"><span class="status-pill ${riskColor}">${RISK_MAP[note.riskLevel] || note.riskLevel}</span></span></div>
+            </div>
+            <div class="detail-section-title">Resumen</div>
+            <p style="font-size:13px;color:var(--dash-text-primary);margin:0 0 8px;white-space:pre-wrap;">${escapeHtml(note.summary)}</p>
+            ${note.interventions ? `<div class="detail-section-title">Intervenciones</div><p style="font-size:13px;color:var(--dash-text-secondary);margin:0 0 8px;white-space:pre-wrap;">${escapeHtml(note.interventions)}</p>` : ''}
+            ${note.observations ? `<div class="detail-section-title">Observaciones</div><p style="font-size:13px;color:var(--dash-text-secondary);margin:0 0 8px;white-space:pre-wrap;">${escapeHtml(note.observations)}</p>` : ''}
+            ${note.nextSteps ? `<div class="detail-section-title">Próximos pasos</div><p style="font-size:13px;color:var(--dash-text-secondary);margin:0 0 8px;white-space:pre-wrap;">${escapeHtml(note.nextSteps)}</p>` : ''}
+            <div class="action-row">
+                <button class="btn btn-danger" data-note-action="delete" data-note-id="${note.id}" style="margin-left:auto;">Eliminar</button>
+            </div>`;
+    }
+
+    async _notesModalHTML() {
         return `
             <div class="action-row" style="justify-content:flex-end;">
                 <button class="btn btn-primary" id="dashBtnNewNote">${icon('plus', 14)} Nueva nota clínica</button>
             </div>
-            <div class="data-rows">${getNotes().map(n => `
-                <div class="data-row">
+            <div id="dashModalNotesList" class="data-rows">
+                <div class="patients-empty"><p>Cargando notas…</p></div>
+            </div>`;
+    }
+
+    async _renderModalNotesList() {
+        const el = $('#dashModalNotesList');
+        if (!el) return;
+        try {
+            const notes = await notesService.list({ limit: 20 });
+            if (!notes.length) { el.innerHTML = '<div class="empty-state">No hay notas clínicas registradas.</div>'; return; }
+            const _dd = (ds) => ds ? new Date(ds + 'T00:00:00').toLocaleDateString('es-ES', { day:'numeric', month:'short' }) : '—';
+            el.innerHTML = notes.map(n => {
+                const riskColor = n.riskLevel === 'ALTO' || n.riskLevel === 'CRISIS' ? 'danger' : n.riskLevel === 'MODERADO' ? 'info' : 'completed';
+                return `
+                <div class="data-row" data-note-id="${n.id}" style="cursor:pointer;">
                     <div class="eval-icon">${icon('notes', 14)}</div>
                     <div class="data-main">
-                        <div class="data-title">${n.patient} <span class="tag" style="margin-left:6px;">${n.sessionType}</span></div>
-                        <div class="data-sub">${n.date}</div>
-                        <div class="data-sub2">${n.summary}</div>
+                        <div class="data-title">${escapeHtml(n.patient || 'Sin paciente')} <span class="tag" style="margin-left:6px;">${escapeHtml(n.sessionType)}</span></div>
+                        <div class="data-sub">${_dd(n.sessionDate)}${n.title ? ' · ' + escapeHtml(n.title) : ''}</div>
+                        <div class="data-sub2">${escapeHtml((n.summary || '').slice(0, 100))}${(n.summary || '').length > 100 ? '…' : ''}</div>
                     </div>
-                </div>
-            `).join('')}</div>
-        `;
+                    <span class="status-pill ${riskColor}">${(n.riskLevel || 'BAJO')}</span>
+                </div>`;
+            }).join('');
+        } catch {
+            el.innerHTML = '<div class="empty-state">Error al cargar notas.</div>';
+        }
     }
 
     _reportsModalHTML() {
@@ -1390,15 +1509,18 @@ export class DashboardPage {
     }
 
     async _newNoteFormHTML() {
-        const { data: patients } = await patientService.getAll();
-        const patientOptions = (patients || []).map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+        const patients = await notesService.getPatients();
+        const patientOptions = patients.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
         return `
             <form class="form-grid" id="dashFormNewNote">
-                <div class="form-field"><label for="nPatient">Paciente</label><select id="nPatient">${patientOptions}</select></div>
+                <div class="form-field"><label for="nPatient">Paciente *</label><select id="nPatient" required><option value="">Seleccionar…</option>${patientOptions}</select><span class="form-error" id="nPatientError"></span></div>
                 <div class="form-field"><label for="nType">Tipo de sesión</label>
-                    <select id="nType"><option>Terapia Individual</option><option>Terapia de Pareja</option><option>Evaluación Inicial</option></select>
+                    <select id="nType"><option>Terapia Individual</option><option>Terapia de Pareja</option><option>Terapia Familiar</option><option>Evaluación Inicial</option><option>Seguimiento</option><option>Otra</option></select>
                 </div>
-                <div class="form-field"><label for="nSummary">Resumen de la sesión</label><textarea id="nSummary" placeholder="Escribe el resumen clínico..."></textarea></div>
+                <div class="form-field"><label for="nDate">Fecha de sesión</label><input type="date" id="nDate" value="${new Date().toISOString().slice(0,10)}"></div>
+                <div class="form-field"><label for="nRisk">Nivel de riesgo</label><select id="nRisk"><option value="BAJO">Bajo</option><option value="MODERADO">Moderado</option><option value="ALTO">Alto</option><option value="CRISIS">Crisis</option></select></div>
+                <div class="form-field" style="grid-column:1/-1;"><label for="nSummary">Resumen de la sesión *</label><textarea id="nSummary" rows="4" placeholder="Describe el desarrollo de la sesión…" required></textarea><span class="form-error" id="nSummaryError"></span></div>
+                <div class="form-field" style="grid-column:1/-1;"><label for="nObs">Observaciones</label><textarea id="nObs" rows="2" placeholder="Observaciones clínicas…"></textarea></div>
                 <div class="action-row"><button type="submit" class="btn btn-primary">Guardar nota</button><button type="button" class="btn" id="dashCancelNewNote">Cancelar</button></div>
             </form>
         `;
@@ -1585,7 +1707,34 @@ export class DashboardPage {
         }
 
         if (type === 'newNote') {
-            $('#dashFormNewNote')?.addEventListener('submit', e => { e.preventDefault(); this._showToast('Nota clínica guardada.'); this._closeModal(); });
+            $('#dashFormNewNote')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const patientId = $('#nPatient')?.value || '';
+                const summary = $('#nSummary')?.value.trim() || '';
+                if (!patientId || !summary) {
+                    if (!patientId) { const el = document.getElementById('nPatientError'); if (el) el.textContent = 'Selecciona un paciente'; }
+                    if (!summary) { const el = document.getElementById('nSummaryError'); if (el) el.textContent = 'El resumen es obligatorio'; }
+                    return;
+                }
+                const submitBtn = e.target.querySelector('[type="submit"]');
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...'; }
+                try {
+                    await notesService.create({
+                        patientId,
+                        sessionType: $('#nType')?.value || 'Terapia Individual',
+                        sessionDate: $('#nDate')?.value || new Date().toISOString().slice(0,10),
+                        summary,
+                        observations: $('#nObs')?.value.trim() || null,
+                        riskLevel: $('#nRisk')?.value || 'BAJO',
+                    });
+                    this._closeModal();
+                    this._showToast('Nota clínica guardada correctamente.');
+                    await this._renderNotesPanel();
+                } catch (err) {
+                    this._showToast('Error: ' + (err.message || 'No se pudo guardar'));
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Guardar nota'; }
+                }
+            });
             $('#dashCancelNewNote')?.addEventListener('click', () => this._openModal('notes'));
         }
 

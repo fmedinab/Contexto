@@ -18,6 +18,7 @@ import { PatientsPage } from '../pages/patients.js';
 import { AppointmentsPage } from '../pages/appointments.js';
 import { EvaluationsPage } from '../pages/evaluations.js';
 import { TasksPage } from '../pages/tasks.js';
+import { NotesPage } from '../pages/notes.js';
 
 import { pwaInstall } from '../pwa/install.js';
 
@@ -72,6 +73,7 @@ class App {
             .addRoute('/appointments', () => this.requireAuth(() => this.renderPage('appointments', new AppointmentsPage())))
             .addRoute('/evaluations', () => this.requireAuth(() => this.renderPage('evaluations', new EvaluationsPage())))
             .addRoute('/tasks', () => this.requireAuth(() => this.renderPage('tasks', new TasksPage())))
+            .addRoute('/notes', () => this.requireAuth(() => this.renderPage('notes', new NotesPage())))
             .addRoute('*', () => {
                 this.renderPage('404', this._notFoundPage());
             });
@@ -125,7 +127,7 @@ class App {
 
         const appEl = document.getElementById('app');
         if (appEl) {
-            const dashboardPages = ['dashboard', 'patients', 'appointments', 'evaluations', 'tasks'];
+            const dashboardPages = ['dashboard', 'patients', 'appointments', 'evaluations', 'tasks', 'notes'];
             if (dashboardPages.includes(key)) {
                 appEl.classList.add('app--dashboard');
             } else {
