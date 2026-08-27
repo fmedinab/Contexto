@@ -335,10 +335,14 @@
   color: var(--dash-text-secondary);
   font-size: 13.5px;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .app--dashboard .header-center .clock-date {
   letter-spacing: 0.1px;
+  min-width: 26ch;
+  text-align: right;
 }
 
 .app--dashboard .header-center .clock-time {
@@ -346,6 +350,8 @@
   font-weight: 700;
   font-size: 15px;
   letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+  min-width: 9ch;
 }
 
 .app--dashboard .header-center .dot-sep {
@@ -495,16 +501,14 @@
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
   padding: 6px;
   opacity: 0;
-  transform: translateY(-6px);
   pointer-events: none;
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 0.15s ease;
   z-index: 1000;
   overflow: visible;
 }
 
 .app--dashboard .user-menu.open .dropdown {
   opacity: 1;
-  transform: translateY(0);
   pointer-events: auto;
 }
 
@@ -539,7 +543,7 @@
   display: grid;
   grid-template-columns: 300px 1fr 340px;
   grid-template-rows: auto;
-  gap: 10px;
+  gap: 16px;
   align-items: start;
 }
 
@@ -695,7 +699,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 480px;
+  min-height: 380px;
   overflow: visible;
 }
 
@@ -941,37 +945,37 @@
 /* Posiciones de módulos */
 .app--dashboard .mod-pacientes {
   --ox: 0px;
-  --oy: -205px;
+  --oy: -182px;
 }
 
 .app--dashboard .mod-citas {
-  --ox: 165px;
-  --oy: -120px;
+  --ox: 147px;
+  --oy: -107px;
 }
 
 .app--dashboard .mod-evaluaciones {
-  --ox: 195px;
-  --oy: 25px;
+  --ox: 173px;
+  --oy: 22px;
 }
 
 .app--dashboard .mod-tareas {
-  --ox: 128px;
-  --oy: 160px;
+  --ox: 114px;
+  --oy: 142px;
 }
 
 .app--dashboard .mod-notas {
-  --ox: -133px;
-  --oy: 160px;
+  --ox: -118px;
+  --oy: 142px;
 }
 
 .app--dashboard .mod-reportes {
-  --ox: -205px;
-  --oy: 25px;
+  --ox: -182px;
+  --oy: 22px;
 }
 
 .app--dashboard .mod-mensajes {
-  --ox: -168px;
-  --oy: -120px;
+  --ox: -147px;
+  --oy: -107px;
 }
 
 /* ========== CITAS PRÓXIMAS ========== */
@@ -1921,60 +1925,60 @@
   }
 
   .app--dashboard .orbit-stage {
-    width: 480px;
-    height: 480px;
-    max-width: 480px;
-    max-height: 480px;
+    width: 440px;
+    height: 440px;
+    max-width: 440px;
+    max-height: 440px;
   }
 
   .app--dashboard .orbit-ring.ring-1 {
-    width: 420px;
-    height: 420px;
+    width: 400px;
+    height: 400px;
   }
 
   .app--dashboard .orbit-ring.ring-2 {
-    width: 350px;
-    height: 350px;
+    width: 330px;
+    height: 330px;
   }
 
   .app--dashboard .orbit-ring.ring-3 {
-    width: 270px;
-    height: 270px;
+    width: 260px;
+    height: 260px;
   }
 
   .app--dashboard .mod-pacientes {
     --ox: 0px;
-    --oy: -180px;
+    --oy: -165px;
   }
 
   .app--dashboard .mod-citas {
-    --ox: 150px;
-    --oy: -105px;
+    --ox: 135px;
+    --oy: -95px;
   }
 
   .app--dashboard .mod-evaluaciones {
-    --ox: 175px;
-    --oy: 22px;
+    --ox: 158px;
+    --oy: 20px;
   }
 
   .app--dashboard .mod-tareas {
-    --ox: 115px;
-    --oy: 140px;
+    --ox: 104px;
+    --oy: 128px;
   }
 
   .app--dashboard .mod-notas {
-    --ox: -120px;
-    --oy: 140px;
+    --ox: -108px;
+    --oy: 128px;
   }
 
   .app--dashboard .mod-reportes {
-    --ox: -185px;
-    --oy: 22px;
+    --ox: -168px;
+    --oy: 20px;
   }
 
   .app--dashboard .mod-mensajes {
-    --ox: -150px;
-    --oy: -105px;
+    --ox: -135px;
+    --oy: -95px;
   }
 }
 

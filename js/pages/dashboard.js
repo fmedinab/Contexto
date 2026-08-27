@@ -319,6 +319,10 @@ export class DashboardPage {
         if (this._docClickHandler) document.removeEventListener('click', this._docClickHandler);
         if (this._docKeyHandler) document.removeEventListener('keydown', this._docKeyHandler);
         if (this._bodyClickHandler) document.body.removeEventListener('click', this._bodyClickHandler);
+        if (this._repositionDropdown) {
+            window.removeEventListener('scroll', this._repositionDropdown);
+            window.removeEventListener('resize', this._repositionDropdown);
+        }
         this.container = null;
     }
 
@@ -647,16 +651,25 @@ export class DashboardPage {
         const userTrigger = $('#dashUserTrigger');
         const userMenu = $('#dashUserMenu');
         if (userTrigger && userMenu) {
+            this._repositionDropdown = () => {
+                const dropdown = userMenu.querySelector('.dropdown');
+                if (dropdown && userMenu.classList.contains('open')) {
+                    const triggerRect = userTrigger.getBoundingClientRect();
+                    dropdown.style.top = (triggerRect.bottom + 8) + 'px';
+                }
+            };
+
             userTrigger.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const isOpen = userMenu.classList.toggle('open');
                 userTrigger.setAttribute('aria-expanded', String(isOpen));
                 if (isOpen) {
-                    const rect = userTrigger.getBoundingClientRect();
-                    const dropdown = userMenu.querySelector('.dropdown');
-                    if (dropdown) {
-                        dropdown.style.top = (rect.bottom + 8) + 'px';
-                    }
+                    this._repositionDropdown();
+                    window.addEventListener('scroll', this._repositionDropdown, { passive: true });
+                    window.addEventListener('resize', this._repositionDropdown, { passive: true });
+                } else {
+                    window.removeEventListener('scroll', this._repositionDropdown);
+                    window.removeEventListener('resize', this._repositionDropdown);
                 }
             });
         }
@@ -882,6 +895,10 @@ export class DashboardPage {
                 userMenu.classList.remove('open');
                 const trigger = $('#dashUserTrigger');
                 if (trigger) trigger.setAttribute('aria-expanded', 'false');
+                if (this._repositionDropdown) {
+                    window.removeEventListener('scroll', this._repositionDropdown);
+                    window.removeEventListener('resize', this._repositionDropdown);
+                }
             }
         };
         document.addEventListener('click', this._docClickHandler);
