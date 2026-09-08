@@ -1,0 +1,311 @@
+/* css/admin.css */
+/* Paneles de administración del dashboard (CMS y Ajustes del consultorio) — CONTEXTO */
+
+.admin-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 48px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* ===== CMS ===== */
+.cms-panel { animation: settingsFadeIn 0.4s ease; }
+
+.cms-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.cms-title {
+    font-size: clamp(20px, 2.5vw, 26px);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cms-title i { color: var(--primary); font-size: 20px; }
+
+.cms-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 4px 0 0;
+}
+
+.cms-layout {
+    display: grid;
+    grid-template-columns: 232px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+/* Pestañas de secciones */
+.cms-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 10px;
+    position: sticky;
+    top: 16px;
+}
+
+.cms-tab {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+}
+
+.cms-tab i { width: 18px; text-align: center; font-size: 13px; color: var(--text-muted); }
+
+.cms-tab:hover { background: var(--bg-elevated); color: var(--text-primary); }
+
+.cms-tab.is-active {
+    background: var(--primary-muted);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.cms-tab.is-active i { color: var(--primary); }
+
+/* Contenido de la sección */
+.cms-content {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    min-height: 320px;
+}
+
+.cms-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.cms-section-head h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cms-section-head h3 i { color: var(--primary); font-size: 14px; }
+
+.cms-section-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.cms-form { display: flex; flex-direction: column; gap: 18px; }
+
+.cms-field { display: flex; flex-direction: column; gap: 6px; }
+
+.cms-hint {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.cms-textarea { resize: vertical; min-height: 90px; }
+
+.cms-field--color input[type="color"] {
+    width: 68px;
+    height: 44px;
+    padding: 4px;
+    cursor: pointer;
+}
+
+/* Lista de strings (trust strip) */
+.cms-strlist { display: flex; flex-direction: column; gap: 8px; }
+
+.cms-strlist-row {
+    display: grid;
+    grid-template-columns: 1fr 38px;
+    gap: 8px;
+    align-items: center;
+}
+
+.cms-remove-btn {
+    width: 38px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--error);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.cms-remove-btn:hover {
+    background: color-mix(in srgb, var(--error) 12%, transparent);
+    border-color: var(--error);
+}
+
+.cms-add-btn {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 10px;
+    border: 1px dashed var(--primary);
+    background: transparent;
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+}
+
+.cms-add-btn:hover {
+    background: var(--primary-muted);
+    border-style: solid;
+}
+
+/* Lista de objetos (cards) */
+.cms-itemlist { display: flex; flex-direction: column; gap: 14px; }
+
+.cms-itemrow {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    background: var(--bg-secondary);
+}
+
+.cms-itemrow-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.cms-itemrow-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.cms-itemrow-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.cms-itemrow-grid .cms-itemfield:nth-child(odd):last-child {
+    grid-column: 1 / -1;
+}
+
+.cms-itemfield { display: flex; flex-direction: column; gap: 5px; }
+
+.cms-itemfield textarea { min-height: 70px; }
+
+/* ===== Ajustes del consultorio ===== */
+.clinic-wrap { max-width: 860px; }
+
+.clinic-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.clinic-card-title i { color: var(--primary); font-size: 14px; }
+
+.clinic-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 16px;
+}
+
+.clinic-hint code {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+.clinic-schedule {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.clinic-schedule-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.clinic-form-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+    .cms-layout { grid-template-columns: 1fr; }
+    .cms-tabs {
+        position: static;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .cms-tab { flex: 1 1 30%; justify-content: center; }
+}
+
+@media (max-width: 640px) {
+    .cms-header { flex-direction: column; }
+    .cms-content { padding: 16px; }
+    .cms-itemrow-grid { grid-template-columns: 1fr; }
+    .clinic-schedule { grid-template-columns: 1fr; }
+    .clinic-form-row { grid-template-columns: 1fr; }
+    .cms-tab { flex-basis: 45%; }
+}

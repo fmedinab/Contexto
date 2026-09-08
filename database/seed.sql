@@ -48,10 +48,13 @@ INSERT INTO public.permissions (code, name, module, description) VALUES
     ('reports:create', 'Crear informes', 'reports', 'Generar nuevos informes'),
     ('reports:export', 'Exportar informes', 'reports', 'Exportar informes a PDF/Excel'),
     
-    -- Configuración
+-- Configuración
     ('settings:view', 'Ver configuración', 'settings', 'Acceso a configuración del sistema'),
     ('settings:edit', 'Editar configuración', 'settings', 'Modificar configuración del sistema'),
-    
+
+    -- Contenido del sitio (CM)
+    ('cms:manage', 'Gestionar contenido del sitio', 'cms', 'Editar el contenido dinámico de la página principal (landing)'),
+
     -- Administración
     ('admin:users', 'Gestionar usuarios', 'admin', 'Crear, editar y eliminar usuarios'),
     ('admin:roles', 'Gestionar roles', 'admin', 'Asignar roles y permisos'),
@@ -71,13 +74,14 @@ CROSS JOIN public.permissions p
 WHERE r.name = 'admin'
 ON CONFLICT DO NOTHING;
 
--- Psychologist: permisos clínicos y administrativos (sin admin)
+-- Psychologist: permisos clínicos y administrativos (sin admin, cms ni config global)
 INSERT INTO public.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM public.roles r
 CROSS JOIN public.permissions p
 WHERE r.name = 'psychologist'
   AND p.code NOT LIKE 'admin:%'
+  AND p.code NOT IN ('cms:manage', 'settings:edit')
 ON CONFLICT DO NOTHING;
 
 -- Assistant: permisos administrativos básicos
@@ -122,7 +126,14 @@ INSERT INTO public.site_settings (key, value, type, description) VALUES
     ('lockout_duration_minutes', '15', 'number', 'Duración del bloqueo en minutos'),
     ('allow_registration', 'true', 'boolean', 'Permitir registro público de usuarios'),
     ('default_user_role', 'patient', 'text', 'Rol asignado por defecto en registros públicos'),
-    ('maintenance_mode', 'false', 'boolean', 'Modo mantenimiento activado')
+    ('maintenance_mode', 'false', 'boolean', 'Modo mantenimiento activado'),
+    ('work_schedule', '{"lunes":"08:00-20:00","martes":"08:00-20:00","miercoles":"08:00-20:00","jueves":"08:00-20:00","viernes":"08:00-20:00","sabado":"09:00-14:00","domingo":"cerrado"}', 'json', 'Horarios de atención del consultorio por día'),
+    ('contact_email', 'contacto@contextopsicologia.com', 'text', 'Correo principal de contacto del consultorio'),
+    ('contact_phone', '+502 1234 5678', 'text', 'Teléfono/WhatsApp principal del consultorio'),
+    ('whatsapp_number', '50212345678', 'text', 'Número de WhatsApp (solo dígitos con código de país) para enlaces wa.me'),
+    ('currency', 'PEN', 'text', 'Moneda por defecto del consultorio'),
+    ('timezone', 'America/Guatemala', 'text', 'Zona horaria del consultorio'),
+    ('booking_confirm_hours', '24', 'number', 'Horas máximas para confirmar una solicitud de cita (visible en la landing)')
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================

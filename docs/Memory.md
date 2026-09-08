@@ -72,3 +72,6 @@ Semana 3 (Calidad):
 
 
 [✓] PWA a medias: decidir entre activar o eliminar sw.js (contradice RULES, cachea Supabase)
+
+
+opencode -s ses_f80dff623ffeCSyV9FMgK2wsgq

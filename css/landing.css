@@ -1009,6 +1009,36 @@
 .lp-mobile-nav .lp-btn { margin-top: 22px; width: 100%; }
 
 /* ---------------------------------------------------------
+   Skeleton (carga de contenido dinámico)
+   --------------------------------------------------------- */
+.lp-skeleton {
+    padding: 140px 24px 80px;
+    max-width: 1120px;
+    margin: 0 auto;
+    display: grid;
+    gap: 24px;
+}
+.lp-skeleton-block {
+    border-radius: 18px;
+    background: linear-gradient(100deg,
+        var(--lp-surface) 40%,
+        color-mix(in srgb, var(--lp-surface) 60%, transparent) 50%,
+        var(--lp-surface) 60%);
+    background-size: 200% 100%;
+    animation: lp-shimmer 1.4s infinite linear;
+    border: 1px solid var(--lp-border);
+}
+.lp-skeleton-hero { height: 260px; }
+.lp-skeleton-grid { height: 220px; }
+@keyframes lp-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lp-skeleton-block { animation: none; }
+}
+
+/* ---------------------------------------------------------
    Responsive
    --------------------------------------------------------- */
 @media (max-width: 1080px) {

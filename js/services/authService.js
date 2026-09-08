@@ -49,7 +49,17 @@ export class AuthService {
 
     _startIdleTimeout() {
         this._stopIdleTimeout();
-        this._idleTimer = setTimeout(() => this._handleIdleTimeout(), Env.security.sessionTimeout);
+        // Tiempo de inactividad configurable desde Ajustes (site_settings).
+        // Se lee asíncronamente; por defecto usa el valor de configuración.
+        import('./siteSettingsService.js').then(({ siteSettingsService }) => {
+            return siteSettingsService.getSessionTimeoutMs();
+        }).then(timeout => {
+            if (!this.isAuthenticated()) return;
+            clearTimeout(this._idleTimer);
+            this._idleTimer = setTimeout(() => this._handleIdleTimeout(), timeout);
+        }).catch(() => {
+            this._idleTimer = setTimeout(() => this._handleIdleTimeout(), Env.security.sessionTimeout);
+        });
     }
 
     _stopIdleTimeout() {

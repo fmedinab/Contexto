@@ -79,6 +79,8 @@ export class DashboardPage {
         this.panelTaskTab = 'PENDIENTE';
         this._currentView = 'dashboard';
         this._settingsPage = null;
+        this._clinicSettings = null;
+        this._cmsPanel = null;
         this._bookingReminderShown = false;
         this._bookingPoll = null;
         this._knownBookingIds = null;
@@ -148,6 +150,8 @@ export class DashboardPage {
                                 <div class="dropdown" role="menu">
                                     <button role="menuitem" data-action="profile">Mi perfil</button>
                                     <button role="menuitem" data-action="preferences">Preferencias</button>
+                                    ${this._canManageClinicSettings() ? '<button role="menuitem" data-action="clinicSettings">Ajustes del consultorio</button>' : ''}
+                                    ${this._canManageCms() ? '<button role="menuitem" data-action="cms">Contenido del sitio</button>' : ''}
                                     <hr>
                                     <button role="menuitem" data-action="logout">Cerrar sesión</button>
                                 </div>
@@ -425,6 +429,102 @@ export class DashboardPage {
         const footer = this.container?.querySelector('.quote-footer');
         if (grid) grid.style.display = '';
         if (footer) footer.style.display = '';
+    }
+
+    // ¿Puede gestionar el contenido del sitio (landing)?
+    _canManageCms() {
+        try {
+            return !!(window.app?.permissions?.hasPermission?.('cms:manage'));
+        } catch {
+            return false;
+        }
+    }
+
+    // ¿Puede gestionar los ajustes del consultorio? Solo admin.
+    _canManageClinicSettings() {
+        try {
+            return !!(window.app?.permissions?.hasPermission?.('settings:edit'));
+        } catch {
+            return false;
+        }
+    }
+
+    // Panel de ajustes del consultorio (horarios, inactividad, contacto).
+    async _showClinicSettings() {
+        if (!this._canManageClinicSettings()) {
+            window.app?.toast?.error?.('Sin permiso', 'No tienes permiso para gestionar los ajustes del consultorio.');
+            return;
+        }
+
+        this._currentView = 'clinicSettings';
+        const grid = this.container.querySelector('.main-grid');
+        const footer = this.container.querySelector('.quote-footer');
+        if (grid) grid.style.display = 'none';
+        if (footer) footer.style.display = 'none';
+
+        let wrap = this.container.querySelector('#dashSettingsWrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'dashSettingsWrap';
+            wrap.style.cssText = 'width:100%;max-width:980px;margin:0 auto;padding:32px 24px 48px;';
+            this.container.querySelector('.app').appendChild(wrap);
+        }
+        wrap.style.display = '';
+        wrap.innerHTML = `
+            <div class="dash-settings-topbar">
+                <button class="dash-settings-back" id="dashSettingsBack">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Volver al dashboard
+                </button>
+            </div>
+            <div id="dashSettingsContent"></div>`;
+
+        const backBtn = wrap.querySelector('#dashSettingsBack');
+        if (backBtn) backBtn.addEventListener('click', () => this._showDashboard());
+
+        const { ClinicSettings } = await import('./clinicSettings.js');
+        if (this._currentView !== 'clinicSettings') return;
+        this._clinicSettings = new ClinicSettings(wrap.querySelector('#dashSettingsContent'));
+        this._clinicSettings.show();
+    }
+
+    // Panel de administración del contenido de la landing (CMS).
+    async _showCms() {
+        if (!this._canManageCms()) {
+            window.app?.toast?.error?.('Sin permiso', 'No tienes permiso para gestionar el contenido del sitio.');
+            return;
+        }
+
+        this._currentView = 'cms';
+        const grid = this.container.querySelector('.main-grid');
+        const footer = this.container.querySelector('.quote-footer');
+        if (grid) grid.style.display = 'none';
+        if (footer) footer.style.display = 'none';
+
+        let wrap = this.container.querySelector('#dashSettingsWrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'dashSettingsWrap';
+            wrap.style.cssText = 'width:100%;max-width:1180px;margin:0 auto;padding:32px 24px 48px;';
+            this.container.querySelector('.app').appendChild(wrap);
+        }
+        wrap.style.display = '';
+        wrap.innerHTML = `
+            <div class="dash-settings-topbar">
+                <button class="dash-settings-back" id="dashSettingsBack">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Volver al dashboard
+                </button>
+            </div>
+            <div id="dashSettingsContent"></div>`;
+
+        const backBtn = wrap.querySelector('#dashSettingsBack');
+        if (backBtn) backBtn.addEventListener('click', () => this._showDashboard());
+
+        const { CmsPanel } = await import('./cmsPanel.js');
+        if (this._currentView !== 'cms') return;
+        this._cmsPanel = new CmsPanel(wrap.querySelector('#dashSettingsContent'));
+        this._cmsPanel.show();
     }
 
     // ========== CLOCK ==========
@@ -1049,6 +1149,10 @@ export class DashboardPage {
                     window.app?.auth?.logout().catch(() => {});
                 } else if (action === 'profile' || action === 'preferences') {
                     this._showSettings();
+                } else if (action === 'clinicSettings') {
+                    this._showClinicSettings();
+                } else if (action === 'cms') {
+                    this._showCms();
                 }
                 userMenuEl.classList.remove('open');
             });

@@ -4,6 +4,8 @@
 // mantener coherencia visual con el Dashboard. No depende de frameworks.
 
 import { bookingRequestsService, buildWhatsAppUrl } from '../services/bookingRequestsService.js';
+import { cmsService } from '../services/cmsService.js';
+import { siteSettingsService } from '../services/siteSettingsService.js';
 
 export class LandingPage {
     constructor() {
@@ -12,12 +14,27 @@ export class LandingPage {
         this._keydownHandler = null;
         this._revealObserver = null;
         this._navObserver = null;
+        this._cms = null;
+        this._settings = null;
     }
 
-    render() {
+    async render() {
         if (!this.container) return;
 
         this.container.className = 'page-body';
+        this.container.innerHTML = '<div class="lp-page"><div class="lp-skeleton" aria-label="Cargando contenido">' +
+            '<div class="lp-skeleton-block lp-skeleton-hero"></div>' +
+            '<div class="lp-skeleton-block lp-skeleton-grid"></div>' +
+            '</div></div>';
+
+        // Contenido dinámico de la landing + ajustes globales (en paralelo).
+        const [cms, settings] = await Promise.all([
+            cmsService.getLandingContent().catch(() => null),
+            siteSettingsService.getAll().catch(() => null)
+        ]);
+        this._cms = cms || cmsService.getDefaultContent();
+        this._settings = settings || null;
+
         this.container.innerHTML = this._template();
 
         this._bindTheme();
@@ -104,21 +121,18 @@ export class LandingPage {
                 <section class="lp-hero">
                     <div class="lp-container lp-hero-grid">
                         <div class="lp-hero-copy">
-                            <span class="lp-eyebrow">Centro de Ciencias Comportamentales</span>
-                            <h1>Entender tu <em>contexto</em><br>es el primer paso<br>para cambiar tu historia.</h1>
-                            <p class="lp-hero-desc">En CONTEXTO Psicología integramos mente, conducta, emoción y entorno en un mismo proceso terapéutico, con un enfoque clínico basado en evidencia y una escucha genuinamente humana.</p>
+                            <span class="lp-eyebrow">${this._t('hero', 'eyebrow')}</span>
+                            <h1>${this._t('hero', 'title')}</h1>
+                            <p class="lp-hero-desc">${this._t('hero', 'description')}</p>
                             <div class="lp-hero-actions">
                                 <a href="#agendar" class="lp-btn lp-btn--primary" data-scroll="agendar">
-                                    Agendar primera consulta
+                                    ${this._t('hero', 'cta_primary')}
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                                 </a>
-                                <a href="#especialidades" class="lp-btn lp-btn--ghost" data-scroll="especialidades">Conocer nuestro enfoque</a>
+                                <a href="#especialidades" class="lp-btn lp-btn--ghost" data-scroll="especialidades">${this._t('hero', 'cta_secondary')}</a>
                             </div>
                             <div class="lp-hero-stats">
-                                <div class="lp-stat"><div class="lp-stat-num">12+</div><div class="lp-stat-label">Años de<br>experiencia</div></div>
-                                <div class="lp-stat"><div class="lp-stat-num">1.800+</div><div class="lp-stat-label">Pacientes<br>acompañados</div></div>
-                                <div class="lp-stat"><div class="lp-stat-num">6</div><div class="lp-stat-label">Especialistas<br>certificados</div></div>
-                                <div class="lp-stat"><div class="lp-stat-num">96%</div><div class="lp-stat-label">Satisfacción<br>reportada</div></div>
+                                ${this._statsHtml()}
                             </div>
                         </div>
 
@@ -136,11 +150,7 @@ export class LandingPage {
                 <!-- ============ TRUST STRIP ============ -->
                 <div class="lp-trust">
                     <div class="lp-container lp-trust-inner">
-                        <span>Terapia Cognitivo-Conductual</span>
-                        <span>Ciencia Conductual Contextual</span>
-                        <span>ACT</span>
-                        <span>Evaluación Psicométrica</span>
-                        <span>Atención Online y Presencial</span>
+                        ${this._trustItems()}
                     </div>
                 </div>
 
@@ -148,16 +158,11 @@ export class LandingPage {
                 <section class="lp-section lp-section--alt" id="servicios">
                     <div class="lp-container">
                         <div class="lp-section-head is-center">
-                            <span class="lp-eyebrow" style="justify-content:center;">Servicios</span>
-                            <h2 class="lp-section-title">Programas terapéuticos a la<br>medida de cada historia.</h2>
+                            <span class="lp-eyebrow" style="justify-content:center;">${this._t('servicios', 'eyebrow')}</span>
+                            <h2 class="lp-section-title">${this._t('servicios', 'title')}</h2>
                         </div>
                         <div class="lp-services-grid">
-                            ${this._serviceCard('Terapia Individual', 'Un espacio confidencial para trabajar ansiedad, estado de ánimo, autoestima y procesos de cambio personal.', 'M20.8 8.6c0 5-8.8 10-8.8 10s-8.8-5-8.8-10a4.8 4.8 0 0 1 8.8-2.7A4.8 4.8 0 0 1 20.8 8.6Z', 'user')}
-                            ${this._serviceCard('Terapia de Pareja', 'Herramientas de comunicación y vínculo para atravesar crisis, reconstruir confianza o fortalecer la relación.', 'M20.8 8.6c0 5-8.8 10-8.8 10s-8.8-5-8.8-10a4.8 4.8 0 0 1 8.8-2.7A4.8 4.8 0 0 1 20.8 8.6Z', 'heart')}
-                            ${this._serviceCard('Terapia Familiar', 'Abordamos dinámicas y roles familiares para mejorar la convivencia y fortalecer los vínculos entre generaciones.', 'M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2', 'users')}
-                            ${this._serviceCard('Psicología Infantil y Adolescente', 'Acompañamos el desarrollo emocional y conductual de niñas, niños y adolescentes junto a sus familias.', 'M12 20.5s-7-4.2-9.5-8.4C.8 8.9 2.2 5 6 5c2 0 3.4 1 4 2 .6-1 2-2 4-2 3.8 0 5.2 3.9 3.5 7.1C19 16.3 12 20.5 12 20.5Z', 'child')}
-                            ${this._serviceCard('Evaluación Psicológica', 'Pruebas psicométricas y evaluaciones clínicas para diagnóstico, orientación vocacional o procesos legales.', 'M9 12l2 2 4-4', 'clipboard')}
-                            ${this._serviceCard('Terapia Online', 'El mismo acompañamiento clínico, adaptado a un formato remoto seguro, flexible y igual de cercano.', 'M8 21h8M12 17v4', 'video')}
+                            ${this._servicesHtml()}
                         </div>
                     </div>
                 </section>
@@ -166,9 +171,9 @@ export class LandingPage {
                 <section class="lp-section" id="especialidades">
                     <div class="lp-container">
                         <div class="lp-section-head lp-reveal">
-                            <span class="lp-eyebrow lp-eyebrow--brand">Especialidades y enfoque</span>
-                            <h2 class="lp-section-title">Ciencia conductual contextual,<br>aplicada con calidez humana.</h2>
-                            <p class="lp-section-desc">No tratamos síntomas aislados: entendemos a cada persona dentro de su historia, su entorno y sus vínculos. Nuestro modelo clínico se sostiene en cuatro pilares que trabajamos siempre en conjunto.</p>
+                            <span class="lp-eyebrow lp-eyebrow--brand">${this._t('especialidades', 'eyebrow')}</span>
+                            <h2 class="lp-section-title">${this._t('especialidades', 'title')}</h2>
+                            <p class="lp-section-desc">${this._t('especialidades', 'description')}</p>
                         </div>
 
                         <div class="lp-approach-wrap">
@@ -176,10 +181,7 @@ export class LandingPage {
                                 ${this._approachDiagram()}
                             </div>
                             <div class="lp-pillars-grid">
-                                ${this._pillar('#7E8F79', 'CONDUCTA', 'Lo que haces frente a cada situación: tus hábitos, respuestas y patrones de acción observables.')}
-                                ${this._pillar('#1D3348', 'COGNICIÓN', 'Tus pensamientos, creencias e interpretaciones, y cómo influyen en tus decisiones diarias.')}
-                                ${this._pillar('#5F757C', 'EMOCIÓN', 'La forma en que sientes, reconoces y regulas tus emociones en distintos momentos de tu vida.')}
-                                ${this._pillar('#C7A15F', 'CONTEXTO', 'El entorno, tus vínculos y las circunstancias reales que rodean cada comportamiento.')}
+                                ${this._pillarsHtml()}
                             </div>
                         </div>
                     </div>
@@ -189,24 +191,21 @@ export class LandingPage {
                 <section class="lp-section lp-section--alt" id="nosotros">
                     <div class="lp-container">
                         <div class="lp-section-head lp-reveal">
-                            <span class="lp-eyebrow">Sobre CONTEXTO</span>
-                            <h2 class="lp-section-title">Un espacio profesional para<br>comprender y transformar.</h2>
+                            <span class="lp-eyebrow">${this._t('nosotros', 'eyebrow')}</span>
+                            <h2 class="lp-section-title">${this._t('nosotros', 'title')}</h2>
                         </div>
                         <div class="lp-about-grid">
                             <div class="lp-about-copy lp-reveal">
-                                <p>CONTEXTO es un centro de ciencias comportamentales que entiende la salud mental como un proceso integral. Combinamos rigor clínico y tecnología para que cada persona reciba un acompañamiento ordenado, privado y humano.</p>
-                                <p>Nuestro enfoque respeta el ritmo de cada quien: escuchamos sin apuro, evaluamos con método y construimos un plan claro junto a ti, con objetivos concretos y seguimiento continuo.</p>
+                                <p>${this._t('nosotros', 'paragraph1')}</p>
+                                <p>${this._t('nosotros', 'paragraph2')}</p>
                                 <div class="lp-about-values">
-                                    <div class="lp-value"><i class="fa-solid fa-shield-halved"></i> Privacidad y confidencialidad</div>
-                                    <div class="lp-value"><i class="fa-solid fa-heart-pulse"></i> Acompañamiento empático</div>
-                                    <div class="lp-value"><i class="fa-solid fa-microscope"></i> Enfoque basado en evidencia</div>
-                                    <div class="lp-value"><i class="fa-solid fa-leaf"></i> Bienestar sostenible</div>
+                                    ${this._aboutValuesHtml()}
                                 </div>
                             </div>
                             <div class="lp-about-card lp-reveal">
-                                <h3>Tu bienestar comienza cuando decides escucharte.</h3>
-                                <p>Cada proceso tiene su propio ritmo. Por eso diseñamos un espacio donde la tecnología sostiene tu atención clínica, sin reemplazar el vínculo con tu profesional.</p>
-                                <p class="lp-about-meta"><i class="fa-solid fa-location-dot"></i> Atención presencial y online · Horarios flexibles</p>
+                                <h3>${this._t('nosotros', 'card_title')}</h3>
+                                <p>${this._t('nosotros', 'card_text')}</p>
+                                <p class="lp-about-meta"><i class="fa-solid fa-location-dot"></i> ${this._t('nosotros', 'card_meta')}</p>
                             </div>
                         </div>
                     </div>
@@ -216,14 +215,11 @@ export class LandingPage {
                 <section class="lp-section" id="proceso">
                     <div class="lp-container">
                         <div class="lp-section-head lp-reveal">
-                            <span class="lp-eyebrow">Cómo trabajamos</span>
-                            <h2 class="lp-section-title">Un proceso claro,<br>de principio a fin.</h2>
+                            <span class="lp-eyebrow">${this._t('proceso', 'eyebrow')}</span>
+                            <h2 class="lp-section-title">${this._t('proceso', 'title')}</h2>
                         </div>
                         <div class="lp-method-row">
-                            ${this._methodStep('01', 'Primer contacto', 'Agendas tu cita por el canal que prefieras y te asignamos al especialista más adecuado para tu motivo de consulta.')}
-                            ${this._methodStep('02', 'Evaluación inicial', 'Escuchamos tu historia sin apuro y hacemos una lectura clínica de tu situación actual, sin diagnósticos apresurados.')}
-                            ${this._methodStep('03', 'Plan terapéutico', 'Definimos objetivos concretos y medibles junto a ti, y elegimos el enfoque que mejor se adapta a tu contexto.')}
-                            ${this._methodStep('04', 'Acompañamiento', 'Damos seguimiento continuo a tu progreso, ajustando el proceso cuantas veces sea necesario.')}
+                            ${this._processStepsHtml()}
                         </div>
                     </div>
                 </section>
@@ -232,14 +228,11 @@ export class LandingPage {
                 <section class="lp-section lp-section--alt" id="equipo">
                     <div class="lp-container">
                         <div class="lp-section-head is-center lp-reveal">
-                            <span class="lp-eyebrow" style="justify-content:center;">Equipo</span>
-                            <h2 class="lp-section-title">Especialistas que te acompañan<br>con evidencia y empatía.</h2>
+                            <span class="lp-eyebrow" style="justify-content:center;">${this._t('equipo', 'eyebrow')}</span>
+                            <h2 class="lp-section-title">${this._t('equipo', 'title')}</h2>
                         </div>
                         <div class="lp-team-grid">
-                            ${this._teamCard('#6366f1', 'CT', 'Dra. Camila Torres', 'Directora clínica', 'Terapia Cognitivo-Conductual · 14 años de experiencia clínica.')}
-                            ${this._teamCard('#06b6d4', 'AR', 'Dr. Andrés Rivas', 'Terapia de pareja y familia', 'Especialista en vínculos y comunicación · 10 años de experiencia.')}
-                            ${this._teamCard('#8b5cf6', 'VR', 'Dra. Valentina Ruiz', 'Psicología infantil', 'Desarrollo emocional en niñas, niños y adolescentes · 9 años.')}
-                            ${this._teamCard('#a78bfa', 'MS', 'Dr. Mateo Salas', 'Evaluación psicométrica', 'Diagnóstico clínico y orientación vocacional · 8 años.')}
+                            ${this._teamHtml()}
                         </div>
                     </div>
                 </section>
@@ -248,13 +241,11 @@ export class LandingPage {
                 <section class="lp-section" id="testimonios">
                     <div class="lp-container">
                         <div class="lp-section-head is-center lp-reveal">
-                            <span class="lp-eyebrow" style="justify-content:center;">Testimonios</span>
-                            <h2 class="lp-section-title">Historias reales de<br>procesos reales.</h2>
+                            <span class="lp-eyebrow" style="justify-content:center;">${this._t('testimonios', 'eyebrow')}</span>
+                            <h2 class="lp-section-title">${this._t('testimonios', 'title')}</h2>
                         </div>
                         <div class="lp-testimonial-grid">
-                            ${this._testimonial('#6366f1', 'MJ', 'María J.', 'Terapia individual · 8 meses', 'Llegué sin entender por qué me sentía así todo el tiempo. Hoy tengo herramientas concretas y, sobre todo, entiendo mi propio contexto.')}
-                            ${this._testimonial('#8b5cf6', 'DP', 'Diego & Paula', 'Terapia de pareja · 1 año', 'Como pareja llegamos a un punto muerto. El acompañamiento fue claro, honesto y sin juicios. Hoy nos comunicamos de otra forma.')}
-                            ${this._testimonial('#a78bfa', 'RL', 'Rocío L.', 'Psicología infantil · 6 meses', 'Mi hijo dejó de ver la terapia como un castigo. El equipo supo explicarle todo con paciencia y eso cambió todo el proceso.')}
+                            ${this._testimonialsHtml()}
                         </div>
                     </div>
                 </section>
@@ -263,15 +254,11 @@ export class LandingPage {
                 <section class="lp-section lp-section--alt" id="preguntas">
                     <div class="lp-container">
                         <div class="lp-section-head is-center lp-reveal">
-                            <span class="lp-eyebrow" style="justify-content:center;">Preguntas frecuentes</span>
-                            <h2 class="lp-section-title">Todo lo que necesitas<br>saber antes de empezar.</h2>
+                            <span class="lp-eyebrow" style="justify-content:center;">${this._t('faq', 'eyebrow')}</span>
+                            <h2 class="lp-section-title">${this._t('faq', 'title')}</h2>
                         </div>
                         <div class="lp-faq-list lp-reveal">
-                            ${this._faq(true, '¿Cómo es la primera sesión?', 'Es una conversación abierta de aproximadamente 50 minutos donde conocemos tu historia y motivo de consulta, sin ningún compromiso de continuar. Al final te explicamos cómo vemos tu situación y qué opciones de acompañamiento tiene sentido explorar.')}
-                            ${this._faq(false, '¿Trabajan con obras sociales o seguros?', 'Contamos con convenios con algunas obras sociales y entregamos factura para reintegro con la mayoría de los seguros privados. Escríbenos con el nombre de tu cobertura y te confirmamos antes de tu primera cita.')}
-                            ${this._faq(false, '¿Ofrecen sesiones online?', 'Sí, todos nuestros especialistas ofrecen modalidad online mediante videollamada segura, con el mismo formato y duración que una sesión presencial.')}
-                            ${this._faq(false, '¿Cuánto dura un proceso terapéutico?', 'Depende de cada historia y objetivo. Algunos procesos duran pocos meses y son focalizados en una situación puntual; otros son de acompañamiento más extendido. Esto se define y se revisa junto a tu especialista.')}
-                            ${this._faq(false, '¿Atienden niños y adolescentes?', 'Sí, contamos con especialistas en psicología infantil y adolescente, que trabajan tanto con los niños como con madres, padres o cuidadores según cada caso.')}
+                            ${this._faqHtml()}
                         </div>
                     </div>
                 </section>
@@ -281,12 +268,12 @@ export class LandingPage {
                     <div class="lp-container">
                         <div class="lp-cta-banner lp-reveal">
                             <div>
-                                <h2>Da el primer paso hacia tu bienestar.</h2>
-                                <p>Agenda tu primera consulta hoy y empieza a entender tu contexto.</p>
+                                <h2>${this._t('cta', 'title')}</h2>
+                                <p>${this._t('cta', 'description')}</p>
                             </div>
                             <div class="lp-cta-actions">
-                                <a href="#agendar" class="lp-btn lp-btn--light" data-scroll="agendar">Agendar cita</a>
-                                <a href="#agendar" class="lp-btn lp-btn--ghost" data-scroll="agendar" style="border-color:rgba(244,244,251,0.4); color:#f4f4fb;">Reservar mi sesión</a>
+                                <a href="#agendar" class="lp-btn lp-btn--light" data-scroll="agendar">${this._t('cta', 'button_primary')}</a>
+                                <a href="#agendar" class="lp-btn lp-btn--ghost" data-scroll="agendar" style="border-color:rgba(244,244,251,0.4); color:#f4f4fb;">${this._t('cta', 'button_secondary')}</a>
                             </div>
                         </div>
                     </div>
@@ -296,9 +283,9 @@ export class LandingPage {
                 <section class="lp-section lp-section--alt" id="agendar">
                     <div class="lp-container">
                         <div class="lp-section-head is-center lp-reveal">
-                            <span class="lp-eyebrow" style="justify-content:center;">Agenda tu cita</span>
-                            <h2 class="lp-section-title">Reserva tu sesión<br>en menos de un minuto.</h2>
-                            <p class="lp-section-desc" style="margin-left:auto;margin-right:auto;">Elige el servicio, la modalidad y tu horario preferido. Te confirmamos en menos de 24 horas por WhatsApp.</p>
+                            <span class="lp-eyebrow" style="justify-content:center;">${this._t('agendar', 'eyebrow')}</span>
+                            <h2 class="lp-section-title">${this._t('agendar', 'title')}</h2>
+                            <p class="lp-section-desc" style="margin-left:auto;margin-right:auto;">Elige el servicio, la modalidad y tu horario preferido. Te confirmamos en menos de ${this._confirmHoursHtml()} horas por WhatsApp.</p>
                         </div>
 
                         <div class="lp-booking-grid">
@@ -325,15 +312,15 @@ export class LandingPage {
 
                                 <div class="lp-booking-banner">
                                     <p>¿Prefieres resolver tus dudas directo? Escríbenos por WhatsApp</p>
-                                    <a class="lp-btn lp-btn--wa" href="${buildWhatsAppUrl('', 'Hola CONTEXTO, me gustaría agendar una consulta.')}" target="_blank" rel="noopener">
+                                    <a class="lp-btn lp-btn--wa" href="${this._whatsAppUrl()}" target="_blank" rel="noopener">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/><path d="M9 10c0 3 2 5 5 5l1-1.5-1.5-1-1 .5a4.5 4.5 0 0 1-2-2L11 10 10 8.5 8.5 9.5 9 10z" opacity="0.9"/></svg>
                                         Escribir por WhatsApp
                                     </a>
                                 </div>
 
                                 <ul class="lp-booking-channels">
-                                    <li><i class="fa-solid fa-envelope"></i> contacto@contextopsicologia.com</li>
-                                    <li><i class="fa-solid fa-phone"></i> +502 1234 5678 · Lun a Vie · 8:00–20:00</li>
+                                    <li><i class="fa-solid fa-envelope"></i> ${this._footer('contact_email')}</li>
+                                    <li><i class="fa-solid fa-phone"></i> ${this._footer('contact_phone')} · ${this._scheduleSummaryHtml()}</li>
                                     <li><i class="fa-solid fa-location-dot"></i> Atención presencial y online</li>
                                 </ul>
                             </div>
@@ -357,12 +344,7 @@ export class LandingPage {
                                     <div class="lp-form-group">
                                         <label class="lp-form-label" for="bkService">Servicio <span style="color:var(--lp-cyan);">*</span></label>
                                         <select class="lp-input lp-input--select" id="bkService" name="serviceType" required>
-                                            <option value="Terapia Individual">Terapia Individual</option>
-                                            <option value="Terapia de Pareja">Terapia de Pareja</option>
-                                            <option value="Terapia Familiar">Terapia Familiar</option>
-                                            <option value="Psicología Infantil y Adolescente">Psicología Infantil y Adolescente</option>
-                                            <option value="Evaluación Psicológica">Evaluación Psicológica</option>
-                                            <option value="Terapia Online">Terapia Online</option>
+                                            ${this._serviceOptionsHtml()}
                                         </select>
                                     </div>
                                     <div class="lp-form-group">
@@ -424,7 +406,7 @@ export class LandingPage {
                                     <span class="lp-brand-sub">Psicología</span>
                                 </span>
                             </a>
-                            <p>Centro de Ciencias Comportamentales. Atención presencial y online.</p>
+                            <p>${this._footer('description')}</p>
                         </div>
 
                         <nav class="lp-footer-col" aria-label="Navegación del pie">
@@ -441,8 +423,8 @@ export class LandingPage {
                         <div class="lp-footer-col">
                             <h4>Contacto</h4>
                             <div class="lp-footer-contact">
-                                <span><i class="fa-solid fa-envelope"></i> contacto@contextopsicologia.com</span>
-                                <span><i class="fa-solid fa-phone"></i> +502 1234 5678</span>
+                                <span><i class="fa-solid fa-envelope"></i> ${this._footer('contact_email')}</span>
+                                <span><i class="fa-solid fa-phone"></i> ${this._footer('contact_phone')}</span>
                             </div>
                         </div>
                     </div>
@@ -455,6 +437,119 @@ export class LandingPage {
             </footer>
 
         </div>`;
+    }
+
+    /* ---------------- Helpers de contenido dinámico (CMS) ---------------- */
+
+    // Valor textual de una sección/clave. Si no existe → usa '…'.
+    _t(section, key) {
+        const val = this._cms && this._cms[section] && this._cms[section][key];
+        return (val === undefined || val === null) ? '…' : val;
+    }
+
+    // Ayuda tipada para arrays del CMS.
+    _list(section, key = 'items') {
+        const arr = this._cms && this._cms[section] && this._cms[section][key];
+        return Array.isArray(arr) ? arr : [];
+    }
+
+    _statsHtml() {
+        return this._list('hero', 'stats').map(s =>
+            `<div class="lp-stat"><div class="lp-stat-num">${this._esc(s.num)}</div><div class="lp-stat-label">${this._esc(s.label)}</div></div>`
+        ).join('');
+    }
+
+    _trustItems() {
+        return this._list('trust').map(t => `<span>${this._esc(t)}</span>`).join('');
+    }
+
+    _servicesHtml() {
+        return this._list('servicios').map(s => this._serviceCard(s)).join('');
+    }
+
+    _pillarsHtml() {
+        return this._list('especialidades').map(p => this._pillar(p.title, p.desc, p.color)).join('');
+    }
+
+    _aboutValuesHtml() {
+        return this._list('nosotros', 'values').map(v =>
+            `<div class="lp-value"><i class="fa-solid ${this._esc(v.icon)}"></i> ${this._esc(v.label)}</div>`
+        ).join('');
+    }
+
+    _processStepsHtml() {
+        return this._list('proceso').map(p => this._methodStep(p.num, p.title, p.desc)).join('');
+    }
+
+    _teamHtml() {
+        return this._list('equipo').map(m => this._teamCard(m)).join('');
+    }
+
+    _testimonialsHtml() {
+        return this._list('testimonios').map(t => this._testimonial(t)).join('');
+    }
+
+    _faqHtml() {
+        const items = this._list('faq');
+        return items.map((f, i) => this._faq(i === 0, f.q, f.a)).join('');
+    }
+
+    _footer(key) {
+        const val = this._cms && this._cms.footer && this._cms.footer[key];
+        return val || '';
+    }
+
+    // Número de WhatsApp del consultorio (desde site_settings) con fallback.
+    _whatsAppNumber() {
+        if (this._settings && this._settings.whatsapp_number) {
+            return String(this._settings.whatsapp_number).replace(/\D/g, '');
+        }
+        return '50212345678';
+    }
+
+    _whatsAppUrl() {
+        return buildWhatsAppUrl(this._whatsAppNumber(), 'Hola CONTEXTO, me gustaría agendar una consulta.');
+    }
+
+    _confirmHoursHtml() {
+        const h = this._settings && this._settings.booking_confirm_hours;
+        return h ? String(h) : '24';
+    }
+
+    // Resumen de horario: "Lun a Vie · 8:00–20:00" desde work_schedule.
+    _scheduleSummaryHtml() {
+        const ws = this._settings && this._settings.work_schedule;
+        if (!ws) return 'Lun a Vie · 8:00–20:00';
+        let schedule = ws;
+        if (typeof schedule === 'string') {
+            try { schedule = JSON.parse(schedule); } catch { return 'Horarios flexibles'; }
+        }
+        const weekdays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
+        const weekdayTimes = weekdays
+            .map(d => schedule[d])
+            .filter(v => v && v !== 'cerrado');
+        const first = weekdayTimes[0];
+        if (first && weekdayTimes.every(t => t === first)) {
+            return `Lun a Vie · ${first.replace('-', '–')}`;
+        }
+        return 'Lun a Vie · 8:00–20:00';
+    }
+
+    // Opciones del select de servicios en el formulario de reserva.
+    _serviceOptionsHtml() {
+        const services = this._list('servicios');
+        if (!services.length) {
+            return '<option value="Terapia Individual">Terapia Individual</option>';
+        }
+        return services.map(s =>
+            `<option value="${this._esc(s.title)}">${this._esc(s.title)}</option>`
+        ).join('');
+    }
+
+    _esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str ?? '';
+        return d.innerHTML;
     }
 
     /* ---------------- SVG / fragmentos reutilizables ---------------- */
@@ -529,7 +624,7 @@ export class LandingPage {
         </svg>`;
     }
 
-    _serviceCard(title, desc, path, iconKey) {
+    _serviceCard(item) {
         const icons = {
             user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
             heart: '<path d="M20.8 8.6c0 5-8.8 10-8.8 10s-8.8-5-8.8-10a4.8 4.8 0 0 1 8.8-2.7A4.8 4.8 0 0 1 20.8 8.6Z"/>',
@@ -538,12 +633,12 @@ export class LandingPage {
             clipboard: '<path d="M9 12l2 2 4-4"/><path d="M7 3.5h7l4 4V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2Z"/>',
             video: '<rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M8 21h8M12 17v4"/>'
         };
-        const icon = icons[iconKey] || icons.user;
+        const icon = icons[item.icon] || icons.user;
         return `
         <div class="lp-service-card lp-reveal">
             <div class="lp-service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></div>
-            <h3>${title}</h3>
-            <p>${desc}</p>
+            <h3>${this._esc(item.title)}</h3>
+            <p>${this._esc(item.desc)}</p>
             <a href="#agendar" class="lp-service-link" data-scroll="agendar">Agendar sesión <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></a>
         </div>`;
     }
@@ -552,8 +647,8 @@ export class LandingPage {
         return `
         <div class="lp-pillar-card lp-reveal">
             <div class="lp-pillar-dot" style="background:${color};"></div>
-            <h3>${title}</h3>
-            <p>${desc}</p>
+            <h3>${this._esc(title)}</h3>
+            <p>${this._esc(desc)}</p>
         </div>`;
     }
 
@@ -561,31 +656,31 @@ export class LandingPage {
         return `
         <div class="lp-method-step lp-reveal">
             <div class="lp-method-num">${num}</div>
-            <h3>${title}</h3>
-            <p>${desc}</p>
+            <h3>${this._esc(title)}</h3>
+            <p>${this._esc(desc)}</p>
         </div>`;
     }
 
-    _teamCard(color, initials, name, role, desc) {
+    _teamCard(item) {
         return `
         <div class="lp-team-card lp-reveal">
-            <div class="lp-team-avatar" style="background:linear-gradient(135deg, ${color}, ${color}cc);">${initials}</div>
-            <h3>${name}</h3>
-            <div class="lp-team-role">${role}</div>
-            <p class="lp-team-desc">${desc}</p>
+            <div class="lp-team-avatar" style="background:linear-gradient(135deg, ${item.color}, ${item.color}cc);">${item.initials}</div>
+            <h3>${this._esc(item.name)}</h3>
+            <div class="lp-team-role">${this._esc(item.role)}</div>
+            <p class="lp-team-desc">${this._esc(item.desc)}</p>
         </div>`;
     }
 
-    _testimonial(color, initials, name, meta, text) {
+    _testimonial(item) {
         return `
         <div class="lp-testimonial-card lp-reveal">
             <span class="lp-testimonial-quote-mark">“</span>
-            <p>${text}</p>
+            <p>${this._esc(item.text)}</p>
             <div class="lp-testimonial-author">
-                <div class="lp-testimonial-avatar" style="background:linear-gradient(135deg, ${color}, ${color}cc);">${initials}</div>
+                <div class="lp-testimonial-avatar" style="background:linear-gradient(135deg, ${item.color}, ${item.color}cc);">${item.initials}</div>
                 <div>
-                    <div class="lp-t-name">${name}</div>
-                    <div class="lp-t-meta">${meta}</div>
+                    <div class="lp-t-name">${this._esc(item.name)}</div>
+                    <div class="lp-t-meta">${this._esc(item.meta)}</div>
                 </div>
             </div>
         </div>`;
@@ -595,11 +690,11 @@ export class LandingPage {
         return `
         <div class="lp-faq-item ${open ? 'is-open' : ''}">
             <button class="lp-faq-question" type="button" aria-expanded="${open ? 'true' : 'false'}">
-                ${question}
+                ${this._esc(question)}
                 <span class="lp-faq-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
             </button>
             <div class="lp-faq-answer">
-                <div class="lp-faq-answer-inner">${answer}</div>
+                <div class="lp-faq-answer-inner">${this._esc(answer)}</div>
             </div>
         </div>`;
     }

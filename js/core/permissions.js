@@ -37,6 +37,8 @@ export const Permissions = {
     SETTINGS_VIEW: 'settings:view',
     SETTINGS_EDIT: 'settings:edit',
 
+    CMS_MANAGE: 'cms:manage',
+
     ADMIN_USERS: 'admin:users',
     ADMIN_ROLES: 'admin:roles',
     ADMIN_AUDIT: 'admin:audit',
@@ -76,6 +78,8 @@ export const PermissionLabels = {
 
     [Permissions.SETTINGS_VIEW]: 'Ver configuración',
     [Permissions.SETTINGS_EDIT]: 'Editar configuración',
+
+    [Permissions.CMS_MANAGE]: 'Gestionar contenido del sitio',
 
     [Permissions.ADMIN_USERS]: 'Gestionar usuarios',
     [Permissions.ADMIN_ROLES]: 'Gestionar roles',
