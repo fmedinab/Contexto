@@ -244,6 +244,19 @@ Estructura lista para crear páginas reales:
 
 ---
 
+## 11b. Reserva de citas desde la landing (booking_requests)
+
+Los visitantes (sin sesión) agendan desde la página principal:
+
+- **Landing** (`js/pages/landing.js` + `css/landing.css`): sección `#agendar` reemplaza al antiguo "Contacto". Formulario con calendario grande inline (días pasados bloqueados), servicio, modalidad y horario preferido; persiste vía `bookingRequestsService.create()` (INSERT permitido a `anon`/`authenticated` por RLS). CTAs del hero, header y tarjetas de servicio apuntan a `#agendar`.
+- **Disponibilidad real** (`database/migrations/010_booking_availability.sql`): función `get_available_slots(p_date)` SECURITY DEFINER que un visitante anónimo invoca sin poder leer datos. Devuelve solo los horarios libres = horario de trabajo (`site_settings.work_schedule`) − citas no canceladas − solicitudes activas − slots ya pasados hoy. La landing solo muestra esos horarios; si no hay ninguno: "No hay horarios disponibles para esta fecha. Prueba con otro día."
+- **Servicio** `js/services/bookingRequestsService.js`: `create` (público), `getAll`, `updateStatus`, `getAvailableTimes` (RPC) y `convertToAppointment` (valida disponibilidad del horario, localiza o crea el paciente, crea la cita CONFIRMADA y marca la solicitud AGENDADA) + helpers `buildWhatsAppUrl`/`buildBookingReminderUrl` (número del consultorio en `WHATSAPP_NUMBER`).
+- **Dashboard** (`js/pages/dashboard.js`): card "Solicitudes de cita" con pendientes ordenadas por fecha; cada fila tiene botón **WhatsApp 1-click** (recordatorio pre-escrito) y botón **Convertir en cita**. Alerta una vez al entrar si hay solicitudes con fecha dentro de 3 días.
+- **Tabla** `public.booking_requests` (migración `009_booking_requests.sql`): RLS INSERT `anon`+`authenticated`, SELECT/UPDATE solo admin/psychologist/assistant, DELETE solo admin. Estados: `PENDIENTE → CONTACTADA → AGENDADA | CANCELADA`.
+- La automatización programada (cron/edge function) de recordatorios vence a la estática hosting; hoy el disparo es manual desde el dashboard.
+
+---
+
 ## 12. Producción
 
 - Variables de entorno en `.env` (no commitear a repos públicos).

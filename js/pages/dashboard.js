@@ -13,6 +13,7 @@ import { evaluationService, INSTRUMENTS, STATUS_LABELS as EVAL_STATUS_LABELS } f
 import { tasksService } from '../services/tasksService.js';
 import { notesService } from '../services/notesService.js';
 import { reportsService } from '../services/reportsService.js';
+import { bookingRequestsService, buildBookingReminderUrl } from '../services/bookingRequestsService.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -27,6 +28,7 @@ const ICONS = {
     search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
     chevRight: '<path d="M9 6l6 6-6 6"/>',
+    wa: '<path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/><path d="M9.2 9.3c-.3 2.8 2.7 5.8 5.5 5.5l.4-2-1.6-.9-1 .8a4.3 4.3 0 0 1-1.9-1.9l.8-1-.9-1.6-2 .4z" opacity="0.9"/>',
     plus: '<path d="M12 5v14M5 12h14"/>'
 };
 
@@ -71,6 +73,7 @@ export class DashboardPage {
         this.panelTaskTab = 'PENDIENTE';
         this._currentView = 'dashboard';
         this._settingsPage = null;
+        this._bookingReminderShown = false;
     }
 
     async render() {
@@ -222,6 +225,13 @@ export class DashboardPage {
                             </div>
                             <div class="appt-list" id="dashAppointments"></div>
                         </section>
+                        <section class="card" id="dashBookingsPanel">
+                            <div class="card-title">
+                                Solicitudes de cita
+                                <span class="booking-count-badge" id="dashBookingCount"></span>
+                            </div>
+                            <div class="booking-list" id="dashBookingList"></div>
+                        </section>
                         <section class="card emotion-card">
                             <div style="flex:1;min-width:0;">
                                 <div class="card-title" style="margin-bottom:8px;">Estado emocional del consultorio</div>
@@ -286,6 +296,7 @@ export class DashboardPage {
         await this._renderEvaluationsPanel();
         await this._renderTasksPanel();
         await this._renderNotesPanel();
+        await this._renderBookings();
 
         if (this._unsubscribers) {
             this._unsubscribers.forEach(unsub => { try { unsub(); } catch (e) { /* noop */ } });
@@ -310,6 +321,9 @@ export class DashboardPage {
             notesService.onChange(async () => {
                 await this._renderNotesPanel();
                 if (this.currentModal === 'notes') await this._renderModalNotesList();
+            }),
+            bookingRequestsService.onChange(() => {
+                this._renderBookings();
             })
         ];
         this._initParticles();
@@ -319,6 +333,7 @@ export class DashboardPage {
 
     destroy() {
         if (this.clockInterval) clearInterval(this.clockInterval);
+        this._bookingReminderShown = false;
         if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
         if (this._orientationHandler) window.removeEventListener('orientationchange', this._orientationHandler);
         if (this._docClickHandler) document.removeEventListener('click', this._docClickHandler);
@@ -516,6 +531,110 @@ export class DashboardPage {
             `).join('');
         } catch {
             list.innerHTML = `<div class="empty-state">Error al cargar citas.</div>`;
+        }
+    }
+
+    /* ===== SOLICITUDES DE CITA (landing) ===== */
+
+    _formatBookingDate(dateStr) {
+        if (!dateStr) return 'Fecha por definir';
+        const d = new Date(dateStr + 'T00:00');
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
+    }
+
+    async _renderBookings() {
+        const list = $('#dashBookingList');
+        if (!list) return;
+        const countEl = $('#dashBookingCount');
+        try {
+            const { data: pending } = await bookingRequestsService.getAll({ status: 'PENDIENTE' });
+            const requests = (pending || []).sort((a, b) => {
+                const da = a.preferredDate ? new Date(a.preferredDate + 'T00:00').getTime() : 0;
+                const db = b.preferredDate ? new Date(b.preferredDate + 'T00:00').getTime() : 0;
+                return da - db;
+            });
+
+            if (countEl) countEl.textContent = requests.length ? String(requests.length) : '';
+            if (!requests.length) {
+                list.innerHTML = `<div class="empty-state">No hay solicitudes pendientes.</div>`;
+                this._maybeRemindNearBookings(requests);
+                return;
+            }
+
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const nearWindow = new Date(today); nearWindow.setDate(today.getDate() + 3);
+
+            list.innerHTML = requests.slice(0, 5).map(r => {
+                const d = r.preferredDate ? new Date(r.preferredDate + 'T00:00') : null;
+                const isNear = d && d >= today && d <= nearWindow;
+                return `
+                    <div class="booking-row">
+                        <div class="booking-main">
+                            <div class="booking-name">
+                                ${escapeHtml(r.fullName)}
+                                ${isNear ? `<span class="tag booking-near">Próxima</span>` : ''}
+                            </div>
+                            <div class="booking-meta">${escapeHtml(r.serviceType)}${r.modality === 'Online' ? ' · Online' : ''} · ${this._formatBookingDate(r.preferredDate)}${r.preferredTime ? ' · ' + escapeHtml(r.preferredTime) : ''}</div>
+                        </div>
+                        <div class="booking-actions">
+                            <a class="booking-wa" href="${buildBookingReminderUrl(r)}" target="_blank" rel="noopener" title="Recordar por WhatsApp" aria-label="Recordar por WhatsApp">
+                                ${icon('wa', 14)}
+                            </a>
+                            <button class="booking-convert" data-booking-action="convert" data-id="${r.id}" title="Convertir en cita" aria-label="Convertir en cita">
+                                ${icon('calendar', 14)}
+                            </button>
+                        </div>
+                    </div>`;
+            }).join('');
+
+            this._maybeRemindNearBookings(requests);
+        } catch {
+            list.innerHTML = `<div class="empty-state">Error al cargar solicitudes.</div>`;
+        }
+    }
+
+    // Avisa una sola vez al entrar si hay solicitudes con fecha cercana.
+    _maybeRemindNearBookings(requests) {
+        if (this._bookingReminderShown) return;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const horizon = new Date(today); horizon.setDate(today.getDate() + 3);
+        const near = (requests || []).filter(r => {
+            if (!r.preferredDate) return false;
+            const d = new Date(r.preferredDate + 'T00:00');
+            return d >= today && d <= horizon;
+        });
+        if (!near.length) return;
+        this._bookingReminderShown = true;
+        this._showToast(`Tienes ${near.length} solicitud(es) con fecha en los próximos días. Confírmalas por WhatsApp o conviértelas en cita.`);
+    }
+
+    async _handleBookingAction(btn) {
+        const id = btn && btn.dataset && btn.dataset.id;
+        if (!id) return;
+        btn.classList.add('is-busy');
+        try {
+            const confirmed = window.app?.confirm?.show
+                ? await window.app.confirm.show({
+                    title: 'Convertir en cita',
+                    message: 'Se creará una cita confirmada (el paciente se registra automáticamente si no existe) y la solicitud quedará marcada como Agendada.',
+                    confirmLabel: 'Convertir',
+                    cancelLabel: 'Cancelar'
+                })
+                : confirm('¿Convertir esta solicitud en una cita confirmada?');
+            if (!confirmed) return;
+
+            const { data, error } = await bookingRequestsService.convertToAppointment(id);
+            if (error) {
+                this._showToast('No se pudo agendar: ' + (error.message || 'Error desconocido'));
+                return;
+            }
+            this._showToast('Cita creada para ' + (data.request.fullName || 'el solicitante') + '.');
+            await Promise.all([this._renderBookings(), this._renderAppointments(), this._renderPatients()]);
+        } catch (err) {
+            this._showToast('Error al agendar: ' + (err.message || ''));
+        } finally {
+            btn.classList.remove('is-busy');
         }
     }
 
@@ -863,6 +982,14 @@ export class DashboardPage {
                     const note = await notesService.getById(noteId);
                     if (note) this._showNoteDetail(note);
                 } catch { this._showToast('Error al cargar nota'); }
+                return;
+            }
+
+            // Booking request actions (convertir solicitud en cita)
+            const bookingBtn = e.target.closest('[data-booking-action]');
+            if (bookingBtn) {
+                if (bookingBtn.classList.contains('is-busy')) return;
+                this._handleBookingAction(bookingBtn);
                 return;
             }
 

@@ -772,23 +772,8 @@
 .lp-footer-bottom a:hover { color: #fff; }
 
 /* ---------------------------------------------------------
-   Contacto (formulario)
+   Formularios (base compartida)
    --------------------------------------------------------- */
-.lp-contact-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-    align-items: start;
-}
-.lp-contact-form {
-    background: var(--lp-surface);
-    border: 1px solid var(--lp-border);
-    border-radius: var(--lp-radius-md);
-    padding: 28px 26px;
-    box-shadow: var(--lp-shadow-card);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
 .lp-form-group { margin-bottom: 16px; }
 .lp-form-label { display: block; font-size: 13px; color: var(--lp-muted); margin-bottom: 7px; }
 .lp-input, .lp-textarea {
@@ -806,26 +791,160 @@
     border-color: var(--lp-primary);
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
 }
-.lp-textarea { resize: vertical; min-height: 110px; }
+.lp-textarea { resize: vertical; min-height: 100px; }
+.lp-input--select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8ba3' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 38px;
+    cursor: pointer;
+}
+.lp-input--select option { background: var(--lp-surface-solid); color: var(--lp-text); }
 .lp-form-note { font-size: 12px; color: var(--lp-faint); margin-top: 6px; }
 
-/* Tarjeta de información de contacto */
-.lp-contact-info {
+/* ---------------------------------------------------------
+   Agenda tu cita (booking)
+   --------------------------------------------------------- */
+.lp-booking-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+/* Tarjeta de información y beneficios */
+.lp-booking-info {
     background: var(--lp-surface);
     border: 1px solid var(--lp-border);
     border-radius: var(--lp-radius-md);
-    padding: 30px 28px;
+    padding: 32px 30px;
     box-shadow: var(--lp-shadow-card);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
-.lp-contact-info h4 { font-family: var(--lp-font-display); font-size: 20px; color: var(--lp-heading); margin: 0 0 12px; }
-.lp-contact-info p { font-size: 14px; line-height: 1.7; color: var(--lp-muted); margin: 0 0 22px; }
-.lp-contact-list { display: flex; flex-direction: column; gap: 14px; margin: 0 0 22px; }
-.lp-contact-list li { display: inline-flex; align-items: center; gap: 12px; font-size: 14px; color: var(--lp-text); }
-.lp-contact-list li i { color: var(--lp-cyan); width: 18px; text-align: center; }
-.lp-contact-list a { color: var(--lp-text); transition: color 0.2s ease; }
-.lp-contact-list a:hover { color: var(--lp-cyan); }
+.lp-booking-info h4 { font-family: var(--lp-font-display); font-size: 20px; color: var(--lp-heading); margin: 0 0 20px; }
+
+.lp-booking-perks { display: flex; flex-direction: column; gap: 18px; margin-bottom: 26px; }
+.lp-booking-perk { display: flex; align-items: flex-start; gap: 14px; }
+.lp-booking-perk-ico {
+    width: 42px; height: 42px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.14), rgba(99, 102, 241, 0.14));
+    color: var(--lp-cyan);
+    font-size: 15px;
+}
+.lp-booking-perk strong { display: block; font-size: 14px; font-weight: 600; color: var(--lp-heading); margin-bottom: 3px; }
+.lp-booking-perk small { font-size: 13px; line-height: 1.55; color: var(--lp-muted); display: block; }
+
+.lp-booking-banner {
+    background: var(--lp-island);
+    border: 1px solid rgba(139, 92, 246, 0.28);
+    border-radius: var(--lp-radius-md);
+    padding: 22px 24px;
+    margin-bottom: 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.lp-booking-banner p { margin: 0; font-size: 14px; line-height: 1.6; color: rgba(244, 244, 251, 0.85); }
+.lp-btn--wa {
+    align-self: flex-start;
+    background: #25d366;
+    color: #06250f;
+    box-shadow: 0 8px 24px rgba(37, 211, 102, 0.28);
+}
+.lp-btn--wa:hover { transform: translateY(-2px); background: #1fb958; box-shadow: 0 14px 34px rgba(37, 211, 102, 0.36); }
+
+.lp-booking-channels { display: flex; flex-direction: column; gap: 13px; margin: 0; list-style: none; padding: 0; }
+.lp-booking-channels li { display: inline-flex; align-items: center; gap: 12px; font-size: 13.5px; color: var(--lp-text); }
+.lp-booking-channels i { color: var(--lp-cyan); width: 16px; text-align: center; flex-shrink: 0; }
+
+/* Formulario de reserva */
+.lp-booking-form {
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-border);
+    border-radius: var(--lp-radius-md);
+    padding: 28px 26px;
+    box-shadow: var(--lp-shadow-card);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.lp-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.lp-form-row .lp-form-group { margin-bottom: 16px; }
+
+/* Calendario de fechas */
+.lp-calendar {
+    border: 1px solid var(--lp-border-strong);
+    border-radius: var(--lp-radius-sm);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 12px;
+}
+.lp-cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.lp-cal-title {
+    font-family: var(--lp-font-label);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--lp-heading);
+    text-transform: capitalize;
+    flex: 1;
+    text-align: center;
+}
+.lp-cal-nav {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--lp-border-strong);
+    background: transparent;
+    color: var(--lp-text);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.lp-cal-nav:hover:not(:disabled) { background: rgba(255, 255, 255, 0.06); border-color: var(--lp-primary); color: var(--lp-primary); }
+.lp-cal-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+.lp-cal-nav svg { width: 15px; height: 15px; }
+.lp-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.lp-cal-weekday { text-align: center; font-size: 11px; font-weight: 600; color: var(--lp-faint); padding: 4px 0; }
+.lp-cal-day {
+    position: relative;
+    aspect-ratio: 1;
+    min-height: 34px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--lp-text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.lp-cal-day:hover:not(:disabled) { background: var(--lp-surface); border-color: var(--lp-border-strong); }
+.lp-cal-day.is-disabled { color: var(--lp-faint); cursor: not-allowed; opacity: 0.5; }
+.lp-cal-day.is-today { border-color: rgba(6, 182, 212, 0.65); }
+.lp-cal-day.is-selected {
+    background: linear-gradient(135deg, var(--lp-primary), var(--lp-purple));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+.lp-cal-hint { font-size: 11.5px; color: var(--lp-faint); margin: 8px 0 0; line-height: 1.5; }
+.lp-cal-hint.is-empty { color: var(--warning, #f59e0b); }
+.lp-cal-hint.is-ok { color: var(--success, #10b981); }
+.lp-cal-hint.is-error { color: var(--warning, #f59e0b); }
+.lp-input:disabled, .lp-textarea:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.lp-booking-status {
+    min-height: 18px;
+    margin: 10px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+.lp-booking-status.is-success { color: var(--success); }
+.lp-booking-status.is-error { color: var(--warning); }
+.lp-booking-form button[type="submit"]:disabled { opacity: 0.6; cursor: wait; transform: none; }
 
 /* ---------------------------------------------------------
    Reveal on scroll
@@ -904,7 +1023,7 @@
     .lp-about-grid { grid-template-columns: 1fr; }
     .lp-method-row { grid-template-columns: 1fr 1fr; row-gap: 40px; }
     .lp-method-row::before { display: none; }
-    .lp-contact-grid { grid-template-columns: 1fr; }
+    .lp-booking-grid { grid-template-columns: 1fr; }
     .lp-cta-banner { flex-direction: column; align-items: flex-start; text-align: left; }
     .lp-footer-top { grid-template-columns: 1fr; }
 }
@@ -913,6 +1032,7 @@
     .lp-container { padding: 0 20px; }
     .lp-section { padding: 76px 0; }
     .lp-hero { padding: 150px 0 60px; }
+    .lp-form-row { grid-template-columns: 1fr; gap: 0; }
     .lp-hero-stats { grid-template-columns: repeat(2, 1fr); row-gap: 20px; }
     .lp-services-grid { grid-template-columns: 1fr; }
     .lp-pillars-grid { grid-template-columns: 1fr; }

@@ -3,6 +3,8 @@
 // Reutiliza las variables globales de tema (css/themes/variables.css) para
 // mantener coherencia visual con el Dashboard. No depende de frameworks.
 
+import { bookingRequestsService, buildWhatsAppUrl } from '../services/bookingRequestsService.js';
+
 export class LandingPage {
     constructor() {
         this.container = document.getElementById('pageBody');
@@ -25,7 +27,8 @@ export class LandingPage {
         this._bindFaq();
         this._bindReveal();
         this._bindActiveNav();
-        this._bindContactForm();
+        this._bindCalendar();
+        this._bindBookingForm();
     }
 
     destroy() {
@@ -68,7 +71,7 @@ export class LandingPage {
                         <a href="#servicios" data-scroll="servicios">Servicios</a>
                         <a href="#especialidades" data-scroll="especialidades">Especialidades</a>
                         <a href="#nosotros" data-scroll="nosotros">Nosotros</a>
-                        <a href="#contacto" data-scroll="contacto">Contacto</a>
+                        <a href="#agendar" data-scroll="agendar">Agendar</a>
                     </nav>
 
                     <div class="lp-header-actions">
@@ -77,7 +80,7 @@ export class LandingPage {
                             <svg class="lp-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
                             <svg class="lp-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>
                         </button>
-                        <a href="/login" class="lp-btn lp-btn--primary" data-link>Agendar cita</a>
+                        <a href="#agendar" class="lp-btn lp-btn--primary" data-scroll="agendar">Agendar cita</a>
                         <button class="lp-icon-toggle lp-nav-toggle" id="lpNavToggle" type="button"
                                 aria-label="Abrir menú" aria-expanded="false" aria-controls="lpMobileNav">
                             <span class="lp-hb"></span><span class="lp-hb"></span><span class="lp-hb"></span>
@@ -91,8 +94,8 @@ export class LandingPage {
                 <a href="#servicios" data-scroll="servicios"><span class="lp-mnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M7 3.5h7l4 4V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5.5a2 2 0 0 1 2-2Z"/></svg></span>Servicios</a>
                 <a href="#especialidades" data-scroll="especialidades"><span class="lp-mnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/></svg></span>Especialidades</a>
                 <a href="#nosotros" data-scroll="nosotros"><span class="lp-mnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></span>Nosotros</a>
-                <a href="#contacto" data-scroll="contacto"><span class="lp-mnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.8 2Z"/></svg></span>Contacto</a>
-                <a href="/login" class="lp-btn lp-btn--primary" data-link>Agendar cita</a>
+                <a href="#agendar" data-scroll="agendar"><span class="lp-mnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg></span>Agendar</a>
+                <a href="#agendar" class="lp-btn lp-btn--primary" data-scroll="agendar">Agendar cita</a>
             </nav>
 
             <main id="inicio">
@@ -105,7 +108,7 @@ export class LandingPage {
                             <h1>Entender tu <em>contexto</em><br>es el primer paso<br>para cambiar tu historia.</h1>
                             <p class="lp-hero-desc">En CONTEXTO Psicología integramos mente, conducta, emoción y entorno en un mismo proceso terapéutico, con un enfoque clínico basado en evidencia y una escucha genuinamente humana.</p>
                             <div class="lp-hero-actions">
-                                <a href="/login" class="lp-btn lp-btn--primary" data-link>
+                                <a href="#agendar" class="lp-btn lp-btn--primary" data-scroll="agendar">
                                     Agendar primera consulta
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                                 </a>
@@ -274,7 +277,7 @@ export class LandingPage {
                 </section>
 
                 <!-- ============ CTA FINAL ============ -->
-                <section class="lp-section" id="agendar">
+                <section class="lp-section">
                     <div class="lp-container">
                         <div class="lp-cta-banner lp-reveal">
                             <div>
@@ -282,58 +285,132 @@ export class LandingPage {
                                 <p>Agenda tu primera consulta hoy y empieza a entender tu contexto.</p>
                             </div>
                             <div class="lp-cta-actions">
-                                <a href="/login" class="lp-btn lp-btn--light" data-link>Agendar cita</a>
-                                <a href="#contacto" class="lp-btn lp-btn--ghost" data-scroll="contacto" style="border-color:rgba(244,244,251,0.4); color:#f4f4fb;">Hablar con nosotros</a>
+                                <a href="#agendar" class="lp-btn lp-btn--light" data-scroll="agendar">Agendar cita</a>
+                                <a href="#agendar" class="lp-btn lp-btn--ghost" data-scroll="agendar" style="border-color:rgba(244,244,251,0.4); color:#f4f4fb;">Reservar mi sesión</a>
                             </div>
                         </div>
                     </div>
                 </section>
 
-            </main>
-
-            <!-- ============ CONTACTO ============ -->
-            <section class="lp-section lp-section--alt" id="contacto">
-                <div class="lp-container">
-                    <div class="lp-section-head is-center lp-reveal">
-                        <span class="lp-eyebrow" style="justify-content:center;">Contacto</span>
-                        <h2 class="lp-section-title">Hablemos de tu<br>bienestar y contexto.</h2>
-                        <p class="lp-section-desc" style="margin-left:auto;margin-right:auto;">Escríbenos o agendamos tu primera consulta. Estamos para acompañarte en cada paso del proceso.</p>
-                    </div>
-                    <div class="lp-contact-grid">
-                        <div class="lp-contact-info lp-reveal">
-                            <h4>CONTEXTO Psicología</h4>
-                            <p>Centro de Ciencias Comportamentales. Atención presencial y online para acompañarte donde estés.</p>
-                            <ul class="lp-contact-list">
-                                <li><i class="fa-solid fa-envelope"></i> <a href="mailto:contacto@contextopsicologia.com">contacto@contextopsicologia.com</a></li>
-                                <li><i class="fa-solid fa-phone"></i> <a href="tel:+50212345678">+502 1234 5678</a></li>
-                                <li><i class="fa-solid fa-clock"></i> Lun a Vie · 8:00 - 20:00</li>
-                                <li><i class="fa-solid fa-location-dot"></i> Atención presencial y online</li>
-                            </ul>
-                            <div class="lp-footer-social">
-                                <a href="#" aria-label="Instagram" data-noop><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>
-                                <a href="#" aria-label="Facebook" data-noop><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 9h3V5h-3a4 4 0 0 0-4 4v2H7v4h3v7h4v-7h3l1-4h-4v-2a1 1 0 0 1 1-1Z"/></svg></a>
-                                <a href="#" aria-label="WhatsApp" data-noop><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/></svg></a>
-                            </div>
+                <!-- ============ AGENDA TU CITA ============ -->
+                <section class="lp-section lp-section--alt" id="agendar">
+                    <div class="lp-container">
+                        <div class="lp-section-head is-center lp-reveal">
+                            <span class="lp-eyebrow" style="justify-content:center;">Agenda tu cita</span>
+                            <h2 class="lp-section-title">Reserva tu sesión<br>en menos de un minuto.</h2>
+                            <p class="lp-section-desc" style="margin-left:auto;margin-right:auto;">Elige el servicio, la modalidad y tu horario preferido. Te confirmamos en menos de 24 horas por WhatsApp.</p>
                         </div>
-                        <form class="lp-contact-form lp-reveal" id="lpContactForm" novalidate>
-                            <div class="lp-form-group">
-                                <label class="lp-form-label" for="lpName">Nombre <span style="color:var(--lp-cyan);">*</span></label>
-                                <input class="lp-input" type="text" id="lpName" name="name" placeholder="Tu nombre" required autocomplete="name">
+
+                        <div class="lp-booking-grid">
+                            <div class="lp-booking-info lp-reveal">
+                                <h4>Si reservas con nosotros</h4>
+                                <div class="lp-booking-perks">
+                                    <div class="lp-booking-perk">
+                                        <span class="lp-booking-perk-ico"><i class="fa-solid fa-bolt"></i></span>
+                                        <div><strong>Confirmación en menos de 24h</strong><small>Recibes respuesta por WhatsApp o correo.</small></div>
+                                    </div>
+                                    <div class="lp-booking-perk">
+                                        <span class="lp-booking-perk-ico"><i class="fa-solid fa-calendar-check"></i></span>
+                                        <div><strong>Reprograma gratis</strong><small>Si surge un imprevisto, movemos tu cita sin costo.</small></div>
+                                    </div>
+                                    <div class="lp-booking-perk">
+                                        <span class="lp-booking-perk-ico"><i class="fa-solid fa-shield-halved"></i></span>
+                                        <div><strong>Confidencialidad total</strong><small>Tus datos y tu proceso se manejan con estricta privacidad.</small></div>
+                                    </div>
+                                    <div class="lp-booking-perk">
+                                        <span class="lp-booking-perk-ico"><i class="fa-solid fa-bell"></i></span>
+                                        <div><strong>Recordatorio antes de tu cita</strong><small>Te avisamos por WhatsApp cuando se acerca el día.</small></div>
+                                    </div>
+                                </div>
+
+                                <div class="lp-booking-banner">
+                                    <p>¿Prefieres resolver tus dudas directo? Escríbenos por WhatsApp</p>
+                                    <a class="lp-btn lp-btn--wa" href="${buildWhatsAppUrl('', 'Hola CONTEXTO, me gustaría agendar una consulta.')}" target="_blank" rel="noopener">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/><path d="M9 10c0 3 2 5 5 5l1-1.5-1.5-1-1 .5a4.5 4.5 0 0 1-2-2L11 10 10 8.5 8.5 9.5 9 10z" opacity="0.9"/></svg>
+                                        Escribir por WhatsApp
+                                    </a>
+                                </div>
+
+                                <ul class="lp-booking-channels">
+                                    <li><i class="fa-solid fa-envelope"></i> contacto@contextopsicologia.com</li>
+                                    <li><i class="fa-solid fa-phone"></i> +502 1234 5678 · Lun a Vie · 8:00–20:00</li>
+                                    <li><i class="fa-solid fa-location-dot"></i> Atención presencial y online</li>
+                                </ul>
                             </div>
-                            <div class="lp-form-group">
-                                <label class="lp-form-label" for="lpEmail">Correo electrónico <span style="color:var(--lp-cyan);">*</span></label>
-                                <input class="lp-input" type="email" id="lpEmail" name="email" placeholder="tu@email.com" required autocomplete="email">
-                            </div>
-                            <div class="lp-form-group">
-                                <label class="lp-form-label" for="lpMsg">Mensaje <span style="color:var(--lp-cyan);">*</span></label>
-                                <textarea class="lp-textarea" id="lpMsg" name="message" placeholder="¿En qué podemos acompañarte?" required></textarea>
-                            </div>
-                            <button type="submit" class="lp-btn lp-btn--primary" style="width:100%;">Enviar mensaje</button>
-                            <p class="lp-form-note">Demo: este formulario no envía datos a un servidor.</p>
-                        </form>
+
+                            <form class="lp-booking-form lp-reveal" id="lpBookingForm" novalidate>
+                                <div class="lp-form-row">
+                                    <div class="lp-form-group">
+                                        <label class="lp-form-label" for="bkName">Nombre completo <span style="color:var(--lp-cyan);">*</span></label>
+                                        <input class="lp-input" type="text" id="bkName" name="fullName" placeholder="Tu nombre" required autocomplete="name">
+                                    </div>
+                                    <div class="lp-form-group">
+                                        <label class="lp-form-label" for="bkPhone">WhatsApp / teléfono <span style="color:var(--lp-cyan);">*</span></label>
+                                        <input class="lp-input" type="tel" id="bkPhone" name="phone" placeholder="+502 …" required autocomplete="tel">
+                                    </div>
+                                </div>
+                                <div class="lp-form-group">
+                                    <label class="lp-form-label" for="bkEmail">Correo electrónico</label>
+                                    <input class="lp-input" type="email" id="bkEmail" name="email" placeholder="tu@email.com" autocomplete="email">
+                                </div>
+                                <div class="lp-form-row">
+                                    <div class="lp-form-group">
+                                        <label class="lp-form-label" for="bkService">Servicio <span style="color:var(--lp-cyan);">*</span></label>
+                                        <select class="lp-input lp-input--select" id="bkService" name="serviceType" required>
+                                            <option value="Terapia Individual">Terapia Individual</option>
+                                            <option value="Terapia de Pareja">Terapia de Pareja</option>
+                                            <option value="Terapia Familiar">Terapia Familiar</option>
+                                            <option value="Psicología Infantil y Adolescente">Psicología Infantil y Adolescente</option>
+                                            <option value="Evaluación Psicológica">Evaluación Psicológica</option>
+                                            <option value="Terapia Online">Terapia Online</option>
+                                        </select>
+                                    </div>
+                                    <div class="lp-form-group">
+                                        <label class="lp-form-label" for="bkModality">Modalidad <span style="color:var(--lp-cyan);">*</span></label>
+                                        <select class="lp-input lp-input--select" id="bkModality" name="modality" required>
+                                            <option value="Presencial">Presencial</option>
+                                            <option value="Online">Online</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="lp-form-row">
+                                    <div class="lp-form-group">
+                                        <label class="lp-form-label" for="bkDate">Fecha preferida <span style="color:var(--lp-cyan);">*</span></label>
+                                        <div class="lp-calendar" id="bkCalendar">
+                                            <div class="lp-cal-head">
+                                                <button class="lp-cal-nav" type="button" data-cal-nav="prev" aria-label="Mes anterior">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+                                                </button>
+                                                <span class="lp-cal-title" data-cal-title></span>
+                                                <button class="lp-cal-nav" type="button" data-cal-nav="next" aria-label="Mes siguiente">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+                                                </button>
+                                            </div>
+                                            <div class="lp-cal-grid" data-cal-grid></div>
+                                        </div>
+                                        <input type="hidden" id="bkDate" name="preferredDate">
+                                        <p class="lp-cal-hint">Días pasados no disponibles. Mientras antes reserves, mejor horario.</p>
+                                    </div>
+                                    <div class="lp-form-group">
+                                        <label class="lp-form-label" id="bkTimeLabel">Horario preferido <span style="color:var(--lp-cyan);">*</span></label>
+                                        <div class="lp-time-grid" id="bkTimeGrid" aria-labelledby="bkTimeLabel"></div>
+                                        <input type="hidden" id="bkTime" name="preferredTime">
+                                        <p class="lp-cal-hint" id="bkTimeHint"></p>
+                                    </div>
+                                </div>
+                                <div class="lp-form-group">
+                                    <label class="lp-form-label" for="bkMsg">¿En qué podemos acompañarte? <span style="color:var(--lp-cyan);">(opcional)</span></label>
+                                    <textarea class="lp-textarea" id="bkMsg" name="message" placeholder="Cuéntanos brevemente tu motivo de consulta."></textarea>
+                                </div>
+                                <button type="submit" class="lp-btn lp-btn--primary" style="width:100%;">Solicitar mi cita</button>
+                                <p class="lp-booking-status" id="lpBookingStatus" role="status"></p>
+                                <p class="lp-form-note">Tus datos se usan únicamente para contactarte y agendar tu cita.</p>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            </section>
+                </section>
+
+            </main>
 
             <!-- ============ FOOTER ============ -->
             <footer class="lp-footer" id="lpFooter">
@@ -357,6 +434,7 @@ export class LandingPage {
                                 <a href="#servicios" data-scroll="servicios">Servicios</a>
                                 <a href="#especialidades" data-scroll="especialidades">Especialidades</a>
                                 <a href="#nosotros" data-scroll="nosotros">Nosotros</a>
+                                <a href="#agendar" data-scroll="agendar">Agendar</a>
                             </div>
                         </nav>
 
@@ -466,7 +544,7 @@ export class LandingPage {
             <div class="lp-service-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></div>
             <h3>${title}</h3>
             <p>${desc}</p>
-            <a href="/login" class="lp-service-link" data-link>Agendar sesión <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></a>
+            <a href="#agendar" class="lp-service-link" data-scroll="agendar">Agendar sesión <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></a>
         </div>`;
     }
 
@@ -672,34 +750,177 @@ export class LandingPage {
         sections.forEach(sec => this._navObserver.observe(sec));
     }
 
-    _bindContactForm() {
-        const form = this.container.querySelector('#lpContactForm');
+    _bindCalendar() {
+        const cal = this.container.querySelector('#bkCalendar');
+        const hidden = this.container.querySelector('#bkDate');
+        if (!cal || !hidden) return;
+
+        const grid = cal.querySelector('[data-cal-grid]');
+        const titleEl = cal.querySelector('[data-cal-title]');
+        const timeGrid = this.container.querySelector('#bkTimeGrid');
+        const timeHidden = this.container.querySelector('#bkTime');
+        const timeHint = this.container.querySelector('#bkTimeHint');
+        if (!grid || !titleEl) return;
+
+        const WEEKDAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
+        const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        let view = new Date(currentMonth);
+
+        const pad = n => String(n).padStart(2, '0');
+        const toISO = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+
+        const setTimeState = (msg, cls, chipsHtml) => {
+            if (timeGrid) timeGrid.innerHTML = chipsHtml || '';
+            if (timeHidden) timeHidden.value = '';
+            if (timeHint) {
+                timeHint.textContent = msg;
+                timeHint.className = `lp-cal-hint ${cls || ''}`.trim();
+            }
+        };
+
+        const loadTimes = async (iso) => {
+            setTimeState('Buscando horarios disponibles…', 'is-pending', '<span class="lp-time-loading">Consultando agenda…</span>');
+            const { data: slots, error } = await bookingRequestsService.getAvailableTimes(iso);
+            if (error) {
+                setTimeState('No se pudieron cargar los horarios. Intenta de nuevo.', 'is-error', '');
+                return;
+            }
+            if (!slots.length) {
+                setTimeState('No hay horarios disponibles para esta fecha. Prueba con otro día.', 'is-empty', '');
+                return;
+            }
+            const chips = slots.map(t => `<button type="button" class="lp-time-chip" data-time="${t}">${t}</button>`).join('');
+            setTimeState(`${slots.length} horario(s) disponible(s). Toca una hora para elegirla.`, 'is-ok', chips);
+        };
+
+        // Selección de hora: un clic en el chip la marca.
+        timeGrid && timeGrid.addEventListener('click', (e) => {
+            const chip = e.target.closest('.lp-time-chip');
+            if (!chip) return;
+            timeGrid.querySelectorAll('.lp-time-chip.is-selected').forEach(el => el.classList.remove('is-selected'));
+            chip.classList.add('is-selected');
+            timeHidden.value = chip.dataset.time;
+        });
+
+        const render = () => {
+            titleEl.textContent = `${MONTHS[view.getMonth()]} ${view.getFullYear()}`;
+            const year = view.getFullYear();
+            const month = view.getMonth();
+            // Lunes como primer día de la semana.
+            const lead = (new Date(year, month, 1).getDay() + 6) % 7;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            const prevBtn = cal.querySelector('[data-cal-nav="prev"]');
+            if (prevBtn) prevBtn.disabled = view.getTime() <= currentMonth.getTime();
+
+            let cells = WEEKDAYS.map(w => `<span class="lp-cal-weekday">${w}</span>`).join('');
+            cells += '<span class="lp-cal-empty"></span>'.repeat(lead);
+            for (let d = 1; d <= daysInMonth; d++) {
+                const iso = toISO(year, month, d);
+                const date = new Date(year, month, d);
+                const past = date < today;
+                const isToday = date.getTime() === today.getTime();
+                const isSelected = hidden.value === iso;
+                cells += `<button type="button" class="lp-cal-day${past ? ' is-disabled' : ''}${isToday ? ' is-today' : ''}${isSelected ? ' is-selected' : ''}" data-cal-day="${iso}"${past ? ' disabled' : ''} aria-label="${iso}">${d}</button>`;
+            }
+            grid.innerHTML = cells;
+        };
+
+        grid.addEventListener('click', async (e) => {
+            const day = e.target.closest('[data-cal-day]');
+            if (!day || day.disabled) return;
+            hidden.value = day.dataset.calDay;
+            render();
+            await loadTimes(hidden.value);
+        });
+
+        cal.addEventListener('click', (e) => {
+            const nav = e.target.closest('[data-cal-nav]');
+            if (!nav || nav.disabled) return;
+            const dir = nav.dataset.calNav === 'next' ? 1 : -1;
+            view = new Date(view.getFullYear(), view.getMonth() + dir, 1);
+            render();
+        });
+
+        setTimeState('Elige una fecha para ver los horarios disponibles.', '', '<option value="" disabled selected>Selecciona un día</option>');
+        render();
+    }
+
+    _bindBookingForm() {
+        const form = this.container.querySelector('#lpBookingForm');
         if (!form) return;
 
-        form.addEventListener('submit', (e) => {
+        const statusEl = form.querySelector('#lpBookingStatus');
+
+        const setStatus = (type, text) => {
+            if (!statusEl) return;
+            statusEl.textContent = text;
+            statusEl.className = `lp-booking-status is-${type}`;
+        };
+
+        const setBusy = (busy) => {
+            const submit = form.querySelector('[type="submit"]');
+            if (!submit) return;
+            submit.disabled = busy;
+            submit.textContent = busy ? 'Enviando solicitud…' : 'Solicitar mi cita';
+        };
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = form.querySelector('#lpName').value.trim();
-            const email = form.querySelector('#lpEmail').value.trim();
-            const msg = form.querySelector('#lpMsg').value.trim();
+            setStatus('', '');
 
-            if (!name || !email || !msg) {
-                if (window.app && window.app.toast) {
-                    window.app.toast.show({ type: 'warning', title: 'Faltan datos', message: 'Completa nombre, correo y mensaje.' });
-                }
+            const fullName = form.querySelector('#bkName').value.trim();
+            const phone = form.querySelector('#bkPhone').value.trim();
+            const email = form.querySelector('#bkEmail').value.trim();
+            const serviceType = form.querySelector('#bkService').value;
+            const modality = form.querySelector('#bkModality').value;
+            const preferredDate = form.querySelector('#bkDate').value;
+            const preferredTime = form.querySelector('#bkTime').value;
+            const message = form.querySelector('#bkMsg').value.trim();
+
+            if (!fullName || !phone || !preferredDate || !preferredTime) {
+                setStatus('error', 'Completa nombre, teléfono, fecha y horario.');
+                return;
+            }
+            if (!/^\+?[\d\s()-]{7,}$/.test(phone)) {
+                setStatus('error', 'Revisa el formato de tu teléfono.');
+                return;
+            }
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                setStatus('error', 'Revisa el formato de tu correo electrónico.');
                 return;
             }
 
-            const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-            if (!emailOk) {
-                if (window.app && window.app.toast) {
-                    window.app.toast.show({ type: 'error', title: 'Correo inválido', message: 'Revisa el formato de tu correo electrónico.' });
-                }
-                return;
-            }
+            setBusy(true);
+            const { data, error } = await bookingRequestsService.create({
+                fullName,
+                phone,
+                email,
+                serviceType,
+                modality,
+                preferredDate,
+                preferredTime,
+                message
+            });
+            setBusy(false);
 
-            form.reset();
-            if (window.app && window.app.toast) {
-                window.app.toast.show({ type: 'info', title: 'Mensaje recibido', message: 'Gracias por escribirnos. Te contactaremos pronto.' });
+            if (!error && data) {
+                form.reset();
+                setStatus('success', '¡Solicitud recibida! Te confirmamos tu cita en menos de 24 horas.');
+                if (window.app && window.app.toast) {
+                    window.app.toast.show({
+                        type: 'success',
+                        title: 'Solicitud enviada',
+                        message: `Gracias ${data.fullName.split(' ')[0]}. Te contactaremos en menos de 24 horas.`
+                    });
+                }
+            } else {
+                console.error('booking create error:', error);
+                setStatus('error', 'No pudimos registrar tu solicitud. Inténtalo de nuevo o escríbenos por WhatsApp.');
             }
         });
     }
