@@ -99,20 +99,26 @@ export class Modal {
     close() {
         if (!this.activeModal) return;
 
+        const closingModal = this.activeModal;
+
         if (this._escapeHandler) {
             document.removeEventListener('keydown', this._escapeHandler);
             this._escapeHandler = null;
         }
 
-        this.activeModal.classList.remove('active');
-        this.activeModal.setAttribute('aria-hidden', 'true');
+        closingModal.classList.remove('active');
+        closingModal.setAttribute('aria-hidden', 'true');
 
         setTimeout(() => {
-            if (this.activeModal && this.activeModal.parentNode) {
-                this.activeModal.parentNode.removeChild(this.activeModal);
+            if (closingModal.parentNode) {
+                closingModal.parentNode.removeChild(closingModal);
             }
-            this.activeModal = null;
-            document.body.style.overflow = '';
+            if (this.activeModal === closingModal) {
+                this.activeModal = null;
+            }
+            if (!this.activeModal) {
+                document.body.style.overflow = '';
+            }
             if (this.previousActiveElement && typeof this.previousActiveElement.focus === 'function') {
                 this.previousActiveElement.focus();
             }

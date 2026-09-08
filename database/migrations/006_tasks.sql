@@ -77,13 +77,17 @@ CREATE POLICY "Clinicians can view all tasks"
         OR has_role(auth.uid(), 'assistant')
     );
 
--- Pacientes solo ven sus propias tareas
+-- Pacientes solo ven las tareas de sus propios expedientes
 CREATE POLICY "Patients can view own tasks"
     ON therapeutic_tasks FOR SELECT
     TO authenticated
     USING (
         has_role(auth.uid(), 'patient')
-        AND owner_id = auth.uid()
+        AND EXISTS (
+            SELECT 1 FROM patients p
+            WHERE p.id = therapeutic_tasks.patient_id
+            AND p.owner_id = auth.uid()
+        )
     );
 
 -- Clínicos pueden crear tareas

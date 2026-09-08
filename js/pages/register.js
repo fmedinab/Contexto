@@ -70,7 +70,7 @@ export class RegisterPage {
                             <div class="input-wrapper">
                                 <input type="password" id="registerPassword" name="password" class="input" placeholder="Mínimo 8 caracteres" required autocomplete="new-password">
                             </div>
-                            <p class="form-hint">Mínimo 8 caracteres, incluye mayúsculas, minúsculas y números.</p>
+                            <p class="form-hint">Mínimo 8 caracteres.</p>
                             <p class="form-error" id="registerPasswordError"></p>
                         </div>
                         <button type="submit" class="btn btn--primary btn--full" id="registerSubmit">

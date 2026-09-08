@@ -157,7 +157,10 @@ export class LoginPage {
             const banner = document.createElement('div');
             banner.id = 'loginErrorBanner';
             banner.className = 'form-error-banner';
-            banner.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${msg}`;
+            const iconEl = document.createElement('i');
+            iconEl.className = 'fa-solid fa-circle-exclamation';
+            banner.appendChild(iconEl);
+            banner.appendChild(document.createTextNode(' ' + msg));
             form.parentNode.insertBefore(banner, form);
             window.app.toast.error('Error de acceso', msg);
         } finally {

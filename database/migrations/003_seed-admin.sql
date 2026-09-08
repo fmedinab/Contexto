@@ -1,10 +1,9 @@
 -- ============================================
 -- Setup: Usuario admin inicial
--- Email: admin@context.test | Password: 123456
 -- ============================================
 -- 1. Crear el usuario en Supabase Dashboard → Authentication → Users → Create user
---    Email: admin@context.test
---    Password: 123456
+--    Email: <email-admin>
+--    Password: <contraseña-fuerte-aleatoria> (NO usarla en código ni docs)
 -- 2. Ejecutar este script en el SQL Editor
 -- ============================================
 

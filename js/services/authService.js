@@ -19,16 +19,20 @@ export class AuthService {
     }
 
     async _init() {
-        const { data: { session } } = await supabase.auth.getSession();
-        this.session = session;
-        this.user = session?.user || null;
-        this._notifyAuthChange(this.session);
-
-        supabase.auth.onAuthStateChange((event, session) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
             this.session = session;
             this.user = session?.user || null;
-            this._notifyAuthChange(session, event);
-        });
+            this._notifyAuthChange(this.session);
+
+            supabase.auth.onAuthStateChange((event, session) => {
+                this.session = session;
+                this.user = session?.user || null;
+                this._notifyAuthChange(session, event);
+            });
+        } catch (e) {
+            console.error('Error inicializando sesión:', e.message);
+        }
     }
 
     onAuthChange(callback) {
@@ -88,7 +92,7 @@ export class AuthService {
 
     async resetPassword(email) {
         const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${APP_BASE}reset-password`
+            redirectTo: `${APP_BASE}#reset-password`
         });
 
         if (error) throw error;

@@ -287,26 +287,31 @@ export class DashboardPage {
         await this._renderTasksPanel();
         await this._renderNotesPanel();
 
-        patientService.onChange(() => {
-            this._renderPatients();
-            if (this.currentModal === 'patients') this._renderModalPatientList();
-        });
-
-        appointmentService.onChange(() => {
-            this._renderAppointments();
-        });
-        evaluationService.onChange(async () => {
-            await this._renderEvaluationsPanel();
-            if (this.currentModal === 'evaluations') await this._renderModalEvalList();
-        });
-        tasksService.onChange(async () => {
-            await this._renderTasksPanel();
-            if (this.currentModal === 'tasks') await this._renderModalTaskList();
-        });
-        notesService.onChange(async () => {
-            await this._renderNotesPanel();
-            if (this.currentModal === 'notes') await this._renderModalNotesList();
-        });
+        if (this._unsubscribers) {
+            this._unsubscribers.forEach(unsub => { try { unsub(); } catch (e) { /* noop */ } });
+            this._unsubscribers = [];
+        }
+        this._unsubscribers = [
+            patientService.onChange(() => {
+                this._renderPatients();
+                if (this.currentModal === 'patients') this._renderModalPatientList();
+            }),
+            appointmentService.onChange(() => {
+                this._renderAppointments();
+            }),
+            evaluationService.onChange(async () => {
+                await this._renderEvaluationsPanel();
+                if (this.currentModal === 'evaluations') await this._renderModalEvalList();
+            }),
+            tasksService.onChange(async () => {
+                await this._renderTasksPanel();
+                if (this.currentModal === 'tasks') await this._renderModalTaskList();
+            }),
+            notesService.onChange(async () => {
+                await this._renderNotesPanel();
+                if (this.currentModal === 'notes') await this._renderModalNotesList();
+            })
+        ];
         this._initParticles();
         this._startClock();
         this._initResponsiveListeners();
@@ -319,6 +324,10 @@ export class DashboardPage {
         if (this._docClickHandler) document.removeEventListener('click', this._docClickHandler);
         if (this._docKeyHandler) document.removeEventListener('keydown', this._docKeyHandler);
         if (this._bodyClickHandler) document.body.removeEventListener('click', this._bodyClickHandler);
+        if (this._unsubscribers) {
+            this._unsubscribers.forEach(unsub => { try { unsub(); } catch (e) { /* noop */ } });
+            this._unsubscribers = [];
+        }
         if (this._repositionDropdown) {
             window.removeEventListener('scroll', this._repositionDropdown);
             window.removeEventListener('resize', this._repositionDropdown);
@@ -365,12 +374,10 @@ export class DashboardPage {
         if (wrap) wrap.style.display = 'none';
         this._settingsPage = null;
 
-        if (this._currentView !== 'settings') {
-            const grid = this.container?.querySelector('.main-grid');
-            const footer = this.container?.querySelector('.quote-footer');
-            if (grid) grid.style.display = '';
-            if (footer) footer.style.display = '';
-        }
+        const grid = this.container?.querySelector('.main-grid');
+        const footer = this.container?.querySelector('.quote-footer');
+        if (grid) grid.style.display = '';
+        if (footer) footer.style.display = '';
     }
 
     // ========== CLOCK ==========
@@ -565,8 +572,8 @@ export class DashboardPage {
                 <div class="eval-row">
                     <div class="eval-icon">${icon('clipboard', 14)}</div>
                     <div class="eval-info">
-                        <div class="eval-name">${ev.instrumentCode || ev.instrumentName}</div>
-                        <div class="eval-meta">${ev.patientName} · ${new Date(ev.assessmentDate + 'T00:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        <div class="eval-name">${escapeHtml(ev.instrumentCode || ev.instrumentName)}</div>
+                        <div class="eval-meta">${escapeHtml(ev.patientName)} · ${new Date(ev.assessmentDate + 'T00:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                     </div>
                     ${tab !== 'completed' ? `<button class="btn-start" data-eval-start="${ev.id}">Comenzar</button>` : `<span class="status-pill completed">Lista</span>`}
                 </div>
@@ -676,7 +683,6 @@ export class DashboardPage {
         if (userMenuEl) {
             userMenuEl.addEventListener('click', (e) => {
                 const action = e.target.closest('[data-action]')?.dataset.action;
-                console.log('[Dashboard] user menu click, action:', action);
                 if (action === 'logout') {
                     window.app?.auth?.logout().catch(() => {});
                 } else if (action === 'profile' || action === 'preferences') {
@@ -704,23 +710,17 @@ export class DashboardPage {
             });
         }
 
-        // Theme toggle — syncs with global ThemeManager
+        // Theme toggle — syncs with global ThemeManager (única fuente de verdad)
         const themeBtn = $('#dashSettings');
         if (themeBtn) {
             const appEl = document.getElementById('app');
-            const currentTheme = window.app?.themeManager?.getTheme() || 'dark';
-            if (currentTheme === 'light' && appEl) {
+            if (window.app?.themeManager?.getTheme() === 'light' && appEl) {
                 appEl.classList.add('light-mode');
             }
             themeBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (!appEl) return;
-                const next = window.app?.themeManager?.toggle() || (appEl.classList.contains('light-mode') ? 'dark' : 'light');
-                if (next === 'light') {
-                    appEl.classList.add('light-mode');
-                } else {
-                    appEl.classList.remove('light-mode');
-                }
+                const next = window.app?.themeManager?.toggle?.() ||
+                    (appEl?.classList.contains('light-mode') ? 'dark' : 'light');
                 this._showToast(next === 'light' ? 'Modo claro activado.' : 'Modo oscuro activado.');
             });
         }
@@ -1120,8 +1120,8 @@ export class DashboardPage {
                 <div class="data-row">
                     <div class="eval-icon">${icon('clipboard', 14)}</div>
                     <div class="data-main">
-                        <div class="data-title">${ev.instrumentCode || ev.instrumentName}</div>
-                        <div class="data-sub">${ev.patientName} · Asignada: ${new Date(ev.assessmentDate + 'T00:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                        <div class="data-title">${escapeHtml(ev.instrumentCode || ev.instrumentName)}</div>
+                        <div class="data-sub">${escapeHtml(ev.patientName)} · Asignada: ${new Date(ev.assessmentDate + 'T00:00:00').toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
                     </div>
                     ${this.activeEvaluationTab !== 'completed' ? `<button class="btn-start" data-eval-start="${ev.id}">Comenzar</button>` : `<span class="status-pill completed">Completada</span>`}
                 </div>
@@ -1170,7 +1170,7 @@ export class DashboardPage {
                     <div class="patient-avatar">${(t.patient || '?')[0]?.toUpperCase() || '?'}</div>
                     <div class="data-main" style="min-width:0;">
                         <div class="data-title">${escapeHtml(t.title)}</div>
-                        <div class="data-sub">${escapeHtml(t.patient || 'Sin paciente')} · Vence: ${_dateDisp(t.dueDate)} · ${t.priority}</div>
+                        <div class="data-sub">${escapeHtml(t.patient || 'Sin paciente')} · Vence: ${_dateDisp(t.dueDate)} · ${escapeHtml(t.priority)}</div>
                     </div>
                     <span class="status-pill ${stClass}">${t.progress}%</span>
                 </div>
@@ -1220,14 +1220,14 @@ export class DashboardPage {
                 <div class="patient-avatar">${(task.patient || '?')[0]?.toUpperCase() || '?'}</div>
                 <div class="data-main">
                     <div class="data-title" style="font-size:15px;">${escapeHtml(task.title)}</div>
-                    <div class="data-sub">${escapeHtml(task.patient || 'Sin paciente')} · ${task.category}</div>
+                    <div class="data-sub">${escapeHtml(task.patient || 'Sin paciente')} · ${escapeHtml(task.category)}</div>
                 </div>
                 <span class="status-pill ${st.color}">${st.label}</span>
             </div>
             <div class="detail-section-title">Detalle</div>
             <div class="patient-detail-grid">
-                <div class="detail-field"><span class="detail-label">Prioridad</span><span class="detail-value">${PRIORITY_MAP[task.priority] || task.priority}</span></div>
-                <div class="detail-field"><span class="detail-label">Categoría</span><span class="detail-value">${task.category}</span></div>
+                <div class="detail-field"><span class="detail-label">Prioridad</span><span class="detail-value">${escapeHtml(PRIORITY_MAP[task.priority] || task.priority)}</span></div>
+                <div class="detail-field"><span class="detail-label">Categoría</span><span class="detail-value">${escapeHtml(task.category)}</span></div>
                 <div class="detail-field"><span class="detail-label">Asignada</span><span class="detail-value">${_dd(task.assignedDate)}</span></div>
                 <div class="detail-field"><span class="detail-label">Vence</span><span class="detail-value">${task.dueDate ? _dd(task.dueDate) : 'Sin fecha límite'}</span></div>
             </div>
@@ -1370,10 +1370,10 @@ export class DashboardPage {
                 <span class="unread-dot ${m.unread ? '' : 'read'}"></span>
                 <div style="flex:1; min-width:0;">
                     <div class="message-name-row">
-                        <span class="message-name">${m.patient}</span>
-                        <span class="message-time">${m.time}</span>
+                        <span class="message-name">${escapeHtml(m.patient)}</span>
+                        <span class="message-time">${escapeHtml(m.time)}</span>
                     </div>
-                    <div class="message-preview">${m.preview}</div>
+                    <div class="message-preview">${escapeHtml(m.preview)}</div>
                 </div>
             </div>
         `).join('')}</div>`;

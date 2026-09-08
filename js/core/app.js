@@ -13,6 +13,7 @@ import { router } from './router.js';
 import { LoginPage } from '../pages/login.js';
 import { RegisterPage } from '../pages/register.js';
 import { ForgotPasswordPage } from '../pages/forgot-password.js';
+import { ResetPasswordPage } from '../pages/reset-password.js';
 import { DashboardPage } from '../pages/dashboard.js';
 import { PatientsPage } from '../pages/patients.js';
 import { AppointmentsPage } from '../pages/appointments.js';
@@ -64,6 +65,7 @@ class App {
             .addRoute('/login', () => this.renderPage('login', new LoginPage()))
             .addRoute('/register', () => this.renderPage('register', new RegisterPage()))
             .addRoute('/forgot-password', () => this.renderPage('forgotPassword', new ForgotPasswordPage()))
+            .addRoute('/reset-password', () => this.renderPage('resetPassword', new ResetPasswordPage()))
             .addRoute('/dashboard', () => this.renderPage('dashboard', new DashboardPage()))
             .addRoute('/patients', () => this.requireAuth(() => this.renderPage('patients', new PatientsPage()))())
             .addRoute('/appointments', () => this.requireAuth(() => this.renderPage('appointments', new AppointmentsPage()))())
@@ -77,12 +79,30 @@ class App {
 
         router.use(async (path) => {
             await this.auth.ready;
+
+            // En recarga con sesión persistida, los roles pueden no haberse cargado
+            // aún (el evento INITIAL_SESSION es asíncrono). Refresco defensivo.
+            if (this.auth.isAuthenticated() && !this.permissions.userRoles.length) {
+                try { await this.permissions.refresh(); } catch (e) { /* noop */ }
+            }
+
             const publicRoutes = ['/login', '/register', '/forgot-password'];
+            const isAuthRoute = path === '/reset-password';
             const isDashboard = path === '/dashboard';
 
             if (publicRoutes.includes(path)) {
                 if (this.auth.isAuthenticated()) {
                     router.navigate('/dashboard');
+                    return false;
+                }
+                return;
+            }
+
+            // La página de nueva contraseña debe ser accesible incluso con
+            // sesión de recuperación activa (Supabase la marca como autenticada).
+            if (isAuthRoute) {
+                if (!this.auth.isAuthenticated()) {
+                    router.navigate('/login');
                     return false;
                 }
                 return;
@@ -107,7 +127,6 @@ class App {
     }
 
     renderPage(key, pageInstance) {
-        console.log('[App] renderPage() key:', key);
         if (this.pageInstances[key] && typeof this.pageInstances[key].destroy === 'function') {
             this.pageInstances[key].destroy();
         }
@@ -135,9 +154,7 @@ class App {
     requireAuth(handler) {
         return async () => {
             await this.auth.ready;
-            console.log('[App] requireAuth: isAuthenticated =', this.auth.isAuthenticated());
             if (!this.auth.isAuthenticated()) {
-                console.log('[App] requireAuth: NOT authenticated, redirecting to login');
                 router.navigate('/login');
                 return;
             }
@@ -147,10 +164,14 @@ class App {
 
     setupAuthListener() {
         this.auth.onAuthChange((session, event) => {
-            if (event === 'SIGNED_IN') {
-                this.permissions.refresh().then(() => {
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+                if (session?.user) {
+                    this.permissions.refresh().then(() => {
+                        this.updateNavigationVisibility();
+                    }).catch(() => {});
+                } else {
                     this.updateNavigationVisibility();
-                });
+                }
             } else if (event === 'SIGNED_OUT') {
                 this.updateNavigationVisibility();
                 router.navigate('/login');
@@ -192,7 +213,6 @@ class App {
             navigator.serviceWorker.getRegistrations().then(registrations => {
                 for (const reg of registrations) {
                     reg.unregister();
-                    console.log('Service Worker desactivado:', reg.scope);
                 }
             });
         }

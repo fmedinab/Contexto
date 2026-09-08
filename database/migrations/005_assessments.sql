@@ -64,18 +64,16 @@ CREATE POLICY "Clinicians can view all assessments"
     );
 
 -- Pacientes solo ven sus propias evaluaciones
+-- (se une contra patients por owner_id: solo sus propios expedientes)
 CREATE POLICY "Patients can view own assessments"
     ON assessments FOR SELECT
     TO authenticated
     USING (
-        patient_id IN (
-            SELECT id FROM patients WHERE id = patient_id
-        )
+        has_role(auth.uid(), 'patient')
         AND EXISTS (
-            SELECT 1 FROM user_roles ur
-            JOIN roles r ON r.id = ur.role_id
-            WHERE ur.user_id = auth.uid()
-            AND r.name = 'patient'
+            SELECT 1 FROM patients p
+            WHERE p.id = assessments.patient_id
+            AND p.owner_id = auth.uid()
         )
     );
 

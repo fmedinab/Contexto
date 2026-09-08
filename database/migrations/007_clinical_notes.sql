@@ -62,13 +62,17 @@ CREATE POLICY "Clinicians can view all clinical notes"
         OR has_role(auth.uid(), 'assistant')
     );
 
--- Pacientes ven sus propias notas
+-- Pacientes ven solo las notas clínicas de sus propios expedientes
 CREATE POLICY "Patients can view own clinical notes"
     ON clinical_notes FOR SELECT
     TO authenticated
     USING (
         has_role(auth.uid(), 'patient')
-        AND owner_id = auth.uid()
+        AND EXISTS (
+            SELECT 1 FROM patients p
+            WHERE p.id = clinical_notes.patient_id
+            AND p.owner_id = auth.uid()
+        )
     );
 
 -- Clínicos pueden crear notas

@@ -55,14 +55,12 @@ export class Router {
 
     async _resolve() {
         const path = this._getPath();
-        console.log('[Router] _resolve() path:', path);
         const query = { ...Object.fromEntries(new URLSearchParams(window.location.search)), ...this._getHashQuery() };
 
         this.previousRoute = this.currentRoute;
         this.currentRoute = path;
 
         let handler = this.routes[path] || this.routes['*'];
-        console.log('[Router] handler found:', !!handler, 'key:', path in this.routes ? path : '*');
 
         if (!handler) {
             const errorModule = await import('../pages/errors.js').catch(() => null);
@@ -101,7 +99,7 @@ export class Router {
             '/login': 'Iniciar sesión — CONTEXTO',
             '/register': 'Registro — CONTEXTO',
             '/forgot-password': 'Recuperar contraseña — CONTEXTO',
-            '/dashboard': '',
+            '/dashboard': 'Dashboard — CONTEXTO',
             '/patients': 'Pacientes — CONTEXTO',
             '/appointments': 'Citas — CONTEXTO',
             '/evaluations': 'Evaluaciones — CONTEXTO',

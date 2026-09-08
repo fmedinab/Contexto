@@ -6,6 +6,9 @@
 -- Extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- Requerida por la restricción EXCLUDE (btree + gist) de appointments (migración 004)
+-- para evitar superposición de citas por paciente.
+CREATE EXTENSION IF NOT EXISTS "btree_gist";
 
 -- ============================================
 -- TABLA: profiles

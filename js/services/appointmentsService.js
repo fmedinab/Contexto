@@ -39,6 +39,18 @@ const VALID_TRANSITIONS = {
     CANCELADA: []
 };
 
+// La DB tiene un constraint EXCLUDE (no_overlapping_appointments_per_patient)
+// que cierra el race check-then-insert cliente (TOCTOU). Mapea la violación
+// (SQLSTATE 23P01 / 23505) a un mensaje amigable.
+function _friendlyError(error) {
+    const code = error?.code;
+    const msg = error?.message || '';
+    if (code === '23P01' || code === '23505' || /exclusion|overlap[^s]/i.test(msg)) {
+        return 'Este paciente ya tiene una cita en ese horario.';
+    }
+    return error;
+}
+
 /* ===== MAPPING UI ↔ DB ===== */
 
 function dbRowToUI(row) {
@@ -180,7 +192,7 @@ class AppointmentsService {
             .select()
             .single();
 
-        if (error) return { data: null, error };
+        if (error) return { data: null, error: _friendlyError(error) };
         this._notify();
         return { data: dbRowToUI(created), error: null };
     }
@@ -212,7 +224,7 @@ class AppointmentsService {
             .select()
             .single();
 
-        if (error) return { data: null, error };
+        if (error) return { data: null, error: _friendlyError(error) };
         this._notify();
         return { data: dbRowToUI(updated), error: null };
     }

@@ -1,9 +1,3 @@
-fmedina@gmail.com
-123456
-http://localhost:3000
-
- kilo -s ses_fd99f5d97ffeR6LnO7V1B0s43N
-
 # AUDITORÍA — Migración Dashboard (25 Ago 2026)
 
 ## A. Arquitectura
@@ -54,3 +48,24 @@ Login → authService.login() → Supabase Auth → onAuthStateChange → router
 - Integrado con router y auth existente
 - Carpeta mente-serena eliminada tras integración
 
+
+
+Plan de Remediación Recomendado
+Semana 1 (Seguridad):
+1. Rotar todas las keys y credenciales
+2. Corregir RLS en migraciones 005, 006, 007
+3. Agregar btree_gist al schema
+4. Fix XSS en login.js y dashboard.js
+5. Eliminar credenciales de Memory.md + historial git
+Semana 2 (Bugs críticos):
+6. Fix memory leak en dashboard.js (unsubscribe en destroy)
+7. Fix race condition en modal.js
+8. Fix botón stuck en settings.js
+9. Agregar ruta /reset-password o arreglar redirect
+10. Fix carga de permisos en recarga (escuchar INITIAL_SESSION)
+Semana 3 (Calidad):
+11. Unificar sistema de temas
+12. Eliminar mockData.js (o reemplazar con datos reales)
+13. Fix password policy consistente
+14. Mover conflict detection de citas a BD
+15. Limpiar console.logs

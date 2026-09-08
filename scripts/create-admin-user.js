@@ -6,23 +6,56 @@
  *
  * Uso:
  *   $env:SUPABASE_ACCESS_TOKEN="<your-token>"
+ *   $env:SUPABASE_CONFIG="<path-to-.env>"   // opcional: carga PROJECT_REF, ANON_KEY y ADMIN_* desde .env
  *   node scripts/create-admin-user.js
  */
 
-const PROJECT_REF = 'bpfouoddrdelcqicdnor';
-const SUPABASE_URL = 'https://' + PROJECT_REF + '.supabase.co';
-const MANAGEMENT_API = 'https://api.supabase.com/v1';
-const ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
-const ANON_KEY = 'sb_publishable_TT386pKgfPIukn7QiqD3ZA_am0SsTKO';
+// Cargar .env si está disponible (dotenv suele estar ausente; parse manual, sin dependencias)
+function loadEnvFile() {
+    const fs = require('fs');
+    const path = require('path');
+    const envPath = process.env.SUPABASE_CONFIG || path.join(__dirname, '..', '.env');
+    if (!fs.existsSync(envPath)) return {};
+    const out = {};
+    fs.readFileSync(envPath, 'utf8')
+        .split(/\r?\n/)
+        .forEach(line => {
+            const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+            if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, '');
+        });
+    return out;
+}
 
-const ADMIN_EMAIL = 'fmedina@gmail.com';
-const ADMIN_PASSWORD = '123456';
-const ADMIN_FULL_NAME = 'Frank Medina';
-const ADMIN_DNI = '00000000';
+const env = {
+    ...loadEnvFile(),
+    ...process.env
+};
 
+const ACCESS_TOKEN = env.SUPABASE_ACCESS_TOKEN;
 if (!ACCESS_TOKEN) {
     console.error('❌  SUPABASE_ACCESS_TOKEN no está definida.');
     console.error('   $env:SUPABASE_ACCESS_TOKEN="sbp_..." ; node scripts/create-admin-user.js');
+    process.exit(1);
+}
+
+const PROJECT_REF = env.SUPABASE_PROJECT_REF
+    || (env.SUPABASE_URL || '').match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
+if (!PROJECT_REF) {
+    console.error('❌  No se pudo determinar SUPABASE_PROJECT_REF. Agrega "SUPABASE_PROJECT_REF=<ref>" o SUPABASE_URL a tu .env');
+    process.exit(1);
+}
+const SUPABASE_URL = 'https://' + PROJECT_REF + '.supabase.co';
+const MANAGEMENT_API = 'https://api.supabase.com/v1';
+const ANON_KEY = env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
+
+// Credenciales del admin NO se hardcodean: vienen de variables de entorno.
+const ADMIN_EMAIL = env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = env.ADMIN_PASSWORD;
+const ADMIN_FULL_NAME = env.ADMIN_FULL_NAME || 'Administrador';
+const ADMIN_DNI = env.ADMIN_DNI || '00000000';
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+    console.error('❌  ADMIN_EMAIL y ADMIN_PASSWORD no están definidas. Agrégalas a tu .env (NO las commitees).');
     process.exit(1);
 }
 

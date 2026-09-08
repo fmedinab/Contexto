@@ -7,10 +7,8 @@ export class SettingsPage {
     constructor() { this._profile = null; }
 
     async render(targetContainer) {
-        console.log('[Settings] render() called');
         const pageBody = targetContainer || document.getElementById('pageBody');
-        if (!pageBody) { console.error('[Settings] pageBody NOT found'); return; }
-        console.log('[Settings] container found, rendering...');
+        if (!pageBody) return;
         if (!targetContainer) {
             pageBody.className = '';
             pageBody.style.cssText = 'min-height:100vh;background:var(--bg-primary)';
@@ -82,11 +80,11 @@ export class SettingsPage {
                     <form id="passwordForm" class="settings-form">
                         <div class="settings-field">
                             <label class="settings-label" for="newPassword">Nueva contraseña</label>
-                            <input class="settings-input" type="password" id="newPassword" minlength="6" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                            <input class="settings-input" type="password" id="newPassword" minlength="8" placeholder="Mínimo 8 caracteres" autocomplete="new-password">
                         </div>
                         <div class="settings-field">
                             <label class="settings-label" for="confirmPassword">Confirmar contraseña</label>
-                            <input class="settings-input" type="password" id="confirmPassword" minlength="6" placeholder="Repite la contraseña" autocomplete="new-password">
+                            <input class="settings-input" type="password" id="confirmPassword" minlength="8" placeholder="Repite la contraseña" autocomplete="new-password">
                         </div>
                         <div class="settings-actions">
                             <button type="submit" class="settings-btn settings-btn--secondary" id="passwordSaveBtn"><i class="fa-solid fa-key"></i> Actualizar contraseña</button>
@@ -104,15 +102,12 @@ export class SettingsPage {
             </div>`;
 
         this._bindEvents();
-        console.log('[Settings] HTML rendered, loading profile in background...');
         this._loadProfile();
     }
 
     async _loadProfile() {
         try {
-            console.log('[Settings] _loadProfile() calling profilesService.getProfile()...');
             this._profile = await profilesService.getProfile();
-            console.log('[Settings] profile loaded:', this._profile);
             if (!this._profile) return;
             const p = this._profile;
             const setVal = (id, v) => { const el = $(`#${id}`); if (el) el.value = v || ''; };
@@ -152,16 +147,16 @@ export class SettingsPage {
 
     async _saveProfile() {
         const btn = $('#profileSaveBtn');
+        const updates = {
+            full_name: $('#profileFullName')?.value.trim() || '',
+            dni: $('#profileDNI')?.value.trim() || null,
+            phone: $('#profilePhone')?.value.trim() || null,
+            birth_date: $('#profileBirthDate')?.value || null,
+            language: $('#profileLanguage')?.value || 'es',
+        };
+        if (!updates.full_name) { window.app.toast.error('Error', 'El nombre es obligatorio.'); return; }
         if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner spinner--sm btn-spinner"></span> Guardando...'; }
         try {
-            const updates = {
-                full_name: $('#profileFullName')?.value.trim() || '',
-                dni: $('#profileDNI')?.value.trim() || null,
-                phone: $('#profilePhone')?.value.trim() || null,
-                birth_date: $('#profileBirthDate')?.value || null,
-                language: $('#profileLanguage')?.value || 'es',
-            };
-            if (!updates.full_name) { window.app.toast.error('Error', 'El nombre es obligatorio.'); return; }
             await profilesService.updateProfile(updates);
             window.app.toast.success('Perfil actualizado', 'Los cambios se han guardado correctamente.');
         } catch (e) {
@@ -176,7 +171,7 @@ export class SettingsPage {
         const btn = $('#passwordSaveBtn');
         const np = $('#newPassword')?.value;
         const cp = $('#confirmPassword')?.value;
-        if (!np || np.length < 6) { window.app.toast.error('Error', 'La contraseña debe tener al menos 6 caracteres.'); return; }
+        if (!np || np.length < 8) { window.app.toast.error('Error', 'La contraseña debe tener al menos 8 caracteres.'); return; }
         if (np !== cp) { window.app.toast.error('Error', 'Las contraseñas no coinciden.'); return; }
         if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner spinner--sm btn-spinner"></span> Actualizando...'; }
         try {
