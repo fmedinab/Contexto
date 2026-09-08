@@ -1357,6 +1357,21 @@
   box-shadow: 0 0 0 2px var(--dash-card-bg, #0b1020);
 }
 
+.app--dashboard .reminders-modal-list {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.app--dashboard .booking-skip {
+  color: var(--dash-text-tertiary, #94a3b8);
+}
+
+.app--dashboard .booking-skip:hover {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
 /* ========== ESTADO EMOCIONAL ========== */
 .app--dashboard .emotion-card {
   display: flex;

@@ -14,6 +14,7 @@ import { tasksService } from '../services/tasksService.js';
 import { notesService } from '../services/notesService.js';
 import { reportsService } from '../services/reportsService.js';
 import { bookingRequestsService, buildBookingReminderUrl } from '../services/bookingRequestsService.js';
+import { remindersService } from '../services/remindersService.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -29,7 +30,8 @@ const ICONS = {
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
     chevRight: '<path d="M9 6l6 6-6 6"/>',
     wa: '<path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/><path d="M9.2 9.3c-.3 2.8 2.7 5.8 5.5 5.5l.4-2-1.6-.9-1 .8a4.3 4.3 0 0 1-1.9-1.9l.8-1-.9-1.6-2 .4z" opacity="0.9"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>'
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    refresh: '<path d="M20 11a8 8 0 0 0-14.9-2.1M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 2.1M20 20v-4h-4"/>'
 };
 
 function icon(name, size = 16) {
@@ -62,7 +64,8 @@ const MODAL_TITLES = {
     patientForm: ['Paciente', ''],
     bookings: ['Solicitudes de cita', 'Todas las solicitudes pendientes de la landing.'],
     bookingDetail: ['Solicitud de cita', ''],
-    bookingSlotPicker: ['Horario no disponible', 'Elegí un horario libre y agendamos en 1 clic.']
+    bookingSlotPicker: ['Horario no disponible', 'Elegí un horario libre y agendamos en 1 clic.'],
+    reminders: ['Recordatorios', 'Citas y solicitudes con recordatorio de WhatsApp listo para enviar.']
 };
 
 export class DashboardPage {
@@ -80,6 +83,7 @@ export class DashboardPage {
         this._bookingPoll = null;
         this._knownBookingIds = null;
         this._pendingBookings = [];
+        this._autoRanPrepare = false;
     }
 
     async render() {
@@ -233,6 +237,15 @@ export class DashboardPage {
                             <div class="booking-list" id="dashBookingList"></div>
                             <button class="card-footer-link" data-modal="bookings">Ver todas las solicitudes</button>
                         </section>
+                        <section class="card" id="dashRemindersPanel">
+                            <div class="card-title">
+                                Recordatorios de hoy
+                                <button class="card-link" data-reminders-run title="Generar los recordatorios ahora">${icon('refresh', 12)} Generar</button>
+                                <span class="booking-count-badge" id="dashReminderCount"></span>
+                            </div>
+                            <div class="reminder-list" id="dashReminderList"></div>
+                            <button class="card-footer-link" data-modal="reminders">Ver todos los recordatorios</button>
+                        </section>
                         <section class="card">
                             <div class="card-title">
                                 Próximas citas
@@ -305,6 +318,12 @@ export class DashboardPage {
         await this._renderTasksPanel();
         await this._renderNotesPanel();
         await this._renderBookings();
+        // Prepara la cola de recordatorios una vez al entrar (idempotente; el job diario lo mantiene).
+        if (!this._autoRanPrepare) {
+            this._autoRanPrepare = true;
+            try { await remindersService.runPrepare(); } catch { /* migración 011 aún no aplicada */ }
+        }
+        await this._renderReminders();
         this._startBookingPoll();
 
         if (this._unsubscribers) {
@@ -333,6 +352,9 @@ export class DashboardPage {
             }),
             bookingRequestsService.onChange(() => {
                 this._renderBookings();
+            }),
+            remindersService.onChange(() => {
+                this._renderReminders();
             })
         ];
         this._initParticles();
@@ -644,6 +666,7 @@ export class DashboardPage {
                     this._showToast(`Nueva solicitud de ${r.fullName} · ${this._formatBookingDate(r.preferredDate)}${r.preferredTime ? ' ' + r.preferredTime : ''}.`);
                     await this._renderBookings();
                 }
+                await this._renderReminders();
             } catch { /* reintenta en el próximo ciclo */ }
         }, 45000);
     }
@@ -794,6 +817,67 @@ export class DashboardPage {
             list.innerHTML = requests.map(r => this._bookingRowHTML(r, today, nearWindow)).join('');
         } catch {
             list.innerHTML = '<div class="empty-state">Error al cargar solicitudes.</div>';
+        }
+    }
+
+    /* ===== RECORDATORIOS DE WHATSAPP (cola preparada) ===== */
+
+    async _renderReminders() {
+        const list = $('#dashReminderList');
+        if (!list) return;
+        const countEl = $('#dashReminderCount');
+        try {
+            const { data } = await remindersService.getAll({ status: 'PENDIENTE' });
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const due = (data || []).filter(r => {
+                if (!r.remindFor) return true;
+                return new Date(r.remindFor + 'T00:00') <= today;
+            });
+            if (countEl) countEl.textContent = due.length ? String(due.length) : '';
+            if (!due.length) {
+                list.innerHTML = `<div class="empty-state">Sin recordatorios por hoy. Se generan solos cada noche para las citas de mañana.</div>`;
+                return;
+            }
+            list.innerHTML = due.slice(0, 5).map(r => this._reminderRowHTML(r)).join('');
+        } catch {
+            list.innerHTML = `<div class="empty-state">Error al cargar recordatorios.</div>`;
+        }
+    }
+
+    _reminderRowHTML(r, withSkip) {
+        const dateLabel = r.forDate ? this._formatBookingDate(r.forDate) : (r.remindFor ? this._formatBookingDate(r.remindFor) : '');
+        return `
+            <div class="booking-row reminder-row">
+                <div class="booking-main">
+                    <div class="booking-name">${escapeHtml(r.patientName)}</div>
+                    <div class="booking-meta">${escapeHtml(r.serviceType)}${r.appointmentTime ? ' · ' + escapeHtml(r.appointmentTime) : ''}${dateLabel ? ' · ' + dateLabel : ''}</div>
+                    <div class="booking-sub">${escapeHtml(r.phone)}</div>
+                </div>
+                <div class="booking-actions">
+                    <a class="booking-wa" href="${escapeHtml(r.waUrl)}" target="_blank" rel="noopener" title="Enviar por WhatsApp" aria-label="Enviar por WhatsApp">${icon('wa', 14)}</a>
+                    <button class="booking-convert" data-reminder-action="sent" data-id="${r.id}" title="Marcar como enviado" aria-label="Marcar como enviado">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    </button>
+                    ${withSkip ? `<button class="booking-convert booking-skip" data-reminder-action="skip" data-id="${r.id}" title="Saltar" aria-label="Saltar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>` : ''}
+                </div>
+            </div>`;
+    }
+
+    async _renderModalReminderList() {
+        const list = $('#dashModalReminderList');
+        if (!list) return;
+        try {
+            const { data } = await remindersService.getAll({ status: 'PENDIENTE' });
+            const rows = (data || []).slice(0, 30);
+            if (!rows.length) {
+                list.innerHTML = '<div class="empty-state">No hay recordatorios. Tocá «Generar» para armar la cola de las citas de mañana.</div>';
+                return;
+            }
+            list.innerHTML = rows.map(r => this._reminderRowHTML(r, true)).join('');
+        } catch {
+            list.innerHTML = '<div class="empty-state">Error al cargar recordatorios.</div>';
         }
     }
 
@@ -1170,6 +1254,34 @@ export class DashboardPage {
                 return;
             }
 
+            // Generar la cola de recordatorios (RPC prepare_reminders)
+            const reminderRunBtn = e.target.closest('[data-reminders-run]');
+            if (reminderRunBtn) {
+                e.stopPropagation();
+                reminderRunBtn.disabled = true;
+                const { data, error } = await remindersService.runPrepare();
+                reminderRunBtn.disabled = false;
+                if (error) this._showToast('No se pudo generar: ' + (error.message || ''));
+                else this._showToast(data ? `Recordatorios generados: ${data}.` : 'Recordatorios actualizados.');
+                await this._renderReminders();
+                return;
+            }
+
+            // Recordatorio: marcar enviado / saltar
+            const reminderActionBtn = e.target.closest('[data-reminder-action]');
+            if (reminderActionBtn) {
+                e.stopPropagation();
+                const id = reminderActionBtn.dataset.id;
+                const action = reminderActionBtn.dataset.reminderAction;
+                try {
+                    if (action === 'sent') { await remindersService.markSent(id); this._showToast('Recordatorio marcado como enviado.'); }
+                    else if (action === 'skip') { await remindersService.skip(id); this._showToast('Recordatorio saltado.'); }
+                    await this._renderReminders();
+                    if (this.currentModal === 'reminders') await this._renderModalReminderList();
+                } catch (err) { this._showToast('Error: ' + (err.message || '')); }
+                return;
+            }
+
             // Modal triggers (data-modal) and Navigate triggers (data-navigate)
             const trigger = e.target.closest('[data-modal]');
             if (trigger) {
@@ -1237,7 +1349,7 @@ export class DashboardPage {
 
         box.className = 'modal-box' + (wide ? ' modal-wide' : '');
 
-        const hasLoading = ['evaluations', 'patients', 'appointments', 'newEvaluation', 'tasks', 'notes', 'reports', 'messages', 'bookings'].includes(type);
+        const hasLoading = ['evaluations', 'patients', 'appointments', 'newEvaluation', 'tasks', 'notes', 'reports', 'messages', 'bookings', 'reminders'].includes(type);
 
         if (hasLoading) {
             const loadText = modalSubtitle || 'Cargando información';
@@ -1305,6 +1417,7 @@ export class DashboardPage {
             case 'patientDetail': body.innerHTML = this._patientDetailHTML(payload); break;
             case 'appointmentDetail': body.innerHTML = await this._appointmentDetailHTML(payload); break;
             case 'bookings': body.innerHTML = '<div class="booking-list bookings-modal-list" id="dashModalBookingList"><div class="empty-state">Cargando…</div></div>'; await this._renderModalBookingList(); break;
+            case 'reminders': body.innerHTML = '<div class="reminder-list reminders-modal-list" id="dashModalReminderList"><div class="empty-state">Cargando…</div></div>'; await this._renderModalReminderList(); break;
             case 'bookingDetail': body.innerHTML = this._bookingDetailHTML(payload); break;
             case 'bookingSlotPicker': body.innerHTML = this._bookingSlotPickerHTML(payload); break;
             case 'newAppointment': body.innerHTML = await this._newAppointmentFormHTML(); break;
@@ -1974,6 +2087,20 @@ export class DashboardPage {
                 row.addEventListener('click', () => {
                     this._closeModal();
                     this._showBookingDetail(row.dataset.bookingRow);
+                });
+            });
+        }
+
+        if (type === 'reminders') {
+            $$('#dashModalReminderList [data-reminder-action]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const id = btn.dataset.id;
+                    const action = btn.dataset.reminderAction;
+                    try {
+                        if (action === 'sent') { await remindersService.markSent(id); this._showToast('Recordatorio marcado como enviado.'); }
+                        else if (action === 'skip') { await remindersService.skip(id); this._showToast('Recordatorio saltado.'); }
+                        await this._renderModalReminderList();
+                    } catch (err) { this._showToast('Error: ' + (err.message || '')); }
                 });
             });
         }
