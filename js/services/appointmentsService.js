@@ -198,6 +198,16 @@ class AppointmentsService {
     }
 
     async update(id, data) {
+        if (data.status !== undefined) {
+            const currentStatus = await this.getById(id).then(r => r.data?.status);
+            if (currentStatus && !this.canTransition(currentStatus, data.status)) {
+                return {
+                    data: null,
+                    error: { message: `Transición inválida: ${STATUS_LABELS[currentStatus] || currentStatus} → ${STATUS_LABELS[data.status] || data.status}` }
+                };
+            }
+        }
+
         const row = uiToDBRow(data);
 
         // Conflict check (client-side, skip if status is CANCELADA)

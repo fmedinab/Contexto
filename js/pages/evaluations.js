@@ -526,6 +526,13 @@ export class EvaluationsPage {
             .map(i => `<option value="${i.name}" data-code="${i.code}" data-category="${i.category}" ${e && e.instrumentName === i.name ? 'selected' : ''}>${i.code} — ${i.name}</option>`)
             .join('');
 
+        const statusValues = e
+            ? [e.status, ...(VALID_TRANSITIONS[e.status] || [])].filter((v, i, arr) => arr.indexOf(v) === i)
+            : Object.keys(STATUS_LABELS);
+        const statusOptions = statusValues
+            .map(val => `<option value="${val}" ${e && e.status === val ? 'selected' : ''}>${STATUS_LABELS[val] || val}</option>`)
+            .join('');
+
         const bodyHTML = `
             <form class="form-grid" id="evalForm" novalidate>
                 <div class="form-field">
@@ -552,7 +559,7 @@ export class EvaluationsPage {
                 <div class="form-field">
                     <label for="efStatus">Estado</label>
                     <select id="efStatus">
-                        ${Object.entries(STATUS_LABELS).map(([val, label]) => `<option value="${val}" ${e && e.status === val ? 'selected' : ''}>${label}</option>`).join('')}
+                        ${statusOptions}
                     </select>
                 </div>
                 <div class="form-field full">

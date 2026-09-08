@@ -841,7 +841,16 @@ export class DashboardPage {
                 const deleteBtn = e.target.closest('[data-note-action="delete"]');
                 if (deleteBtn) {
                     e.stopPropagation();
-                    if (!confirm('¿Eliminar esta nota clínica permanentemente?')) return;
+                    const confirmed = window.app?.confirm?.show
+                        ? await window.app.confirm.show({
+                            title: '¿Eliminar nota?',
+                            message: '¿Eliminar esta nota clínica permanentemente?',
+                            confirmLabel: 'Eliminar',
+                            cancelLabel: 'Cancelar',
+                            danger: true
+                        })
+                        : confirm('¿Eliminar esta nota clínica permanentemente?');
+                    if (!confirmed) return;
                     try {
                         await notesService.delete(noteId);
                         this._closeModal();

@@ -7,6 +7,10 @@ export class Confirm {
     }
 
     show(options = {}) {
+        if (!this.modal) {
+            const message = options.message || options.title || '¿Confirmar acción?';
+            return Promise.resolve(window.confirm(message));
+        }
         return this.modal.confirm(options);
     }
 }

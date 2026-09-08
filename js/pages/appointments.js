@@ -680,8 +680,11 @@ export class AppointmentsPage {
             .map(t => `<option value="${t}" ${a && a.type === t ? 'selected' : ''}>${t}</option>`)
             .join('');
 
-        const statusOptions = Object.entries(STATUS_LABELS)
-            .map(([val, label]) => `<option value="${val}" ${a && a.status === val ? 'selected' : ''}>${label}</option>`)
+        const statusValues = a
+            ? [a.status, ...(VALID_TRANSITIONS[a.status] || [])].filter((v, i, arr) => arr.indexOf(v) === i)
+            : ['PENDIENTE', 'CONFIRMADA'];
+        const statusOptions = statusValues
+            .map(val => `<option value="${val}" ${a && a.status === val ? 'selected' : ''}>${STATUS_LABELS[val] || val}</option>`)
             .join('');
 
         const bodyHTML = `

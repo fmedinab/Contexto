@@ -69,3 +69,6 @@ Semana 3 (Calidad):
 13. Fix password policy consistente
 14. Mover conflict detection de citas a BD
 15. Limpiar console.logs
+
+
+[✓] PWA a medias: decidir entre activar o eliminar sw.js (contradice RULES, cachea Supabase)

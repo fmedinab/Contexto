@@ -201,6 +201,21 @@ class EvaluationsService {
     }
 
     async update(id, data) {
+        if (data.status !== undefined) {
+            const { data: current } = await supabase
+                .from(TABLE)
+                .select('status')
+                .eq('id', id)
+                .single();
+
+            if (current && !this.canTransition(current.status, data.status)) {
+                return {
+                    data: null,
+                    error: { message: `Transición inválida: ${STATUS_LABELS[current.status] || current.status} → ${STATUS_LABELS[data.status] || data.status}` }
+                };
+            }
+        }
+
         const row = uiToDBRow(data);
 
         const { data: updated, error } = await supabase

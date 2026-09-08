@@ -2,6 +2,7 @@
 // Servicio de autenticación basado en Supabase Auth.
 
 import { supabase } from '../../config/supabase.js';
+import Env from '../../config/env.js';
 
 // URL base de la app (incluye el subpath en GitHub Pages, p. ej. /Contexto/).
 const APP_BASE = window.location.origin + window.location.pathname.replace(/[#?].*$/, '');
@@ -11,6 +12,9 @@ export class AuthService {
         this.user = null;
         this.session = null;
         this.onAuthChangeCallbacks = [];
+        this._idleTimer = null;
+        this._activityListener = () => this._resetIdleTimeout();
+        this._activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
         this.ready = this._init();
     }
 
@@ -29,9 +33,53 @@ export class AuthService {
                 this.session = session;
                 this.user = session?.user || null;
                 this._notifyAuthChange(session, event);
+                if (session) this._startIdleTimeout();
+                else this._stopIdleTimeout();
             });
+
+            this._activityEvents.forEach(type =>
+                window.addEventListener(type, this._activityListener, { passive: true })
+            );
+
+            if (session) this._startIdleTimeout();
         } catch (e) {
             console.error('Error inicializando sesión:', e.message);
+        }
+    }
+
+    _startIdleTimeout() {
+        this._stopIdleTimeout();
+        this._idleTimer = setTimeout(() => this._handleIdleTimeout(), Env.security.sessionTimeout);
+    }
+
+    _stopIdleTimeout() {
+        if (this._idleTimer) {
+            clearTimeout(this._idleTimer);
+            this._idleTimer = null;
+        }
+    }
+
+    _resetIdleTimeout() {
+        if (this.isAuthenticated()) this._startIdleTimeout();
+    }
+
+    async _handleIdleTimeout() {
+        this._idleTimer = null;
+        const wasAuthenticated = this.isAuthenticated();
+
+        try {
+            await supabase.auth.signOut();
+        } catch (e) {
+            this.session = null;
+            this.user = null;
+        }
+
+        this._stopIdleTimeout();
+        this._notifyAuthChange(null, 'SIGNED_OUT');
+
+        if (wasAuthenticated && window.location.hash !== '#/login') {
+            window.location.hash = '#/login';
+            window.app?.toast?.info?.('Sesión expirada', 'La sesión se cerró por inactividad.');
         }
     }
 

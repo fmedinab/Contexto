@@ -217,8 +217,8 @@ Unifica lo que antes estaban en `dashboardNewService.js` + `patientService.js`:
 ## 10. PWA
 
 - `manifest.json`: nombre, iconos (72-512px), colores, orientación, `display: standalone`.
-- `install.js`: prompt guiado con `beforeinstallprompt`.
-- Service Worker (`sw.js`) preparado pero desactivado en `app.js` (limpieza de registros). Reactivar cuando se necesite offline.
+- Instalable desde móvil vía manifest sin service worker.
+- **No hay service worker**: `sw.js` se eliminó por decisión de seguridad (cacheaba respuestas de las APIs de Supabase, incluyendo datos de pacientes — contradiciendo RULES §16) y porque se des-registraba en `app.js` al arrancar. Si en el futuro se quiere offline, implementar un SW que nunca cachee `/rest/v1` ni `/auth/v1`.
 
 ---
 

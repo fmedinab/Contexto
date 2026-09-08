@@ -23,8 +23,6 @@ import { NotesPage } from '../pages/notes.js';
 import { ReportsPage } from '../pages/reports.js';
 import { LandingPage } from '../pages/landing.js';
 
-import { pwaInstall } from '../pwa/install.js';
-
 class App {
     constructor() {
         this.themeManager = new ThemeManager();
@@ -44,7 +42,6 @@ class App {
         this.bindThemeToggle();
         this.bindKeyboardShortcuts();
         this.setupAuthListener();
-        this.registerServiceWorker();
         this.setupRoutes();
         this.bindLinkClicks();
     }
@@ -206,16 +203,6 @@ class App {
                 this.modal.close();
             }
         });
-    }
-
-    registerServiceWorker() {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(registrations => {
-                for (const reg of registrations) {
-                    reg.unregister();
-                }
-            });
-        }
     }
 }
 

@@ -1,6 +1,43 @@
 // js/pages/login.js
 // Página de inicio de sesión — Diseño limpio y minimalista.
 
+import Env from '../../config/env.js';
+
+const LOCKOUT_KEY = 'contexto-login-lockout';
+
+function _lockoutState() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(LOCKOUT_KEY)) || {};
+        const now = Date.now();
+        if (parsed.lockedUntil && now < parsed.lockedUntil) return parsed;
+        return { count: 0, lockedUntil: 0 };
+    } catch {
+        return { count: 0, lockedUntil: 0 };
+    }
+}
+
+function _saveLockout(state) {
+    try { localStorage.setItem(LOCKOUT_KEY, JSON.stringify(state)); } catch { /* noop */ }
+}
+
+function _remainingLockMs() {
+    return Math.max(0, (_lockoutState().lockedUntil || 0) - Date.now());
+}
+
+function _registerFailure() {
+    const state = _lockoutState();
+    const count = state.count + 1;
+    if (count >= Env.security.maxLoginAttempts) {
+        _saveLockout({ count: 0, lockedUntil: Date.now() + Env.security.lockoutDuration });
+    } else {
+        _saveLockout({ count, lockedUntil: 0 });
+    }
+}
+
+function _clearFailures() {
+    try { localStorage.removeItem(LOCKOUT_KEY); } catch { /* noop */ }
+}
+
 export class LoginPage {
     constructor() {
         this.container = document.getElementById('pageBody');
@@ -122,6 +159,13 @@ export class LoginPage {
         const passwordInput = document.getElementById('loginPassword');
         const submitBtn = document.getElementById('loginSubmit');
 
+        let remainingLockMs = _remainingLockMs();
+        if (remainingLockMs > 0) {
+            const minutes = Math.ceil(remainingLockMs / 60000);
+            this._showBanner(`Demasiados intentos fallidos. Intenta de nuevo dentro de ${minutes} min.`);
+            return;
+        }
+
         const email = emailInput.value.trim();
         const password = passwordInput.value;
 
@@ -149,24 +193,46 @@ export class LoginPage {
 
         try {
             await window.app.auth.login(email, password);
+            _clearFailures();
             window.app.toast.success('Bienvenido', 'Has iniciado sesión correctamente.');
             window.router.navigate('/dashboard');
         } catch (error) {
+            const raw = (error.message || '').toLowerCase();
+            if (!/fetch|network/.test(raw)) _registerFailure();
             const msg = this._friendlyError(error);
-            const form = document.getElementById('loginForm');
-            const banner = document.createElement('div');
-            banner.id = 'loginErrorBanner';
-            banner.className = 'form-error-banner';
-            const iconEl = document.createElement('i');
-            iconEl.className = 'fa-solid fa-circle-exclamation';
-            banner.appendChild(iconEl);
-            banner.appendChild(document.createTextNode(' ' + msg));
-            form.parentNode.insertBefore(banner, form);
+            this._showBanner(msg);
             window.app.toast.error('Error de acceso', msg);
+            const afterLock = _remainingLockMs();
+            if (afterLock > 0) {
+                const minutes = Math.ceil(afterLock / 60000);
+                const wait = document.createElement('p');
+                wait.id = 'loginLockoutHint';
+                wait.className = 'form-error-hint';
+                wait.textContent = `Se bloquearon los intentos. Vuelve a intentar en ${minutes} min.`;
+                this._lastBanner?.appendChild(wait);
+            }
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<span>Entrar</span>';
         }
+    }
+
+    _showBanner(message) {
+        this._lastBanner = null;
+        if (!message) return;
+        const form = document.getElementById('loginForm');
+        if (!form) return;
+        const existing = document.getElementById('loginErrorBanner');
+        if (existing) existing.remove();
+        const banner = document.createElement('div');
+        banner.id = 'loginErrorBanner';
+        banner.className = 'form-error-banner';
+        const iconEl = document.createElement('i');
+        iconEl.className = 'fa-solid fa-circle-exclamation';
+        banner.appendChild(iconEl);
+        banner.appendChild(document.createTextNode(' ' + message));
+        form.parentNode.insertBefore(banner, form);
+        this._lastBanner = banner;
     }
 
     _friendlyError(error) {

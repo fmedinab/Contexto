@@ -98,8 +98,14 @@ class ProfilesService {
         const user = authService.getCurrentUser();
         if (!user) throw new Error('No hay sesión activa');
 
-        const ext = file.name.split('.').pop();
-        const path = `avatars/${user.id}.${ext}`;
+        if (!file.type || !file.type.toLowerCase().startsWith('image/')) {
+            throw new Error('El archivo debe ser una imagen.');
+        }
+
+        const dirtyExt = (file.name.split('.').pop() || '').toLowerCase();
+        const ext = /^[a-z0-9]{1,5}$/.test(dirtyExt) ? dirtyExt : '';
+        const safeExt = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext) ? ext : 'png';
+        const path = `avatars/${user.id}.${safeExt}`;
 
         const { error: uploadError } = await supabase.storage
             .from('avatars')

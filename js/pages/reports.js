@@ -48,14 +48,15 @@ export class ReportsPage {
         const el = $('#reportIndicators');
         if (!el) return;
         el.innerHTML = indicators.map(i => {
-            const isPositive = i.delta.startsWith('+') && i.delta !== '+0';
-            const isNegative = i.delta.startsWith('-');
+            const delta = String(i.delta ?? '0');
+            const isPositive = delta.startsWith('+') && delta !== '+0';
+            const isNegative = delta.startsWith('-');
             const colorClass = isPositive ? 'stat-value--ok' : isNegative ? 'stat-value--danger' : '';
             return `
             <div class="stat-card">
                 <span class="stat-value ${colorClass}">${i.value}</span>
                 <span class="stat-label">${i.label}</span>
-                <span style="font-size:12px;margin-top:4px;color:${isPositive ? '#22c55e' : isNegative ? '#ef4444' : 'var(--dash-text-tertiary)'};">${i.delta} vs. mes anterior</span>
+                <span style="font-size:12px;margin-top:4px;color:${isPositive ? '#22c55e' : isNegative ? '#ef4444' : 'var(--dash-text-tertiary)'};">${delta} vs. mes anterior</span>
             </div>`;
         }).join('');
     }
@@ -65,12 +66,12 @@ export class ReportsPage {
         if (!el || !monthlySessions.length) return;
         const values = monthlySessions.map(m => m.value);
         const labels = monthlySessions.map(m => m.month);
-        const w = Math.max(400, el.offsetWidth || 800);
+        const w = el.offsetWidth || 400;
         const h = 180, padLeft = 30, padBottom = 24, padTop = 10;
         const chartW = w - padLeft;
         const chartH = h - padTop - padBottom;
         const barGap = 8;
-        const barW = (chartW - barGap * (values.length - 1)) / values.length;
+        const barW = Math.max(2, (chartW - barGap * (values.length - 1)) / values.length);
         const max = Math.max(...values, 1);
 
         const gridLines = [0, 0.25, 0.5, 0.75, 1].map(pct => {

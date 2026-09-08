@@ -190,7 +190,16 @@ export class NotesPage {
       $('#noteModalBody [data-action-edit]')?.addEventListener('click', () => { this._closeModal(); this._openForm(note.id); });
       $('#noteModalBody [data-action-delete]')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!confirm('¿Eliminar esta nota clínica permanentemente?')) return;
+        const confirmed = window.app?.confirm?.show
+            ? await window.app.confirm.show({
+                title: '¿Eliminar nota?',
+                message: '¿Eliminar esta nota clínica permanentemente?',
+                confirmLabel: 'Eliminar',
+                cancelLabel: 'Cancelar',
+                danger: true
+            })
+            : confirm('¿Eliminar esta nota clínica permanentemente?');
+        if (!confirmed) return;
         try {
           await notesService.delete(note.id);
           this._closeModal();

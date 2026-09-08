@@ -117,8 +117,8 @@ Ubicación central: `js/components/`. No duplicar en cada módulo.
 
 ## 16. PWA
 
-- `manifest.json`, service worker, iconos, instalación, caché controlada.
-- No almacenar en caché información sensible de pacientes.
+- `manifest.json`, iconos, instalación vía manifest.
+- **No usar service worker**: nunca cachear respuestas de Supabase (rest/v1 ni auth/v1) — son datos sensibles de pacientes.
 
 ## 17. Producción
 

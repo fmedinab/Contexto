@@ -7,7 +7,7 @@
     "display": "standalone",
     "orientation": "portrait-primary",
     "background_color": "#0a0a14",
-    "theme_color": "#0f0f1a",
+    "theme_color": "#0a0a14",
     "categories": ["medical", "productivity", "utilities"],
     "icons": [
         { "src": "assets/icons/icon-72.svg", "sizes": "72x72", "type": "image/svg+xml", "purpose": "any" },
