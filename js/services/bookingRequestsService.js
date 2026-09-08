@@ -124,15 +124,30 @@ class BookingRequestsService {
         if (!row.preferred_date) return { data: null, error: { message: 'Elige una fecha preferida' } };
         if (!row.preferred_time) return { data: null, error: { message: 'Elige un horario preferido' } };
 
-        const { data: created, error } = await supabase
+        // IMPORTANTE: sin .select() — anon NO tiene permiso SELECT de esta tabla
+        // (RLS clínica). Devolver la fila insertada dispararía un 42501/401.
+        const { error } = await supabase
             .from(TABLE)
-            .insert(row)
-            .select()
-            .single();
+            .insert(row);
 
         if (error) return { data: null, error };
         this._notify();
-        return { data: dbRowToUI(created), error: null };
+        return {
+            data: {
+                id: null,
+                fullName: row.full_name,
+                email: row.email || '',
+                phone: row.phone || '',
+                serviceType: row.service_type || 'Terapia Individual',
+                modality: row.modality || 'Presencial',
+                preferredDate: row.preferred_date || null,
+                preferredTime: row.preferred_time || null,
+                message: row.message || '',
+                status: 'PENDIENTE',
+                createdAt: new Date().toISOString()
+            },
+            error: null
+        };
     }
 
     /* SELECT solo clínicos (protegido por RLS). */
