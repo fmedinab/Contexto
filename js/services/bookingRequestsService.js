@@ -246,14 +246,15 @@ class BookingRequestsService {
             return { data: null, error: { message: 'La solicitud fue cancelada' } };
         }
 
-        // 1) Validar que el horario preferido siga libre.
+        // 1) Validar que el horario (preferido o elegido) siga libre.
+        const targetTime = overrides.preferredTime || req.preferredTime;
         const { data: freeSlots, error: avError } = await this.getAvailableTimes(req.preferredDate);
         if (avError) return { data: null, error: avError };
-        if (req.preferredTime && freeSlots.length && !freeSlots.includes(req.preferredTime)) {
+        if (targetTime && freeSlots.length && !freeSlots.includes(targetTime)) {
             return {
                 data: null,
                 error: {
-                    message: `El horario ${req.preferredTime} ya no está disponible el ${req.preferredDate}. Abre la solicitud, ajusta la hora y vuelve a convertir.`
+                    message: `El horario ${targetTime} ya no está disponible el ${req.preferredDate}. Abre la solicitud, ajusta la hora y vuelve a convertir.`
                 }
             };
         }
@@ -284,7 +285,7 @@ class BookingRequestsService {
         }
 
         // 2) Cita real.
-        const dateTime = `${req.preferredDate || ''}T${req.preferredTime || '10:00'}:00`;
+        const dateTime = `${req.preferredDate || ''}T${targetTime || '10:00'}:00`;
         const { data: appointment, error: aerr } = await appointmentService.create({
             patientId,
             title: overrides.title || `${req.serviceType || 'Sesión'}${req.modality === 'Online' ? ' (Online)' : ''}`,
@@ -297,8 +298,8 @@ class BookingRequestsService {
         });
         if (aerr) return { data: null, error: aerr };
 
-        // 3) Cerrar la solicitud.
-        await this.updateStatus(id, 'AGENDADA');
+        // 3) Cerrar la solicitud (guardando la hora finalmente agendada).
+        await this.update(id, { status: 'AGENDADA', preferredTime: targetTime || req.preferredTime });
 
         this._notify();
         return {

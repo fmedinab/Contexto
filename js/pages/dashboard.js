@@ -59,7 +59,10 @@ const MODAL_TITLES = {
     newEvaluation: ['Nueva evaluación', 'Registra una nueva evaluación psicológica.'],
     newNote: ['Nueva nota clínica', 'Registra el resumen de una sesión.'],
     newTask: ['Nueva tarea terapéutica', 'Asigna una tarea de seguimiento a un paciente.'],
-    patientForm: ['Paciente', '']
+    patientForm: ['Paciente', ''],
+    bookings: ['Solicitudes de cita', 'Todas las solicitudes pendientes de la landing.'],
+    bookingDetail: ['Solicitud de cita', ''],
+    bookingSlotPicker: ['Horario no disponible', 'Elegí un horario libre y agendamos en 1 clic.']
 };
 
 export class DashboardPage {
@@ -74,6 +77,9 @@ export class DashboardPage {
         this._currentView = 'dashboard';
         this._settingsPage = null;
         this._bookingReminderShown = false;
+        this._bookingPoll = null;
+        this._knownBookingIds = null;
+        this._pendingBookings = [];
     }
 
     async render() {
@@ -218,19 +224,21 @@ export class DashboardPage {
                     </div>
 
                     <div class="col col-right">
+                        <section class="card" id="dashBookingsPanel">
+                            <div class="card-title">
+                                Solicitudes de cita
+                                <span class="booking-count-badge" id="dashBookingCount"></span>
+                                <span class="booking-near-count" id="dashBookingNear"></span>
+                            </div>
+                            <div class="booking-list" id="dashBookingList"></div>
+                            <button class="card-footer-link" data-modal="bookings">Ver todas las solicitudes</button>
+                        </section>
                         <section class="card">
                             <div class="card-title">
                                 Próximas citas
                                 <button class="card-link" data-navigate="/appointments">Ver agenda ${icon('chevRight', 12)}</button>
                             </div>
                             <div class="appt-list" id="dashAppointments"></div>
-                        </section>
-                        <section class="card" id="dashBookingsPanel">
-                            <div class="card-title">
-                                Solicitudes de cita
-                                <span class="booking-count-badge" id="dashBookingCount"></span>
-                            </div>
-                            <div class="booking-list" id="dashBookingList"></div>
                         </section>
                         <section class="card emotion-card">
                             <div style="flex:1;min-width:0;">
@@ -297,6 +305,7 @@ export class DashboardPage {
         await this._renderTasksPanel();
         await this._renderNotesPanel();
         await this._renderBookings();
+        this._startBookingPoll();
 
         if (this._unsubscribers) {
             this._unsubscribers.forEach(unsub => { try { unsub(); } catch (e) { /* noop */ } });
@@ -333,6 +342,7 @@ export class DashboardPage {
 
     destroy() {
         if (this.clockInterval) clearInterval(this.clockInterval);
+        if (this._bookingPoll) { clearInterval(this._bookingPoll); this._bookingPoll = null; }
         this._bookingReminderShown = false;
         if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
         if (this._orientationHandler) window.removeEventListener('orientationchange', this._orientationHandler);
@@ -547,51 +557,95 @@ export class DashboardPage {
         const list = $('#dashBookingList');
         if (!list) return;
         const countEl = $('#dashBookingCount');
+        const nearEl = $('#dashBookingNear');
         try {
-            const { data: pending } = await bookingRequestsService.getAll({ status: 'PENDIENTE' });
-            const requests = (pending || []).sort((a, b) => {
+            const { data: all } = await bookingRequestsService.getAll({ status: 'PENDIENTE' });
+            const requests = (all || []).sort((a, b) => {
                 const da = a.preferredDate ? new Date(a.preferredDate + 'T00:00').getTime() : 0;
                 const db = b.preferredDate ? new Date(b.preferredDate + 'T00:00').getTime() : 0;
                 return da - db;
             });
+            this._pendingBookings = requests;
+            this._knownBookingIds = new Set(requests.map(r => r.id));
 
             if (countEl) countEl.textContent = requests.length ? String(requests.length) : '';
+            this._updateNotifDot();
+
             if (!requests.length) {
                 list.innerHTML = `<div class="empty-state">No hay solicitudes pendientes.</div>`;
+                if (nearEl) nearEl.textContent = '';
                 this._maybeRemindNearBookings(requests);
                 return;
             }
 
             const today = new Date(); today.setHours(0, 0, 0, 0);
             const nearWindow = new Date(today); nearWindow.setDate(today.getDate() + 3);
-
-            list.innerHTML = requests.slice(0, 5).map(r => {
+            const nearCount = requests.filter(r => {
                 const d = r.preferredDate ? new Date(r.preferredDate + 'T00:00') : null;
-                const isNear = d && d >= today && d <= nearWindow;
-                return `
-                    <div class="booking-row">
-                        <div class="booking-main">
-                            <div class="booking-name">
-                                ${escapeHtml(r.fullName)}
-                                ${isNear ? `<span class="tag booking-near">Próxima</span>` : ''}
-                            </div>
-                            <div class="booking-meta">${escapeHtml(r.serviceType)}${r.modality === 'Online' ? ' · Online' : ''} · ${this._formatBookingDate(r.preferredDate)}${r.preferredTime ? ' · ' + escapeHtml(r.preferredTime) : ''}</div>
-                        </div>
-                        <div class="booking-actions">
-                            <a class="booking-wa" href="${buildBookingReminderUrl(r)}" target="_blank" rel="noopener" title="Recordar por WhatsApp" aria-label="Recordar por WhatsApp">
-                                ${icon('wa', 14)}
-                            </a>
-                            <button class="booking-convert" data-booking-action="convert" data-id="${r.id}" title="Convertir en cita" aria-label="Convertir en cita">
-                                ${icon('calendar', 14)}
-                            </button>
-                        </div>
-                    </div>`;
-            }).join('');
+                return d && d >= today && d <= nearWindow;
+            }).length;
+            if (nearEl) nearEl.textContent = nearCount ? `${nearCount} próx.` : '';
 
+            list.innerHTML = requests.slice(0, 6).map(r => this._bookingRowHTML(r, today, nearWindow)).join('');
             this._maybeRemindNearBookings(requests);
         } catch {
             list.innerHTML = `<div class="empty-state">Error al cargar solicitudes.</div>`;
         }
+    }
+
+    _bookingRowHTML(r, today, nearWindow) {
+        const d = r.preferredDate ? new Date(r.preferredDate + 'T00:00') : null;
+        const isDue = d && d.getTime() === today.getTime();
+        const isNear = d && d >= today && d <= nearWindow && !isDue;
+        return `
+            <div class="booking-row" data-booking-row="${r.id}" role="button" tabindex="0" aria-label="Ver solicitud de ${escapeHtml(r.fullName)}">
+                <div class="booking-main">
+                    <div class="booking-name">
+                        ${escapeHtml(r.fullName)}
+                        ${isDue ? `<span class="tag booking-near is-due">Hoy</span>` : isNear ? `<span class="tag booking-near">Próxima</span>` : ''}
+                    </div>
+                    <div class="booking-meta">${escapeHtml(r.serviceType)}${r.modality === 'Online' ? ' · Online' : ''} · ${this._formatBookingDate(r.preferredDate)}${r.preferredTime ? ' · ' + escapeHtml(r.preferredTime) : ''}</div>
+                    <div class="booking-sub">${escapeHtml(r.phone || 'Sin teléfono')}${r.createdAt ? ' · llegó ' + this._timeAgo(r.createdAt) : ''}</div>
+                </div>
+                <div class="booking-actions">
+                    <a class="booking-wa" href="${buildBookingReminderUrl(r)}" target="_blank" rel="noopener" title="Recordar por WhatsApp" aria-label="Recordar por WhatsApp">${icon('wa', 14)}</a>
+                    <button class="booking-convert" data-booking-action="convert" data-id="${r.id}" title="Convertir en cita" aria-label="Convertir en cita">${icon('calendar', 14)}</button>
+                </div>
+            </div>`;
+    }
+
+    _timeAgo(iso) {
+        if (!iso) return '';
+        const diff = Date.now() - new Date(iso).getTime();
+        if (isNaN(diff) || diff < 0) return '';
+        const min = Math.floor(diff / 60000);
+        if (min < 1) return 'ahora';
+        if (min < 60) return `hace ${min} min`;
+        const h = Math.floor(min / 60);
+        if (h < 24) return `hace ${h} h`;
+        const d = Math.floor(h / 24);
+        return d === 1 ? 'hace 1 día' : `hace ${d} días`;
+    }
+
+    _updateNotifDot() {
+        const dot = $('#dashNotifDot');
+        if (dot) dot.style.display = (this._pendingBookings || []).length ? 'block' : 'none';
+    }
+
+    // Polleo ligero: avisa cuando llega una solicitud nueva sin recargar la página.
+    _startBookingPoll() {
+        if (this._bookingPoll) clearInterval(this._bookingPoll);
+        this._bookingPoll = setInterval(async () => {
+            try {
+                const { data } = await bookingRequestsService.getAll({ status: 'PENDIENTE' });
+                const fresh = (data || []).filter(r => !this._knownBookingIds || !this._knownBookingIds.has(r.id));
+                if (fresh.length) {
+                    const r = fresh[0];
+                    this._showToast(`Nueva solicitud de ${r.fullName} · ${this._formatBookingDate(r.preferredDate)}${r.preferredTime ? ' ' + r.preferredTime : ''}.`);
+                    await this._renderBookings();
+                }
+            } catch { /* reintenta en el próximo ciclo */ }
+        }, 45000);
     }
 
     // Avisa una sola vez al entrar si hay solicitudes con fecha cercana.
@@ -609,12 +663,11 @@ export class DashboardPage {
         this._showToast(`Tienes ${near.length} solicitud(es) con fecha en los próximos días. Confírmalas por WhatsApp o conviértelas en cita.`);
     }
 
-    async _handleBookingAction(btn) {
-        const id = btn && btn.dataset && btn.dataset.id;
-        if (!id) return;
-        btn.classList.add('is-busy');
-        try {
-            const confirmed = window.app?.confirm?.show
+    /* Conversión con automatización: si el horario preferido ya no está libre,
+       abre un selector de horarios libres para agendarla en 1 clic. */
+    async _convertBooking(id, confirmedTime) {
+        if (!confirmedTime) {
+            const ok = window.app?.confirm?.show
                 ? await window.app.confirm.show({
                     title: 'Convertir en cita',
                     message: 'Se creará una cita confirmada (el paciente se registra automáticamente si no existe) y la solicitud quedará marcada como Agendada.',
@@ -622,19 +675,125 @@ export class DashboardPage {
                     cancelLabel: 'Cancelar'
                 })
                 : confirm('¿Convertir esta solicitud en una cita confirmada?');
-            if (!confirmed) return;
+            if (!ok) { if (this.currentModal) this._closeModal(); return; }
+        }
 
-            const { data, error } = await bookingRequestsService.convertToAppointment(id);
-            if (error) {
-                this._showToast('No se pudo agendar: ' + (error.message || 'Error desconocido'));
-                return;
-            }
+        const { data, error } = await bookingRequestsService.convertToAppointment(id, confirmedTime ? { preferredTime: confirmedTime } : {});
+        if (!error && data) {
+            if (this.currentModal) this._closeModal();
             this._showToast('Cita creada para ' + (data.request.fullName || 'el solicitante') + '.');
             await Promise.all([this._renderBookings(), this._renderAppointments(), this._renderPatients()]);
+            return;
+        }
+        if (error && error.message && /disponible/i.test(error.message)) {
+            await this._openSlotPicker(id);
+            return;
+        }
+        this._showToast('No se pudo agendar: ' + (error.message || 'Error desconocido'));
+    }
+
+    async _handleBookingAction(btn) {
+        const id = btn && btn.dataset && btn.dataset.id;
+        if (!id) return;
+        btn.classList.add('is-busy');
+        try {
+            await this._convertBooking(id);
         } catch (err) {
             this._showToast('Error al agendar: ' + (err.message || ''));
         } finally {
             btn.classList.remove('is-busy');
+        }
+    }
+
+    /* Abre el modal para elegir un horario libre cuando el preferido no está disponible. */
+    async _openSlotPicker(id) {
+        try {
+            const { data: req, error } = await bookingRequestsService.getById(id);
+            if (error || !req) { this._showToast('No se pudo cargar la solicitud.'); return; }
+            const { data: slots, error: avError } = await bookingRequestsService.getAvailableTimes(req.preferredDate);
+            if (avError || !slots.length) {
+                this._showToast(avError
+                    ? 'No se pudieron consultar los horarios libres.'
+                    : 'No quedan horarios libres para ' + this._formatBookingDate(req.preferredDate) + '. Contacta al solicitante.');
+                return;
+            }
+            this._openModal('bookingSlotPicker', { id, req, slots });
+        } catch {
+            this._showToast('Error al consultar la disponibilidad.');
+        }
+    }
+
+    async _showBookingDetail(id) {
+        try {
+            const { data: req, error } = await bookingRequestsService.getById(id);
+            if (error || !req) { this._showToast('No se pudo cargar la solicitud.'); return; }
+            this._openModal('bookingDetail', req);
+        } catch {
+            this._showToast('Error al cargar la solicitud.');
+        }
+    }
+
+    _bookingDetailHTML(req) {
+        const waUrl = buildBookingReminderUrl(req);
+        return `
+            <div class="booking-detail">
+                <div class="booking-detail-head">
+                    <div class="booking-detail-name">${escapeHtml(req.fullName)}</div>
+                    <div class="booking-detail-tags">
+                        <span class="status-pill confirmed">Pendiente</span>
+                        ${req.modality === 'Online' ? '<span class="status-pill" style="background:var(--dash-cyan-dim);color:var(--dash-cyan);border-color:rgba(34,211,238,.35);">Online</span>' : '<span class="status-pill" style="background:var(--dash-blue-dim);color:var(--dash-blue);">Presencial</span>'}
+                    </div>
+                </div>
+                <dl class="booking-detail-grid">
+                    <div><dt>Teléfono</dt><dd>${escapeHtml(req.phone || '—')}</dd></div>
+                    <div><dt>Correo</dt><dd>${escapeHtml(req.email || '—')}</dd></div>
+                    <div><dt>Servicio</dt><dd>${escapeHtml(req.serviceType || '—')}</dd></div>
+                    <div><dt>Modalidad</dt><dd>${escapeHtml(req.modality || '—')}</dd></div>
+                    <div><dt>Fecha</dt><dd>${this._formatBookingDate(req.preferredDate)}</dd></div>
+                    <div><dt>Horario</dt><dd>${escapeHtml(req.preferredTime || '—')}</dd></div>
+                    <div><dt>Llegó</dt><dd>${req.createdAt ? this._timeAgo(req.createdAt) : '—'}</dd></div>
+                </dl>
+                ${req.message ? `<div class="booking-detail-msg"><h4>Mensaje del paciente</h4><p>${escapeHtml(req.message)}</p></div>` : ''}
+                <div class="action-row" style="margin-top:16px;">
+                    <a class="btn btn-wa" href="${waUrl}" target="_blank" rel="noopener">${icon('wa', 15)} Recordar por WhatsApp</a>
+                    <button class="btn btn-primary" data-booking-convert>Convertir en cita</button>
+                    <button class="btn" data-booking-contact>Marcar contactada</button>
+                    <button class="btn btn-danger" data-booking-cancel>Descartar</button>
+                </div>
+            </div>`;
+    }
+
+    _bookingSlotPickerHTML(payload) {
+        const { req, slots } = payload;
+        return `
+            <div class="booking-slot-picker">
+                <p class="booking-slot-intro">El horario <strong>${escapeHtml(req.preferredTime)}</strong> del <strong>${this._formatBookingDate(req.preferredDate)}</strong> ya no está disponible. Elegí un horario libre para <strong>${escapeHtml((req.fullName || '').trim().split(/\s+/)[0])}</strong>:</p>
+                <div class="booking-slot-grid">
+                    ${slots.map(t => `<button type="button" class="booking-slot-chip" data-time="${t}">${t}</button>`).join('')}
+                </div>
+                <div class="action-row" style="margin-top:16px;">
+                    <button class="btn btn-primary" data-booking-confirm>Agendar en la hora elegida</button>
+                    <button class="btn" data-booking-close>Cancelar</button>
+                </div>
+            </div>`;
+    }
+
+    async _renderModalBookingList() {
+        const list = $('#dashModalBookingList');
+        if (!list) return;
+        try {
+            const { data } = await bookingRequestsService.getAll({ status: 'PENDIENTE' });
+            const requests = (data || []).sort((a, b) => {
+                const da = a.preferredDate ? new Date(a.preferredDate + 'T00:00').getTime() : 0;
+                const db = b.preferredDate ? new Date(b.preferredDate + 'T00:00').getTime() : 0;
+                return da - db;
+            });
+            if (!requests.length) { list.innerHTML = '<div class="empty-state">No hay solicitudes pendientes.</div>'; return; }
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const nearWindow = new Date(today); nearWindow.setDate(today.getDate() + 3);
+            list.innerHTML = requests.map(r => this._bookingRowHTML(r, today, nearWindow)).join('');
+        } catch {
+            list.innerHTML = '<div class="empty-state">Error al cargar solicitudes.</div>';
         }
     }
 
@@ -814,10 +973,21 @@ export class DashboardPage {
         // Notifications
         const notifBtn = $('#dashNotifications');
         if (notifBtn) {
+            notifBtn.setAttribute('aria-label', 'Ver notificaciones');
+            notifBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+                <span class="notif-dot" id="dashNotifDot" style="display:none" aria-hidden="true"></span>`;
             notifBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this._showToast('Tienes 2 mensajes nuevos y 1 recordatorio de evaluación.');
+                const n = (this._pendingBookings || []).length;
+                if (!n) {
+                    this._showToast('No tienes notificaciones nuevas.');
+                    return;
+                }
+                const near = n >= 3;
+                this._showToast(`Tienes ${n} solicitud(es) pendiente(s)${near ? ', varias con fecha cercana' : ''}. Revisa el panel «Solicitudes de cita».`);
             });
+            this._updateNotifDot();
         }
 
         // Calendar — navigate to appointments page
@@ -985,6 +1155,13 @@ export class DashboardPage {
                 return;
             }
 
+            // Booking row → detalle
+            const bookingRow = e.target.closest('[data-booking-row]');
+            if (bookingRow && !e.target.closest('.booking-actions, a, button')) {
+                this._showBookingDetail(bookingRow.dataset.bookingRow);
+                return;
+            }
+
             // Booking request actions (convertir solicitud en cita)
             const bookingBtn = e.target.closest('[data-booking-action]');
             if (bookingBtn) {
@@ -1018,6 +1195,13 @@ export class DashboardPage {
         // Close modal on Escape
         this._docKeyHandler = (e) => {
             if (e.key === 'Escape' && this.currentModal) this._closeModal();
+            if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.closest) {
+                const row = e.target.closest('[data-booking-row]');
+                if (row && !e.target.closest('a, button')) {
+                    e.preventDefault();
+                    this._showBookingDetail(row.dataset.bookingRow);
+                }
+            }
         };
         document.addEventListener('keydown', this._docKeyHandler);
 
@@ -1053,7 +1237,7 @@ export class DashboardPage {
 
         box.className = 'modal-box' + (wide ? ' modal-wide' : '');
 
-        const hasLoading = ['evaluations', 'patients', 'appointments', 'newEvaluation', 'tasks', 'notes', 'reports', 'messages'].includes(type);
+        const hasLoading = ['evaluations', 'patients', 'appointments', 'newEvaluation', 'tasks', 'notes', 'reports', 'messages', 'bookings'].includes(type);
 
         if (hasLoading) {
             const loadText = modalSubtitle || 'Cargando información';
@@ -1120,6 +1304,9 @@ export class DashboardPage {
             case 'messages': body.innerHTML = this._messagesModalHTML(); break;
             case 'patientDetail': body.innerHTML = this._patientDetailHTML(payload); break;
             case 'appointmentDetail': body.innerHTML = await this._appointmentDetailHTML(payload); break;
+            case 'bookings': body.innerHTML = '<div class="booking-list bookings-modal-list" id="dashModalBookingList"><div class="empty-state">Cargando…</div></div>'; await this._renderModalBookingList(); break;
+            case 'bookingDetail': body.innerHTML = this._bookingDetailHTML(payload); break;
+            case 'bookingSlotPicker': body.innerHTML = this._bookingSlotPickerHTML(payload); break;
             case 'newAppointment': body.innerHTML = await this._newAppointmentFormHTML(); break;
             case 'newEvaluation': body.innerHTML = await this._newEvaluationFormHTML(); break;
             case 'newNote': body.innerHTML = await this._newNoteFormHTML(); break;
@@ -1782,6 +1969,66 @@ export class DashboardPage {
     // ========== MODAL EVENT BINDING ==========
 
     _bindModalBodyEvents(type, payload) {
+        if (type === 'bookings') {
+            $$('#dashModalBookingList [data-booking-row]').forEach(row => {
+                row.addEventListener('click', () => {
+                    this._closeModal();
+                    this._showBookingDetail(row.dataset.bookingRow);
+                });
+            });
+        }
+
+        if (type === 'bookingDetail') {
+            $('#dashModalBody [data-booking-convert]')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const btn = e.currentTarget;
+                btn.disabled = true;
+                this._convertBooking(payload.id).finally(() => { btn.disabled = false; });
+            });
+            $('#dashModalBody [data-booking-contact]')?.addEventListener('click', async () => {
+                try {
+                    await bookingRequestsService.updateStatus(payload.id, 'CONTACTADA');
+                    this._closeModal();
+                    this._showToast('Solicitud marcada como contactada.');
+                    await this._renderBookings();
+                } catch (err) { this._showToast('Error: ' + (err.message || '')); }
+            });
+            $('#dashModalBody [data-booking-cancel]')?.addEventListener('click', async () => {
+                const ok = window.app?.confirm?.show
+                    ? await window.app.confirm.show({ title: '¿Descartar solicitud?', message: 'Se cancelará la solicitud y dejará de verse como pendiente.', confirmLabel: 'Descartar', cancelLabel: 'Cancelar', danger: true })
+                    : confirm('¿Descartar esta solicitud?');
+                if (!ok) return;
+                try {
+                    await bookingRequestsService.updateStatus(payload.id, 'CANCELADA');
+                    this._closeModal();
+                    this._showToast('Solicitud descartada.');
+                    await this._renderBookings();
+                } catch (err) { this._showToast('Error: ' + (err.message || '')); }
+            });
+        }
+
+        if (type === 'bookingSlotPicker') {
+            const { id } = payload;
+            $$('#dashModalBody .booking-slot-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    $$('#dashModalBody .booking-slot-chip').forEach(c => c.classList.remove('is-selected'));
+                    chip.classList.add('is-selected');
+                    const confirmBtn = $('#dashModalBody [data-booking-confirm]');
+                    if (confirmBtn) confirmBtn.dataset.time = chip.dataset.time;
+                });
+            });
+            $('#dashModalBody [data-booking-confirm]')?.addEventListener('click', async (e) => {
+                const btn = e.currentTarget;
+                const time = btn.dataset.time;
+                if (!time) { this._showToast('Elige un horario libre primero.'); return; }
+                btn.disabled = true;
+                try {
+                    await this._convertBooking(id, time);
+                } catch { btn.disabled = false; this._showToast('No se pudo agendar: error inesperado.'); }
+            });
+            $('#dashModalBody [data-booking-close]')?.addEventListener('click', () => this._closeModal());
+        }
+
         if (type === 'core') {
             $$('#dashModalBody [data-core-open]').forEach(btn => {
                 btn.addEventListener('click', () => this._openModal(btn.dataset.coreOpen));

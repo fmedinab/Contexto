@@ -846,8 +846,15 @@ export class LandingPage {
             render();
         });
 
-        setTimeState('Elige una fecha para ver los horarios disponibles.', '', '<option value="" disabled selected>Selecciona un día</option>');
+        setTimeState('Elige una fecha para ver los horarios disponibles.', '', '');
         render();
+
+        this._calendarRefresh = () => {
+            hidden.value = '';
+            timeHidden.value = '';
+            setTimeState('Elige una fecha para ver los horarios disponibles.', '', '');
+            render();
+        };
     }
 
     _bindBookingForm() {
@@ -910,6 +917,7 @@ export class LandingPage {
 
             if (!error && data) {
                 form.reset();
+                if (this._calendarRefresh) this._calendarRefresh();
                 setStatus('success', '¡Solicitud recibida! Te confirmamos tu cita en menos de 24 horas.');
                 if (window.app && window.app.toast) {
                     window.app.toast.show({
