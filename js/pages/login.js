@@ -194,8 +194,11 @@ export class LoginPage {
         try {
             await window.app.auth.login(email, password);
             _clearFailures();
+            // Refrescar roles antes de decidir el destino post-login.
+            try { await window.app.permissions.refresh(); } catch (e) { /* noop */ }
+            const isPatient = window.app.permissions.isPatient?.() || false;
             window.app.toast.success('Bienvenido', 'Has iniciado sesión correctamente.');
-            window.router.navigate('/dashboard');
+            window.router.navigate(isPatient ? '/paciente' : '/dashboard');
         } catch (error) {
             const raw = (error.message || '').toLowerCase();
             if (!/fetch|network/.test(raw)) _registerFailure();

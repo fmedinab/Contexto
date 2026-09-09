@@ -1,0 +1,232 @@
+/* ============================================
+   css/patient.css
+   Estilos del portal del paciente (/paciente).
+   Reutiliza las clases base del dashboard
+   (.app--dashboard, .main-grid, .card) y añade
+   los estilos propios del portal con prefijo .pt-.
+   ============================================ */
+
+.app--dashboard .pt-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+}
+
+@media (min-width: 1024px) {
+    .app--dashboard .pt-grid {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+    }
+}
+
+/* ===== Estados de carga / vacío ===== */
+.pt-loading {
+    color: var(--text-muted, #94a3b8);
+    font-size: var(--text-sm, 0.875rem);
+    padding: var(--space-md) 0;
+}
+
+.pt-empty {
+    color: var(--text-muted, #94a3b8);
+    font-size: var(--text-sm, 0.875rem);
+    line-height: var(--leading-normal, 1.5);
+    margin: var(--space-sm) 0;
+}
+
+/* ===== Tarjeta de perfil ===== */
+.pt-card--profile .pt-profile-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+
+.pt-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full, 9999px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: var(--text-lg, 1.125rem);
+    color: #fff;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    flex: none;
+}
+
+.pt-name {
+    font-size: var(--text-xl, 1.25rem);
+    font-weight: 700;
+    color: var(--text-strong, inherit);
+}
+
+.pt-muted {
+    color: var(--text-muted, #94a3b8);
+    font-size: var(--text-sm, 0.875rem);
+}
+
+.pt-dl {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+    margin: 0;
+}
+
+.pt-dl > div {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-md);
+    padding: var(--space-xs) 0;
+    border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+}
+
+.pt-dl dt {
+    color: var(--text-muted, #94a3b8);
+    font-size: var(--text-sm, 0.875rem);
+    flex: none;
+}
+
+.pt-dl dd {
+    margin: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ===== Listas de ítems (citas, tareas, evaluaciones) ===== */
+.pt-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+}
+
+.pt-item:last-child {
+    border-bottom: none;
+}
+
+.pt-item-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: var(--space-xs);
+    border-radius: var(--radius-md, 0.5rem);
+    background: var(--bg-surface, rgba(255, 255, 255, 0.04));
+    flex: none;
+}
+
+.pt-item-day {
+    font-size: var(--text-xl, 1.25rem);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-strong, inherit);
+}
+
+.pt-item-month {
+    font-size: var(--text-xs, 0.75rem);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #94a3b8);
+}
+
+.pt-item-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pt-item-title {
+    font-weight: 600;
+    color: var(--text-strong, inherit);
+    overflow-wrap: anywhere;
+}
+
+.pt-item-sub {
+    color: var(--text-muted, #94a3b8);
+    font-size: var(--text-sm, 0.875rem);
+    margin-top: 2px;
+}
+
+/* ===== Badges de estado ===== */
+.pt-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: var(--radius-full, 9999px);
+    font-size: var(--text-xs, 0.75rem);
+    font-weight: 600;
+    white-space: nowrap;
+    background: var(--badge-bg, rgba(148, 163, 184, 0.16));
+    color: var(--badge-fg, #94a3b8);
+}
+
+.pt-badge--pendiente,
+.pt-badge--programada,
+.pt-badge--en_progreso,
+.pt-badge--en-curso {
+    background: rgba(245, 158, 11, 0.18);
+    color: #f59e0b;
+}
+
+.pt-badge--confirmada {
+    background: rgba(59, 130, 246, 0.18);
+    color: #3b82f6;
+}
+
+.pt-badge--completada,
+.pt-badge--agendada {
+    background: rgba(34, 197, 94, 0.18);
+    color: #22c55e;
+}
+
+.pt-badge--cancelada {
+    background: rgba(239, 68, 68, 0.16);
+    color: #ef4444;
+}
+
+.pt-badge--contactada {
+    background: rgba(168, 85, 247, 0.18);
+    color: #a855f7;
+}
+
+.pt-badge--vencida {
+    background: rgba(239, 68, 68, 0.16);
+    color: #ef4444;
+}
+
+/* ===== Tareas: barra de progreso ===== */
+.pt-task .pt-item-body {
+    display: block;
+}
+
+.pt-progress {
+    height: 6px;
+    border-radius: var(--radius-full, 9999px);
+    background: var(--progress-track, rgba(148, 163, 184, 0.18));
+    margin-top: var(--space-sm);
+    overflow: hidden;
+}
+
+.pt-progress-fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--radius-full, 9999px);
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    transition: width var(--transition-base, 250ms ease);
+}
+
+/* ===== Enlace para reservar ===== */
+.pt-book-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    font-weight: 600;
+}
+
+.pt-book-link:hover {
+    text-decoration: none;
+}

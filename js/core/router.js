@@ -96,12 +96,17 @@ export class Router {
     _buildTitle(path) {
         const titles = {
             '/': 'CONTEXTO — Psicología',
+            '/privacidad': 'Política de Privacidad — CONTEXTO',
+            '/cookies': 'Política de Cookies — CONTEXTO',
+            '/aviso-legal': 'Aviso Legal — CONTEXTO',
             '/login': 'Iniciar sesión — CONTEXTO',
             '/register': 'Registro — CONTEXTO',
             '/forgot-password': 'Recuperar contraseña — CONTEXTO',
             '/dashboard': 'Dashboard — CONTEXTO',
+            '/paciente': 'Mi portal — CONTEXTO',
             '/patients': 'Pacientes — CONTEXTO',
             '/appointments': 'Citas — CONTEXTO',
+            '/sessions': 'Sesiones — CONTEXTO',
             '/evaluations': 'Evaluaciones — CONTEXTO',
             '/tasks': 'Tareas terapéuticas — CONTEXTO',
             '/notes': 'Notas clínicas — CONTEXTO',

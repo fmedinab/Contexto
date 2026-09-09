@@ -123,6 +123,20 @@ const DEFAULT_CONTENT = {
         description: 'Centro de Ciencias Comportamentales. Atención presencial y online.',
         contact_email: 'contacto@contextopsicologia.com',
         contact_phone: '+502 1234 5678'
+    },
+    legal: {
+        privacy_title: 'Política de Privacidad',
+        privacy_updated: 'Última actualización: septiembre de 2026.',
+        privacy_intro: 'En CONTEXTO Psicología (Centro de Ciencias Comportamentales) nos comprometemos a proteger tu privacidad y a tratar tus datos personales con absoluta confidencialidad.',
+        privacy_content: 'Información que recopilamos:\n· Datos de contacto que proporcionas al reservar una cita.\n· Información clínica únicamente en el marco de la relación terapéutica.\n· Datos de uso técnico del sitio de forma anónima y agregada.\n\nUso de la información:\n· Contactarte y gestionar las citas solicitadas.\n· Proporcionar la atención terapéutica acordada.\n· Cumplir obligaciones legales y de facturación.\n\nNo vendemos ni compartimos tus datos con terceros, salvo cuando la ley lo exija o medie tu consentimiento expreso.',
+        cookies_title: 'Política de Cookies',
+        cookies_updated: 'Última actualización: septiembre de 2026.',
+        cookies_intro: 'Esta página utiliza cookies propias y de terceros para garantizar el funcionamiento correcto del sitio y mejorar tu experiencia de navegación.',
+        cookies_content: 'Tipos de cookies que utilizamos:\n· Técnicas (obligatorias): necesarias para el funcionamiento, autenticación y seguridad.\n· De preferencias: recuerdan tu idioma y tema (claro/oscuro).\n· De análisis: de forma anónima y agregada, para mejorar el sitio.\n\nPuedes aceptarlas, rechazarlas o configurarlas desde el banner. El bloqueo de algunas cookies puede afectar el funcionamiento.',
+        notice_title: 'Aviso Legal',
+        notice_updated: 'Última actualización: septiembre de 2026.',
+        notice_intro: 'En cumplimiento de la normativa aplicable, se informa de los datos identificativos del responsable del sitio y de las condiciones de uso del mismo.',
+        notice_content: 'Titular:\n\n· Razón social: CONTEXTO Psicología\n· Domicilio: Ciudad de Guatemala, Guatemala\n· Correo de contacto: contacto@contextopsicologia.com\n\nCondiciones de uso:\n· Este sitio tiene finalidad informativa y de contacto.\n· La información publicada no sustituye la atención profesional ni el diagnóstico clínico.\n· Prohibida la reproducción total o parcial del contenido sin autorización expresa.\n\nPara dudas o reclamaciones: contacto@contextopsicologia.com.'
     }
 };
 

@@ -22,6 +22,8 @@ import { TasksPage } from '../pages/tasks.js';
 import { NotesPage } from '../pages/notes.js';
 import { ReportsPage } from '../pages/reports.js';
 import { LandingPage } from '../pages/landing.js';
+import { LegalPage } from '../pages/legalPage.js';
+import { PatientPortalPage } from '../pages/patient.js';
 
 class App {
     constructor() {
@@ -63,7 +65,11 @@ class App {
             .addRoute('/register', () => this.renderPage('register', new RegisterPage()))
             .addRoute('/forgot-password', () => this.renderPage('forgotPassword', new ForgotPasswordPage()))
             .addRoute('/reset-password', () => this.renderPage('resetPassword', new ResetPasswordPage()))
+            .addRoute('/privacidad', () => this.renderPage('legal', new LegalPage()))
+            .addRoute('/cookies', () => this.renderPage('legal', new LegalPage()))
+            .addRoute('/aviso-legal', () => this.renderPage('legal', new LegalPage()))
             .addRoute('/dashboard', () => this.renderPage('dashboard', new DashboardPage()))
+            .addRoute('/paciente', () => this.requireAuth(() => this.renderPage('patient', new PatientPortalPage()))())
             .addRoute('/patients', () => this.requireAuth(() => this.renderPage('patients', new PatientsPage()))())
             .addRoute('/appointments', () => this.requireAuth(() => this.renderPage('appointments', new AppointmentsPage()))())
             .addRoute('/evaluations', () => this.requireAuth(() => this.renderPage('evaluations', new EvaluationsPage()))())
@@ -85,7 +91,7 @@ class App {
 
             const publicRoutes = ['/login', '/register', '/forgot-password'];
             const isAuthRoute = path === '/reset-password';
-            const isDashboard = path === '/dashboard';
+            const isLegalRoute = ['/privacidad', '/cookies', '/aviso-legal'].includes(path);
 
             if (publicRoutes.includes(path)) {
                 if (this.auth.isAuthenticated()) {
@@ -105,9 +111,36 @@ class App {
                 return;
             }
 
-            if (isDashboard) {
+            // Páginas legales: públicas, sin autenticación.
+            if (isLegalRoute) return;
+
+            // Ruta del portal del paciente: solo usuarios con rol paciente.
+            if (path === '/paciente') {
                 if (!this.auth.isAuthenticated()) {
                     router.navigate('/login');
+                    return false;
+                }
+                if (!this.permissions.isPatient()) {
+                    router.navigate('/dashboard');
+                    return false;
+                }
+                return;
+            }
+
+            // Rutas clínicas y dashboard: solo staff con permiso. Un paciente
+            // que intenta entrar es redirigido a su portal.
+            const staffRoutes = ['/dashboard', '/patients', '/appointments', '/evaluations', '/tasks', '/notes', '/reports'];
+            if (staffRoutes.includes(path)) {
+                if (!this.auth.isAuthenticated()) {
+                    router.navigate('/login');
+                    return false;
+                }
+                if (this.permissions.isPatient()) {
+                    router.navigate('/paciente');
+                    return false;
+                }
+                if (!this.permissions.canAccessPage(path)) {
+                    router.navigate('/dashboard');
                     return false;
                 }
             }
@@ -137,7 +170,7 @@ class App {
 
         const appEl = document.getElementById('app');
         if (appEl) {
-            const dashboardPages = ['dashboard', 'patients', 'appointments', 'evaluations', 'tasks', 'notes', 'reports'];
+            const dashboardPages = ['dashboard', 'patients', 'appointments', 'evaluations', 'tasks', 'notes', 'reports', 'patient'];
             if (dashboardPages.includes(key)) {
                 appEl.classList.add('app--dashboard');
             } else {

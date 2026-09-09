@@ -6,6 +6,7 @@
 import { bookingRequestsService, buildWhatsAppUrl } from '../services/bookingRequestsService.js';
 import { cmsService } from '../services/cmsService.js';
 import { siteSettingsService } from '../services/siteSettingsService.js';
+import { cookieBanner } from '../components/cookieBanner.js';
 
 export class LandingPage {
     constructor() {
@@ -46,9 +47,11 @@ export class LandingPage {
         this._bindActiveNav();
         this._bindCalendar();
         this._bindBookingForm();
+        cookieBanner.ensure();
     }
 
     destroy() {
+        cookieBanner.remove();
         if (this._scrollHandler) {
             window.removeEventListener('scroll', this._scrollHandler);
             this._scrollHandler = null;
@@ -431,7 +434,11 @@ export class LandingPage {
 
                     <div class="lp-footer-bottom">
                         <span>© 2026 CONTEXTO Psicología · Centro de Ciencias Comportamentales</span>
-                        <span><a href="#inicio" data-scroll="inicio">Privacidad</a> · <a href="#inicio" data-scroll="inicio">Términos</a></span>
+                        <span>
+                            <a href="#/privacidad">Privacidad</a> ·
+                            <a href="#/cookies">Cookies</a> ·
+                            <a href="#/aviso-legal">Aviso legal</a>
+                        </span>
                     </div>
                 </div>
             </footer>

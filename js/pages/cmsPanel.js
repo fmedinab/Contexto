@@ -192,6 +192,25 @@ const SECTIONS = [
             { key: 'contact_email', label: 'Correo de contacto', type: 'text' },
             { key: 'contact_phone', label: 'Teléfono', type: 'text' }
         ]
+    },
+    {
+        id: 'legal',
+        label: 'Legal y privacidad',
+        icon: 'fa-solid fa-scale-balanced',
+        fields: [
+            { key: 'privacy_title', label: 'Título de privacidad', type: 'text' },
+            { key: 'privacy_updated', label: 'Fecha de privacidad', type: 'text' },
+            { key: 'privacy_intro', label: 'Introducción de privacidad', type: 'textarea' },
+            { key: 'privacy_content', label: 'Contenido de privacidad', type: 'textarea', hint: 'Separa secciones con línea en blanco.' },
+            { key: 'cookies_title', label: 'Título de cookies', type: 'text' },
+            { key: 'cookies_updated', label: 'Fecha de cookies', type: 'text' },
+            { key: 'cookies_intro', label: 'Introducción de cookies', type: 'textarea' },
+            { key: 'cookies_content', label: 'Contenido de cookies', type: 'textarea', hint: 'Separa secciones con línea en blanco.' },
+            { key: 'notice_title', label: 'Título de aviso legal', type: 'text' },
+            { key: 'notice_updated', label: 'Fecha de aviso legal', type: 'text' },
+            { key: 'notice_intro', label: 'Introducción de aviso legal', type: 'textarea' },
+            { key: 'notice_content', label: 'Contenido de aviso legal', type: 'textarea', hint: 'Separa secciones con línea en blanco.' }
+        ]
     }
 ];
 
