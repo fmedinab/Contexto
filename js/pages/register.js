@@ -164,7 +164,7 @@ export class RegisterPage {
         submitBtn.innerHTML = '<span class="spinner spinner--sm btn-spinner"></span> Creando cuenta...';
 
         try {
-            await window.app.auth.register(email, password, { full_name: fullName });
+            await window.app.auth.register(email, password, { full_name: fullName, role: 'patient' });
             window.app.toast.success('Cuenta creada', 'Revisa tu correo para confirmar tu cuenta.');
             window.router.navigate('/login');
         } catch (error) {

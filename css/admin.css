@@ -141,6 +141,15 @@
     font-weight: 400;
 }
 
+.cms-field-help {
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.45;
+    margin: 0;
+    font-weight: 400;
+    max-width: 60ch;
+}
+
 .cms-textarea { resize: vertical; min-height: 90px; }
 
 .cms-field--color input[type="color"] {
@@ -288,6 +297,60 @@
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
 }
+
+/* ===== Aviso "todo viene prellenado" ===== */
+.cms-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-surface, #fff);
+    border: 1px dashed var(--primary, #6366f1);
+    border-radius: var(--radius-md, 0.5rem);
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary, #555);
+}
+.cms-notice i { color: var(--primary, #6366f1); font-size: 16px; flex: none; }
+
+.cms-section-desc {
+    margin: 0 0 18px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted, #8a8aa0);
+}
+
+/* ===== Selector visual de iconos ===== */
+.cms-iconpicker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cms-iconopt {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--border, rgba(0,0,0,0.12));
+    border-radius: 10px;
+    background: var(--bg-elevated, #fff);
+    color: var(--text-secondary, #555);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+    font-family: var(--font-sans, 'Inter', sans-serif);
+}
+.cms-iconopt i { font-size: 15px; color: var(--text-muted, #8a8aa0); }
+.cms-iconopt:hover { border-color: var(--primary, #6366f1); }
+.cms-iconopt.is-selected {
+    background: var(--primary-ring, rgba(99,102,241,0.12));
+    border-color: var(--primary, #6366f1);
+    color: var(--primary, #6366f1);
+}
+.cms-iconopt.is-selected i { color: var(--primary, #6366f1); }
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {

@@ -198,6 +198,7 @@ class App {
                 if (session?.user) {
                     this.permissions.refresh().then(() => {
                         this.updateNavigationVisibility();
+                        this._handleMagicLinkArrival();
                     }).catch(() => {});
                 } else {
                     this.updateNavigationVisibility();
@@ -207,6 +208,21 @@ class App {
                 router.navigate('/login');
             }
         });
+    }
+
+    /* Tras entrar vía magic link (login sin contraseña), lleva al usuario a
+       su portal según el rol: paciente → /paciente, staff → /dashboard. */
+    _handleMagicLinkArrival() {
+        let pending = false;
+        try { pending = localStorage.getItem('contexto_magic_pending') === '1'; } catch { /* noop */ }
+        if (!pending) return;
+
+        try { localStorage.removeItem('contexto_magic_pending'); } catch { /* noop */ }
+
+        const dest = this.permissions.isPatient?.() ? '/paciente' : '/dashboard';
+        if (router._getPath && router._getPath() !== dest) {
+            router.navigate(dest);
+        }
     }
 
     updateNavigationVisibility() {

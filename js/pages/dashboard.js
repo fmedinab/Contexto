@@ -31,6 +31,7 @@ const ICONS = {
     chevRight: '<path d="M9 6l6 6-6 6"/>',
     wa: '<path d="M21 11.5a8.5 8.5 0 0 1-12.4 7.6L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5Z"/><path d="M9.2 9.3c-.3 2.8 2.7 5.8 5.5 5.5l.4-2-1.6-.9-1 .8a4.3 4.3 0 0 1-1.9-1.9l.8-1-.9-1.6-2 .4z" opacity="0.9"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
+    mail: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
     refresh: '<path d="M20 11a8 8 0 0 0-14.9-2.1M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 2.1M20 20v-4h-4"/>'
 };
 
@@ -879,6 +880,7 @@ export class DashboardPage {
                 ${req.message ? `<div class="booking-detail-msg"><h4>Mensaje del paciente</h4><p>${escapeHtml(req.message)}</p></div>` : ''}
                 <div class="action-row" style="margin-top:16px;">
                     <a class="btn btn-wa" href="${waUrl}" target="_blank" rel="noopener">${icon('wa', 15)} Recordar por WhatsApp</a>
+                    <button class="btn" data-booking-access>${icon('mail', 15)} Enviar acceso de paciente</button>
                     <button class="btn btn-primary" data-booking-convert>Convertir en cita</button>
                     <button class="btn" data-booking-contact>Marcar contactada</button>
                     <button class="btn btn-danger" data-booking-cancel>Descartar</button>
@@ -2216,6 +2218,33 @@ export class DashboardPage {
                 btn.disabled = true;
                 this._convertBooking(payload.id).finally(() => { btn.disabled = false; });
             });
+            $('#dashModalBody [data-booking-access]')?.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const btn = e.currentTarget;
+                if (!payload.email) { this._showToast('La solicitud no tiene correo para enviar el acceso.'); return; }
+
+                const ok = window.app?.confirm?.show
+                    ? await window.app.confirm.show({
+                        title: 'Enviar acceso de paciente',
+                        message: `Se enviará a ${payload.email} un enlace de acceso para entrar a su portal (sin contraseña). Al hacer clic, podrá ver sus citas, tareas y evaluaciones.`,
+                        confirmLabel: 'Enviar enlace',
+                        cancelLabel: 'Cancelar'
+                    })
+                    : confirm(`¿Enviar enlace de acceso a ${payload.email}?`);
+                if (!ok) return;
+
+                btn.disabled = true;
+                try {
+                    await window.app.auth.sendPatientAccessLink(payload.email, payload.fullName);
+                    this._showToast(`Enlace de acceso enviado a ${payload.email}.`);
+                    this._closeModal();
+                } catch (err) {
+                    this._showToast('No se pudo enviar el enlace: ' + (err.message || ''));
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
             $('#dashModalBody [data-booking-contact]')?.addEventListener('click', async () => {
                 try {
                     await bookingRequestsService.updateStatus(payload.id, 'CONTACTADA');

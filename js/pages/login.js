@@ -102,12 +102,21 @@ export class LoginPage {
                             </div>
                             <p class="form-error" id="loginPasswordError"></p>
                         </div>
-                        <button type="submit" class="btn btn--primary btn--full" id="loginSubmit">
-                            <span>Entrar</span>
-                        </button>
+<button type="submit" class="btn btn--primary btn--full" id="loginSubmit">
+                        <span>Entrar</span>
+                    </button>
                     </form>
 
+                    <div class="auth-magic" id="loginMagicWrap" hidden>
+                        <p class="auth-magic-text">Ingresa tu correo y te enviaremos un <strong>enlace de acceso</strong> para entrar sin contraseña.</p>
+                        <button type="button" class="btn btn--full" id="loginMagicSend">
+                            <span>Enviarme enlace de acceso</span>
+                        </button>
+                    </div>
+
                     <div class="auth-footer">
+                        <button type="button" class="auth-link auth-link--btn" id="loginMagicToggle">¿Entrar con enlace de acceso?</button>
+                        <span class="auth-separator" id="loginMagicSep">·</span>
                         <a href="/forgot-password" class="auth-link" data-link>¿Olvidaste tu contraseña?</a>
                         <span class="auth-separator">·</span>
                         <a href="/register" class="auth-link" data-link>Crear cuenta</a>
@@ -152,6 +161,58 @@ export class LoginPage {
             e.preventDefault();
             await this._handleSubmit();
         });
+
+        const toggleBtn = document.getElementById('loginMagicToggle');
+        const sep = document.getElementById('loginMagicSep');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => this._toggleMagic());
+        }
+        if (sep && toggleBtn) {
+            sep.style.display = 'none';
+        }
+
+        const sendBtn = document.getElementById('loginMagicSend');
+        if (sendBtn) {
+            sendBtn.addEventListener('click', async () => await this._handleMagicLink());
+        }
+    }
+
+    _toggleMagic() {
+        const wrap = document.getElementById('loginMagicWrap');
+        const toggleBtn = document.getElementById('loginMagicToggle');
+        if (!wrap || !toggleBtn) return;
+        const showing = !wrap.hidden;
+        wrap.hidden = showing;
+        toggleBtn.textContent = showing ? '¿Entrar con enlace de acceso?' : 'Volver a entrar con contraseña';
+        if (showing) {
+            const emailInput = document.getElementById('loginEmail');
+            if (emailInput) emailInput.focus();
+        }
+    }
+
+    async _handleMagicLink() {
+        const emailInput = document.getElementById('loginEmail');
+        const sendBtn = document.getElementById('loginMagicSend');
+        if (!emailInput) return;
+
+        const email = emailInput.value.trim();
+        if (!email) {
+            this._showBanner('Ingresa tu correo electrónico para recibir el enlace de acceso.');
+            return;
+        }
+
+        if (sendBtn) { sendBtn.disabled = true; sendBtn.innerHTML = '<span class="spinner spinner--sm btn-spinner"></span> Enviando...'; }
+        try {
+            await window.app.auth.loginWithMagicLink(email);
+            window.app.toast.info('Enlace enviado', 'Revisa tu correo y haz clic en el enlace para entrar.');
+        } catch (error) {
+            const msg = (error.message || '').toLowerCase().includes('signups not allowed')
+                ? 'El registro está deshabilitado. Contacta al consultorio para darte acceso.'
+                : (error.message || 'No se pudo enviar el enlace. Intenta de nuevo.');
+            this._showBanner(msg);
+        } finally {
+            if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = '<span>Enviarme enlace de acceso</span>'; }
+        }
     }
 
     async _handleSubmit() {

@@ -118,14 +118,36 @@ export class AuthService {
         return { user: data.user, session: data.session };
     }
 
-    async loginWithMagicLink(email) {
+    async loginWithMagicLink(email, metadata = {}) {
+        const options = { emailRedirectTo: APP_BASE };
+        if (metadata && Object.keys(metadata).length) {
+            options.data = metadata;
+        }
+
+        // Marca la llegada por magic link: app.js redirige al portal tras login.
+        try { localStorage.setItem('contexto_magic_pending', '1'); } catch { /* noop */ }
+
         const { data, error } = await supabase.auth.signInWithOtp({
             email,
-            options: { emailRedirectTo: APP_BASE }
+            options
         });
 
         if (error) throw error;
         return data;
+    }
+
+    /* Envía a un email un enlace de acceso (magic link) con rol paciente.
+       Para cuentas ya existentes, además asegura rol+ficha vía RPC. */
+    async sendPatientAccessLink(email, fullName = '') {
+        try {
+            const { error: rpcError } = await supabase.rpc('ensure_patient_account', {
+                p_email: email,
+                p_full_name: fullName
+            });
+            if (rpcError) console.error('ensure_patient_account:', rpcError.message);
+        } catch (e) { console.error('ensure_patient_account:', e.message); }
+
+        return this.loginWithMagicLink(email, { role: 'patient', full_name: fullName || email });
     }
 
     async register(email, password, metadata = {}) {

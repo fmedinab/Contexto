@@ -47,6 +47,7 @@ export class LandingPage {
         this._bindActiveNav();
         this._bindCalendar();
         this._bindBookingForm();
+        this._bindAuthActions();
         cookieBanner.ensure();
     }
 
@@ -101,6 +102,21 @@ export class LandingPage {
                             <svg class="lp-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>
                         </button>
                         <a href="#agendar" class="lp-btn lp-btn--primary" data-scroll="agendar">Agendar cita</a>
+                        <div class="lp-account" id="lpAccount">
+                            <button class="lp-account-trigger" id="lpAccountTrigger" type="button"
+                                    aria-label="Cuenta" aria-haspopup="true" aria-expanded="false">
+                                <span class="lp-account-avatar" id="lpAccountAvatar"><i class="fa-solid fa-user"></i></span>
+                                <span class="lp-account-id" id="lpAccountId">Entrar</span>
+                                <svg class="lp-account-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            <div class="lp-account-menu" id="lpAccountMenu" role="menu" hidden>
+                                <a href="#/login" class="lp-account-item" data-acc="login" role="menuitem"><i class="fa-solid fa-right-to-bracket"></i>Entrar</a>
+                                <a href="#/register" class="lp-account-item" data-acc="register" role="menuitem"><i class="fa-solid fa-user-plus"></i>Registrarse</a>
+                                <div class="lp-account-sep" hidden data-acc-sep></div>
+                                <a href="#/" class="lp-account-item" data-acc="portal" role="menuitem" hidden><i class="fa-solid fa-id-card"></i>Mi portal</a>
+                                <a href="#/" class="lp-account-item lp-account-item--danger" data-acc="logout" role="menuitem" hidden><i class="fa-solid fa-right-from-bracket"></i>Cerrar sesión</a>
+                            </div>
+                        </div>
                         <button class="lp-icon-toggle lp-nav-toggle" id="lpNavToggle" type="button"
                                 aria-label="Abrir menú" aria-expanded="false" aria-controls="lpMobileNav">
                             <span class="lp-hb"></span><span class="lp-hb"></span><span class="lp-hb"></span>
@@ -116,6 +132,10 @@ export class LandingPage {
                 <a href="#nosotros" data-scroll="nosotros"><span class="lp-mnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg></span>Nosotros</a>
                 <a href="#agendar" data-scroll="agendar"><span class="lp-mnav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg></span>Agendar</a>
                 <a href="#agendar" class="lp-btn lp-btn--primary" data-scroll="agendar">Agendar cita</a>
+                <div class="lp-mnav-auth">
+                    <a href="#/login" class="lp-btn lp-btn--ghost" data-link>Entrar</a>
+                    <a href="#/register" class="lp-btn lp-btn--primary" data-link>Registrarse</a>
+                </div>
             </nav>
 
             <main id="inicio">
@@ -728,6 +748,44 @@ export class LandingPage {
         this._scrollHandler = () => header.classList.toggle('is-scrolled', window.scrollY > 8);
         this._scrollHandler();
         window.addEventListener('scroll', this._scrollHandler, { passive: true });
+    }
+
+    /* Muestra los botones de acceso según el estado de sesión:
+       - Sin sesión: "Entrar" + "Registrarse".
+       - Con sesión: "Mi portal" (según rol) en lugar de registrarse. */
+    _bindAuthActions() {
+        const wrap = this.container.querySelector('#lpAuthActions');
+        if (!wrap) return;
+        const user = window.app?.auth?.getCurrentUser?.();
+        if (!user) return;
+
+        const signIn = wrap.querySelector('a[href="#/login"]');
+        const signUp = wrap.querySelector('a[href="#/register"]');
+        const isPatient = window.app?.permissions?.isPatient?.();
+        const dest = isPatient ? '#/paciente' : '#/dashboard';
+
+        if (signUp) signUp.textContent = 'Mi portal';
+        if (signIn) signIn.textContent = 'Salir';
+        if (signIn) {
+            signIn.href = '#';
+            signIn.addEventListener('click', (e) => {
+                e.preventDefault();
+                window.app?.auth?.logout().catch(() => {});
+            });
+        }
+        if (signUp) signUp.href = dest;
+
+        const mnav = this.container.querySelectorAll('.lp-mnav-auth a');
+        if (mnav.length >= 2) {
+            mnav[0].textContent = 'Salir';
+            mnav[0].href = '#';
+            mnav[0].addEventListener('click', (e) => {
+                e.preventDefault();
+                window.app?.auth?.logout().catch(() => {});
+            });
+            mnav[1].textContent = 'Mi portal';
+            mnav[1].href = dest;
+        }
     }
 
     _bindMobileNav() {

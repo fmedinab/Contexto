@@ -232,6 +232,38 @@
 
 .lp-header-actions { display: flex; align-items: center; gap: 12px; }
 
+/* Botones de acceso en el header (Entrar / Registrarse) */
+.lp-auth-actions { display: flex; align-items: center; gap: 8px; }
+
+.lp-auth-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--lp-border);
+    background: var(--lp-surface);
+    color: var(--lp-heading);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.2s, border-color 0.2s, transform 0.18s;
+    cursor: pointer;
+}
+.lp-auth-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--lp-primary);
+    transform: translateY(-1px);
+    text-shadow: 0 0 8px var(--lp-primary);
+}
+.lp-auth-btn--ghost {
+    background: transparent;
+    border-color: transparent;
+}
+.lp-auth-btn--ghost:hover { border-color: var(--lp-border-strong); }
+
 .lp-icon-toggle {
     width: 40px; height: 40px;
     border-radius: 12px;
@@ -1007,6 +1039,26 @@
 }
 .lp-mobile-nav a .lp-mnav-icon svg { width: 15px; height: 15px; }
 .lp-mobile-nav .lp-btn { margin-top: 22px; width: 100%; }
+
+/* Acceso en el menú móvil */
+.lp-mnav-auth {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 22px;
+}
+.lp-mnav-auth .lp-btn {
+    margin-top: 0;
+    width: 100%;
+    display: inline-flex;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 11px 16px;
+    border-bottom: none;
+    align-self: center;
+}
 
 /* ---------------------------------------------------------
    Skeleton (carga de contenido dinámico)

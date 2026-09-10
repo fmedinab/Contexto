@@ -4,6 +4,27 @@
 
 import { cmsService, DEFAULT_CONTENT } from '../services/cmsService.js';
 
+// Opciones de iconos para el selector visual (se usan dentro de SECTIONS).
+const SERVICE_ICON_OPTIONS = [
+    { value: 'user', label: 'Persona', icon: 'fa-user' },
+    { value: 'heart', label: 'Corazón', icon: 'fa-heart' },
+    { value: 'users', label: 'Grupo', icon: 'fa-users' },
+    { value: 'child', label: 'Infantil', icon: 'fa-child' },
+    { value: 'clipboard', label: 'Evaluación', icon: 'fa-clipboard-list' },
+    { value: 'video', label: 'Online', icon: 'fa-video' }
+];
+
+const VALUE_ICON_OPTIONS = [
+    { value: 'fa-shield-halved', label: 'Privacidad', icon: 'fa-shield-halved' },
+    { value: 'fa-heart-pulse', label: 'Cuidado y empatía', icon: 'fa-heart-pulse' },
+    { value: 'fa-microscope', label: 'Ciencia y evidencia', icon: 'fa-microscope' },
+    { value: 'fa-leaf', label: 'Bienestar', icon: 'fa-leaf' },
+    { value: 'fa-handshake', label: 'Confianza', icon: 'fa-handshake' },
+    { value: 'fa-brain', label: 'Mente', icon: 'fa-brain' },
+    { value: 'fa-lightbulb', label: 'Idea / Crecimiento', icon: 'fa-lightbulb' },
+    { value: 'fa-book-open', label: 'Aprendizaje', icon: 'fa-book-open' }
+];
+
 // Metadatos por sección: título, icono y definición de campos.
 // type: 'text' | 'textarea' | 'list' | 'html'
 const SECTIONS = [
@@ -45,15 +66,8 @@ const SECTIONS = [
                     { key: 'title', label: 'Nombre', type: 'text' },
                     { key: 'desc', label: 'Descripción', type: 'textarea' },
                     {
-                        key: 'icon', label: 'Icono', type: 'select',
-                        options: [
-                            { value: 'user', label: 'Persona' },
-                            { value: 'heart', label: 'Corazón' },
-                            { value: 'users', label: 'Grupo' },
-                            { value: 'child', label: 'Niño/Infantil' },
-                            { value: 'clipboard', label: 'Evaluación' },
-                            { value: 'video', label: 'Online' }
-                        ]
+                        key: 'icon', label: 'Icono', type: 'icon-picker',
+                        options: SERVICE_ICON_OPTIONS
                     }
                 ]
             }
@@ -87,7 +101,7 @@ const SECTIONS = [
             { key: 'paragraph2', label: 'Párrafo 2', type: 'textarea' },
             {
                 key: 'values', label: 'Valores', type: 'list', itemFields: [
-                    { key: 'icon', label: 'Icono FontAwesome (fa-*)', type: 'text' },
+                    { key: 'icon', label: 'Icono', type: 'icon-picker', options: VALUE_ICON_OPTIONS },
                     { key: 'label', label: 'Texto', type: 'text' }
                 ]
             },
@@ -198,18 +212,18 @@ const SECTIONS = [
         label: 'Legal y privacidad',
         icon: 'fa-solid fa-scale-balanced',
         fields: [
-            { key: 'privacy_title', label: 'Título de privacidad', type: 'text' },
-            { key: 'privacy_updated', label: 'Fecha de privacidad', type: 'text' },
-            { key: 'privacy_intro', label: 'Introducción de privacidad', type: 'textarea' },
-            { key: 'privacy_content', label: 'Contenido de privacidad', type: 'textarea', hint: 'Separa secciones con línea en blanco.' },
-            { key: 'cookies_title', label: 'Título de cookies', type: 'text' },
-            { key: 'cookies_updated', label: 'Fecha de cookies', type: 'text' },
-            { key: 'cookies_intro', label: 'Introducción de cookies', type: 'textarea' },
-            { key: 'cookies_content', label: 'Contenido de cookies', type: 'textarea', hint: 'Separa secciones con línea en blanco.' },
-            { key: 'notice_title', label: 'Título de aviso legal', type: 'text' },
-            { key: 'notice_updated', label: 'Fecha de aviso legal', type: 'text' },
-            { key: 'notice_intro', label: 'Introducción de aviso legal', type: 'textarea' },
-            { key: 'notice_content', label: 'Contenido de aviso legal', type: 'textarea', hint: 'Separa secciones con línea en blanco.' }
+            { key: 'privacy_title', label: 'Título de la página', type: 'text' },
+            { key: 'privacy_updated', label: 'Texto de la fecha', type: 'text', hint: 'Ej.: Última actualización: enero de 2026.' },
+            { key: 'privacy_intro', label: 'Introducción', type: 'textarea', hint: 'Un párrafo corto que presenta el documento.' },
+            { key: 'privacy_content', label: 'Contenido', type: 'textarea', rows: 10, hint: 'Separa cada sección con una línea en blanco.' },
+            { key: 'cookies_title', label: 'Título de la página', type: 'text' },
+            { key: 'cookies_updated', label: 'Texto de la fecha', type: 'text', hint: 'Ej.: Última actualización: enero de 2026.' },
+            { key: 'cookies_intro', label: 'Introducción', type: 'textarea', hint: 'Un párrafo corto que presenta el documento.' },
+            { key: 'cookies_content', label: 'Contenido', type: 'textarea', rows: 10, hint: 'Separa cada sección con una línea en blanco.' },
+            { key: 'notice_title', label: 'Título de la página', type: 'text' },
+            { key: 'notice_updated', label: 'Texto de la fecha', type: 'text', hint: 'Ej.: Última actualización: enero de 2026.' },
+            { key: 'notice_intro', label: 'Introducción', type: 'textarea', hint: 'Un párrafo corto que presenta el documento.' },
+            { key: 'notice_content', label: 'Contenido', type: 'textarea', rows: 10, hint: 'Separa cada sección con una línea en blanco.' }
         ]
     }
 ];
@@ -221,12 +235,33 @@ function esc(str) {
     return d.innerHTML;
 }
 
+// Explicaciones simples de cada sección (para quien no conoce la página).
+const SECTION_DESCRIPTIONS = {
+    hero: 'La primera pantalla que ve cada visitante. Cambia el título, la descripción y los números de confianza.',
+    trust: 'Frases cortas que inspiran confianza. Se muestran como una banda en la portada.',
+    servicios: 'El listado de servicios o programas que ofreces. Agrega, edita o elimina servicios.',
+    especialidades: 'Los cuatro pilares conceptuales del centro. Con su nombre, descripción y color.',
+    nosotros: 'La historia del consultorio y los valores que lo definen.',
+    proceso: 'Los pasos que sigue una persona desde el primer contacto hasta el acompañamiento.',
+    equipo: 'Los profesionales del centro. Nombre, rol y una línea de experiencia.',
+    testimonios: 'Experiencias de pacientes. Nombre, contexto y su comentario.',
+    faq: 'Preguntas frecuentes con sus respuestas. Ayudan a resolver dudas antes de contactarles.',
+    cta: 'El llamado final antes de la sección de agenda: título, descripción y botones.',
+    agendar: 'La sección donde los visitantes reservan una sesión. Solo título y antetítulo.',
+    footer: 'El pie de página: breve descripción, correo de contacto y teléfono.',
+    legal: 'Las páginas legales (privacidad, cookies y aviso legal). Ya vienen con un texto completo; puedes ajustarlo si lo necesitas.'
+};
+
+// Iconos disponibles para servicios (se guardan por clave corta).
+// (definidos arriba junto a SECTIONS)
+
 export class CmsPanel {
     constructor(container) {
         this.container = container;
         this._content = null;
         this._activeSection = 'hero';
         this._saving = false;
+        this._pickerScope = null;
     }
 
     async show() {
@@ -252,6 +287,13 @@ export class CmsPanel {
                         <i class="fa-solid fa-floppy-disk"></i> Guardar cambios
                     </button>
                 </div>
+
+                <div class="cms-notice">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span>Todo el texto ya viene escrito. Solo <strong>modifica lo que quieras cambiar</strong> y presiona «Guardar cambios» al terminar. Si una casilla se queda vacía, también se borra de la página.</span>
+                </div>
+
+                <p class="cms-section-desc" id="cmsSectionDesc"></p>
 
                 <div class="cms-layout">
                     <nav class="cms-tabs" aria-label="Secciones del sitio">
@@ -297,6 +339,11 @@ export class CmsPanel {
         const contentEl = this.container.querySelector('#cmsContent');
         if (!contentEl || !def) return;
 
+        const descEl = this.container.querySelector('#cmsSectionDesc');
+        if (descEl) {
+            descEl.textContent = SECTION_DESCRIPTIONS[def.id] || 'Edita el texto de esta sección.';
+        }
+
         contentEl.innerHTML = `
             <div class="cms-section-head">
                 <h3><i class="${def.icon}"></i> ${def.label}</h3>
@@ -322,8 +369,9 @@ export class CmsPanel {
             case 'html':
                 return `
                 <div class="cms-field">
-                    <label class="settings-label" for="cms-${field.key}">${field.label}${field.hint ? ` <span class="cms-hint">(${field.hint})</span>` : ''}</label>
-                    <textarea class="settings-input cms-textarea" id="cms-${field.key}" data-field="${field.key}" rows="4">${esc(value || '')}</textarea>
+                    <label class="settings-label" for="cms-${field.key}">${field.label}</label>
+                    <textarea class="settings-input cms-textarea" id="cms-${field.key}" data-field="${field.key}" rows="${field.rows || 4}">${esc(value || '')}</textarea>
+                    ${field.hint ? `<p class="cms-field-help">${esc(field.hint)}</p>` : ''}
                 </div>`;
             case 'select':
                 return `
@@ -332,6 +380,18 @@ export class CmsPanel {
                     <select class="settings-input" id="cms-${field.key}" data-field="${field.key}">
                         ${field.options.map(o => `<option value="${o.value}"${String(value) === o.value ? ' selected' : ''}>${o.label}</option>`).join('')}
                     </select>
+                </div>`;
+            case 'icon-picker':
+                return `
+                <div class="cms-field">
+                    <label class="settings-label">${field.label}</label>
+                    <div class="cms-iconpicker" role="radiogroup" data-field="${field.key}" aria-label="${esc(field.label)}">
+                        ${field.options.map(o => `
+                            <button type="button" class="cms-iconopt${String(value) === o.value ? ' is-selected' : ''}" data-value="${o.value}" role="radio" aria-checked="${String(value) === o.value}">
+                                <i class="fa-solid ${o.icon}"></i>
+                                <span>${o.label}</span>
+                            </button>`).join('')}
+                    </div>
                 </div>`;
             case 'color':
                 return `
@@ -414,6 +474,18 @@ export class CmsPanel {
                         ${field.options.map(o => `<option value="${o.value}"${String(value) === o.value ? ' selected' : ''}>${o.label}</option>`).join('')}
                     </select>
                 </div>`;
+            case 'icon-picker':
+                return `
+                <div class="cms-itemfield">
+                    <label class="settings-label">${field.label}</label>
+                    <div class="cms-iconpicker" role="radiogroup" data-itemkey="${field.key}" aria-label="${esc(field.label)}">
+                        ${field.options.map(o => `
+                            <button type="button" class="cms-iconopt${String(value) === o.value ? ' is-selected' : ''}" data-value="${o.value}" role="radio" aria-checked="${String(value) === o.value}">
+                                <i class="fa-solid ${o.icon}"></i>
+                                <span>${o.label}</span>
+                            </button>`).join('')}
+                    </div>
+                </div>`;
             default:
                 return `
                 <div class="cms-itemfield">
@@ -430,6 +502,10 @@ export class CmsPanel {
         if (!el) return undefined;
         if (field.type === 'string-list') return this._readStringList(field.key);
         if (field.type === 'list') return this._readItemList(field.key, field);
+        if (field.type === 'icon-picker') {
+            const selected = el.querySelector('.cms-iconopt.is-selected');
+            return selected ? selected.dataset.value : '';
+        }
         return el.value;
     }
 
@@ -444,8 +520,13 @@ export class CmsPanel {
         if (!wrap) return [];
         return Array.from(wrap.querySelectorAll('.cms-itemrow')).map(row => {
             const item = {};
-            row.querySelectorAll('[data-itemkey]').forEach(input => {
-                item[input.dataset.itemkey] = input.value;
+            row.querySelectorAll('[data-itemkey]').forEach(el => {
+                if (el.classList.contains('cms-iconpicker')) {
+                    const selected = el.querySelector('.cms-iconopt.is-selected');
+                    item[el.dataset.itemkey] = selected ? selected.dataset.value : '';
+                } else {
+                    item[el.dataset.itemkey] = el.value;
+                }
             });
             return item;
         });
@@ -468,6 +549,24 @@ export class CmsPanel {
             el.addEventListener('input', () => this._markDirty());
             el.addEventListener('change', () => this._markDirty());
         });
+
+        // Selector visual de iconos: un clic marca la opción elegida.
+        // Delegado al scope para que también funcionen filas agregadas después.
+        if (this._pickerScope !== scope) {
+            this._pickerScope = scope;
+            scope.addEventListener('click', (e) => {
+                const opt = e.target.closest('.cms-iconopt');
+                if (!opt) return;
+                const picker = opt.closest('.cms-iconpicker');
+                if (!picker) return;
+                picker.querySelectorAll('.cms-iconopt').forEach(b => {
+                    const isSel = b === opt;
+                    b.classList.toggle('is-selected', isSel);
+                    b.setAttribute('aria-checked', String(isSel));
+                });
+                this._markDirty();
+            });
+        }
 
         // Añadir string
         scope.querySelectorAll('[data-add-str]').forEach(btn => {
