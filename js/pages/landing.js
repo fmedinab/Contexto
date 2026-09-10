@@ -53,6 +53,10 @@ export class LandingPage {
 
     destroy() {
         cookieBanner.remove();
+        if (this._accountCloseHandler) {
+            document.removeEventListener('click', this._accountCloseHandler);
+            this._accountCloseHandler = null;
+        }
         if (this._scrollHandler) {
             window.removeEventListener('scroll', this._scrollHandler);
             this._scrollHandler = null;
@@ -750,42 +754,70 @@ export class LandingPage {
         window.addEventListener('scroll', this._scrollHandler, { passive: true });
     }
 
-    /* Muestra los botones de acceso según el estado de sesión:
-       - Sin sesión: "Entrar" + "Registrarse".
-       - Con sesión: "Mi portal" (según rol) en lugar de registrarse. */
+    /* Dropdown de cuenta. Muestra:
+       - Sin sesión: avatar + "Entrar" que abre menú → Entrar / Registrarse.
+       - Con sesión: avatar con inicial + menú → Mi portal / Cerrar sesión. */
     _bindAuthActions() {
-        const wrap = this.container.querySelector('#lpAuthActions');
+        const wrap = this.container.querySelector('#lpAccount');
         if (!wrap) return;
+
+        const trigger = wrap.querySelector('#lpAccountTrigger');
+        const menu = wrap.querySelector('#lpAccountMenu');
+        const avatar = wrap.querySelector('#lpAccountAvatar');
+        const idLabel = wrap.querySelector('#lpAccountId');
+
+        const close = () => {
+            menu.hidden = true;
+            trigger.setAttribute('aria-expanded', 'false');
+        };
+
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = menu.hidden;
+            // La plantilla del menú ya se preparó en render según el estado de sesión.
+            menu.hidden = !isOpen;
+            trigger.setAttribute('aria-expanded', String(isOpen));
+        });
+
+        // Cierra al hacer clic fuera o pulsar Escape.
+        this._accountCloseHandler = (e) => {
+            if (!wrap.contains(e.target)) close();
+        };
+        document.addEventListener('click', this._accountCloseHandler);
+        wrap.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') close();
+        });
+
+        // Menú según estado de sesión.
         const user = window.app?.auth?.getCurrentUser?.();
         if (!user) return;
 
-        const signIn = wrap.querySelector('a[href="#/login"]');
-        const signUp = wrap.querySelector('a[href="#/register"]');
         const isPatient = window.app?.permissions?.isPatient?.();
         const dest = isPatient ? '#/paciente' : '#/dashboard';
+        const name = user.user_metadata?.full_name || user.email || 'Usuario';
+        const initial = (name.trim().charAt(0) || 'U').toUpperCase();
 
-        if (signUp) signUp.textContent = 'Mi portal';
-        if (signIn) signIn.textContent = 'Salir';
-        if (signIn) {
-            signIn.href = '#';
-            signIn.addEventListener('click', (e) => {
-                e.preventDefault();
-                window.app?.auth?.logout().catch(() => {});
-            });
-        }
-        if (signUp) signUp.href = dest;
+        avatar.innerHTML = '';
+        avatar.textContent = initial;
+        idLabel.textContent = name.trim().split(/\s+/)[0];
 
-        const mnav = this.container.querySelectorAll('.lp-mnav-auth a');
-        if (mnav.length >= 2) {
-            mnav[0].textContent = 'Salir';
-            mnav[0].href = '#';
-            mnav[0].addEventListener('click', (e) => {
-                e.preventDefault();
-                window.app?.auth?.logout().catch(() => {});
-            });
-            mnav[1].textContent = 'Mi portal';
-            mnav[1].href = dest;
-        }
+        const itemLogin = menu.querySelector('[data-acc="login"]');
+        const itemRegister = menu.querySelector('[data-acc="register"]');
+        const sep = menu.querySelector('[data-acc-sep]');
+        const itemPortal = menu.querySelector('[data-acc="portal"]');
+        const itemLogout = menu.querySelector('[data-acc="logout"]');
+
+        itemLogin.hidden = true;
+        itemRegister.hidden = true;
+        sep.hidden = false;
+        itemPortal.hidden = false;
+        itemPortal.href = dest;
+        itemLogout.hidden = false;
+        itemLogout.addEventListener('click', (e) => {
+            e.preventDefault();
+            close();
+            window.app?.auth?.logout().catch(() => {});
+        });
     }
 
     _bindMobileNav() {

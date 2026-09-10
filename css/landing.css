@@ -232,37 +232,76 @@
 
 .lp-header-actions { display: flex; align-items: center; gap: 12px; }
 
-/* Botones de acceso en el header (Entrar / Registrarse) */
-.lp-auth-actions { display: flex; align-items: center; gap: 8px; }
+/* Dropdown de cuenta (Entrar/Registrarse o avatar + menú) */
+.lp-account { position: relative; flex-shrink: 0; }
 
-.lp-auth-btn {
+.lp-account-trigger {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    padding: 7px 16px;
-    border-radius: 10px;
+    gap: 8px;
+    padding: 6px 12px 6px 6px;
+    border-radius: 999px;
     border: 1px solid var(--lp-border);
     background: var(--lp-surface);
     color: var(--lp-heading);
     font-family: var(--font-mono);
     font-size: 13px;
     font-weight: 600;
-    text-decoration: none;
-    white-space: nowrap;
-    transition: background 0.2s, border-color 0.2s, transform 0.18s;
     cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
 }
-.lp-auth-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: var(--lp-primary);
-    transform: translateY(-1px);
-    text-shadow: 0 0 8px var(--lp-primary);
+.lp-account-trigger:hover { border-color: var(--lp-primary); background: rgba(255, 255, 255, 0.05); }
+
+.lp-account-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--lp-primary), color-mix(in srgb, var(--lp-primary) 60%, #fff));
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
 }
-.lp-auth-btn--ghost {
-    background: transparent;
-    border-color: transparent;
+.lp-account-avatar i { font-size: 14px; }
+
+.lp-account-caret { width: 12px; height: 12px; opacity: 0.7; transition: transform 0.2s; }
+.lp-account-trigger[aria-expanded="true"] .lp-account-caret { transform: rotate(180deg); }
+.lp-account-id { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lp-account-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 200px;
+    padding: 8px;
+    border-radius: 14px;
+    border: 1px solid var(--lp-border);
+    background: var(--lp-surface);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+    z-index: 210;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
-.lp-auth-btn--ghost:hover { border-color: var(--lp-border-strong); }
+.lp-account-menu[hidden] { display: none; }
+
+.lp-account-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 9px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--lp-heading);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+.lp-account-item i { width: 16px; text-align: center; opacity: 0.7; }
+.lp-account-item:hover { background: rgba(255, 255, 255, 0.06); color: var(--lp-primary); }
+.lp-account-item--danger:hover { background: rgba(231, 76, 60, 0.12); color: #e74c3c; }
+.lp-account-sep { height: 1px; background: var(--lp-border); margin: 4px 0; }
 
 .lp-icon-toggle {
     width: 40px; height: 40px;
@@ -1128,6 +1167,8 @@
     .lp-cta-banner { padding: 42px 28px; border-radius: 24px; }
     .lp-footer-bottom { flex-direction: column; align-items: flex-start; }
     .lp-footer-links { gap: 16px 22px; }
+    .lp-account-trigger { padding: 5px; }
+    .lp-account-id, .lp-account-caret { display: none; }
 }
 
 @media (max-width: 380px) {
