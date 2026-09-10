@@ -153,6 +153,7 @@ export class DashboardPage {
                                     <button role="menuitem" data-action="preferences">Preferencias</button>
                                     ${this._canManageClinicSettings() ? '<button role="menuitem" data-action="clinicSettings">Ajustes del consultorio</button>' : ''}
                                     ${this._canManageCms() ? '<button role="menuitem" data-action="cms">Contenido del sitio</button>' : ''}
+                                    ${this._canManageUsers() ? '<button role="menuitem" data-action="users">Usuarios y roles</button>' : ''}
                                     <hr>
                                     <button role="menuitem" data-action="logout">Cerrar sesión</button>
                                 </div>
@@ -384,6 +385,10 @@ export class DashboardPage {
             window.removeEventListener('scroll', this._repositionDropdown);
             window.removeEventListener('resize', this._repositionDropdown);
         }
+        if (this._usersPanel && typeof this._usersPanel.destroy === 'function') {
+            try { this._usersPanel.destroy(); } catch (e) { /* noop */ }
+        }
+        this._usersPanel = null;
         this.container = null;
     }
 
@@ -425,6 +430,10 @@ export class DashboardPage {
         const wrap = this.container?.querySelector('#dashSettingsWrap');
         if (wrap) wrap.style.display = 'none';
         this._settingsPage = null;
+        if (this._usersPanel && typeof this._usersPanel.destroy === 'function') {
+            try { this._usersPanel.destroy(); } catch (e) { /* noop */ }
+        }
+        this._usersPanel = null;
 
         const grid = this.container?.querySelector('.main-grid');
         const footer = this.container?.querySelector('.quote-footer');
@@ -445,6 +454,15 @@ export class DashboardPage {
     _canManageClinicSettings() {
         try {
             return !!(window.app?.permissions?.hasPermission?.('settings:edit'));
+        } catch {
+            return false;
+        }
+    }
+
+    // ¿Puede gestionar usuarios y roles? Solo admin.
+    _canManageUsers() {
+        try {
+            return !!(window.app?.permissions?.hasPermission?.('admin:users'));
         } catch {
             return false;
         }
@@ -526,6 +544,45 @@ export class DashboardPage {
         if (this._currentView !== 'cms') return;
         this._cmsPanel = new CmsPanel(wrap.querySelector('#dashSettingsContent'));
         this._cmsPanel.show();
+    }
+
+    // Panel de administración de usuarios y roles (solo admin).
+    async _showUsers() {
+        if (!this._canManageUsers()) {
+            window.app?.toast?.error?.('Sin permiso', 'Solo los administradores pueden gestionar usuarios y roles.');
+            return;
+        }
+
+        this._currentView = 'users';
+        const grid = this.container.querySelector('.main-grid');
+        const footer = this.container.querySelector('.quote-footer');
+        if (grid) grid.style.display = 'none';
+        if (footer) footer.style.display = 'none';
+
+        let wrap = this.container.querySelector('#dashSettingsWrap');
+        if (!wrap) {
+            wrap = document.createElement('div');
+            wrap.id = 'dashSettingsWrap';
+            wrap.style.cssText = 'width:100%;max-width:1080px;margin:0 auto;padding:32px 24px 48px;';
+            this.container.querySelector('.app').appendChild(wrap);
+        }
+        wrap.style.display = '';
+        wrap.innerHTML = `
+            <div class="dash-settings-topbar">
+                <button class="dash-settings-back" id="dashSettingsBack">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Volver al dashboard
+                </button>
+            </div>
+            <div id="dashSettingsContent"></div>`;
+
+        const backBtn = wrap.querySelector('#dashSettingsBack');
+        if (backBtn) backBtn.addEventListener('click', () => this._showDashboard());
+
+        const { UsersPanel } = await import('./usersPanel.js');
+        if (this._currentView !== 'users') return;
+        this._usersPanel = new UsersPanel(wrap.querySelector('#dashSettingsContent'));
+        this._usersPanel.show();
     }
 
     // ========== CLOCK ==========
@@ -1155,6 +1212,8 @@ export class DashboardPage {
                     this._showClinicSettings();
                 } else if (action === 'cms') {
                     this._showCms();
+                } else if (action === 'users') {
+                    this._showUsers();
                 }
                 userMenuEl.classList.remove('open');
             });

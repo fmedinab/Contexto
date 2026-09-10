@@ -321,7 +321,7 @@ export class LandingPage {
                                 <div class="lp-booking-perks">
                                     <div class="lp-booking-perk">
                                         <span class="lp-booking-perk-ico"><i class="fa-solid fa-bolt"></i></span>
-                                        <div><strong>Confirmación en menos de 24h</strong><small>Recibes respuesta por WhatsApp o correo.</small></div>
+                                        <div><strong>Confirmación en menos de ${this._confirmHoursHtml()}h</strong><small>Recibes respuesta por WhatsApp o correo.</small></div>
                                     </div>
                                     <div class="lp-booking-perk">
                                         <span class="lp-booking-perk-ico"><i class="fa-solid fa-calendar-check"></i></span>
@@ -547,23 +547,38 @@ export class LandingPage {
         return h ? String(h) : '24';
     }
 
-    // Resumen de horario: "Lun a Vie · 8:00–20:00" desde work_schedule.
+    // Resumen de horario desde work_schedule (dinámico, ambos formatos).
     _scheduleSummaryHtml() {
         const ws = this._settings && this._settings.work_schedule;
-        if (!ws) return 'Lun a Vie · 8:00–20:00';
+        if (!ws) return 'Horarios flexibles';
         let schedule = ws;
         if (typeof schedule === 'string') {
             try { schedule = JSON.parse(schedule); } catch { return 'Horarios flexibles'; }
         }
-        const weekdays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
-        const weekdayTimes = weekdays
-            .map(d => schedule[d])
-            .filter(v => v && v !== 'cerrado');
-        const first = weekdayTimes[0];
-        if (first && weekdayTimes.every(t => t === first)) {
-            return `Lun a Vie · ${first.replace('-', '–')}`;
+        // Legacy (migración 010): array [{day:1..7,from,to}] → objeto por día.
+        if (Array.isArray(schedule)) {
+            const dayKeys = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+            schedule = schedule.reduce((acc, e) => {
+                const key = dayKeys[(Number(e.day) || 0) % 7];
+                if (e.from && e.to) acc[key] = `${e.from}-${e.to}`;
+                return acc;
+            }, {});
         }
-        return 'Lun a Vie · 8:00–20:00';
+        const short = { lunes: 'Lun', martes: 'Mar', miercoles: 'Mié', jueves: 'Jue', viernes: 'Vie', sabado: 'Sáb', domingo: 'Dom' };
+        const order = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+        const open = order
+            .map(d => ({ d, range: schedule[d] }))
+            .filter(x => x.range && x.range !== 'cerrado');
+        if (!open.length) return 'Consultar horarios';
+        const dash = r => String(r).replace('-', '–');
+        if (open.length === 7 && open.every(x => x.range === open[0].range)) {
+            return `Todos los días · ${dash(open[0].range)}`;
+        }
+        const weekdays = order.slice(0, 5).map(d => schedule[d]).filter(v => v && v !== 'cerrado');
+        if (weekdays.length === 5 && weekdays.every(t => t === weekdays[0])) {
+            return `Lun a Vie · ${dash(weekdays[0])}`;
+        }
+        return open.map(x => `${short[x.d]} ${dash(x.range)}`).join(' · ');
     }
 
     // Opciones del select de servicios en el formulario de reserva.
@@ -1109,12 +1124,12 @@ export class LandingPage {
             if (!error && data) {
                 form.reset();
                 if (this._calendarRefresh) this._calendarRefresh();
-                setStatus('success', '¡Solicitud recibida! Te confirmamos tu cita en menos de 24 horas.');
+                setStatus('success', `¡Solicitud recibida! Te confirmamos tu cita en menos de ${this._confirmHoursHtml()} horas.`);
                 if (window.app && window.app.toast) {
                     window.app.toast.show({
                         type: 'success',
                         title: 'Solicitud enviada',
-                        message: `Gracias ${data.fullName.split(' ')[0]}. Te contactaremos en menos de 24 horas.`
+                        message: `Gracias ${data.fullName.split(' ')[0]}. Te contactaremos en menos de ${this._confirmHoursHtml()} horas.`
                     });
                 }
             } else {

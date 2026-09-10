@@ -113,8 +113,10 @@ class PatientsService {
     async getAll(opts = {}) {
         let query = supabase.from(TABLE).select('*', { count: 'exact' });
 
-        const ownerId = await this._getOwnerId();
-        if (ownerId) query = query.eq('owner_id', ownerId);
+        // NOTA: ya no se filtra por owner_id. La RLS de Supabase ya limita cada
+        // rol: los clínicos ven todos los pacientes y los pacientes solo su
+        // ficha propia. Filtrar por owner ocultaba los pacientes creados por
+        // auto-registro (owner_id = el uid del paciente, no el del staff).
 
         if (opts.status && opts.status !== 'all') {
             query = query.eq('status', opts.status);
@@ -192,24 +194,14 @@ class PatientsService {
     }
 
     async getStats() {
-        const ownerId = await this._getOwnerId();
         let base = supabase.from(TABLE).select('*', { count: 'exact', head: true });
-        if (ownerId) base = base.eq('owner_id', ownerId);
 
         const [totalRes, activeRes, inactiveRes, newRes, upcomingRes] = await Promise.all([
             base,
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'active')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'active'),
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'inactive')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'inactive'),
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'new')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'new'),
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).not('next_appointment', 'is', null)
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).not('next_appointment', 'is', null)
+            supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'active'),
+            supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'inactive'),
+            supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'new'),
+            supabase.from(TABLE).select('*', { count: 'exact', head: true }).not('next_appointment', 'is', null)
         ]);
 
         return {

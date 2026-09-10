@@ -11,7 +11,9 @@
 import { patientPortalService } from '../services/patientPortalService.js';
 import { authService } from '../services/authService.js';
 import { getGreeting, getInitials, formatAppointmentDate } from '../services/mockData.js';
-import { BOOKING_STATUS_LABELS } from '../services/bookingRequestsService.js';
+import { BOOKING_STATUS_LABELS, bookingRequestsService } from '../services/bookingRequestsService.js';
+import { cmsService } from '../services/cmsService.js';
+import { siteSettingsService } from '../services/siteSettingsService.js';
 
 const ASSESSMENT_STATUS_LABELS = {
     COMPLETADA: 'Completada',
@@ -71,6 +73,13 @@ export class PatientPortalPage {
         const initials = getInitials(user.user_metadata?.full_name || user.email || 'Paciente');
         const patientName = user.user_metadata?.full_name || user.email || 'Paciente';
         const firstName = String(patientName).trim().split(/\s+/)[0];
+
+        const [cms, settings] = await Promise.allSettled([
+            cmsService.getLandingContent().catch(() => null),
+            siteSettingsService.getAll().catch(() => null)
+        ]);
+        this._cms = cms?.value || null;
+        this._settings = settings?.value || null;
 
         this.container.innerHTML = `
             <div class="pt-shell" id="ptShell">
@@ -137,9 +146,9 @@ export class PatientPortalPage {
                         <section class="pt-card">
                             <h2 class="pt-card-title">Próximas citas</h2>
                             <div id="ptUpcoming" class="pt-loading">Cargando citas…</div>
-                            <a class="pt-link" href="#/">
-                                Reservar una cita <span aria-hidden="true">→</span>
-                            </a>
+                            <button class="pt-link pt-link--btn" type="button" data-booking-open aria-haspopup="dialog">
+                                Solicitar una cita <span aria-hidden="true">→</span>
+                            </button>
                         </section>
                     </div>
 
@@ -167,6 +176,65 @@ export class PatientPortalPage {
                         </section>
                     </div>
                 </main>
+
+                <div class="pt-modal" id="ptBookingModal" role="dialog" aria-modal="true" aria-labelledby="ptBookingTitle" hidden>
+                    <div class="pt-modal-backdrop" data-booking-close></div>
+                    <div class="pt-modal-panel">
+                        <div class="pt-modal-head">
+                            <h2 class="pt-modal-title" id="ptBookingTitle">Solicitar una cita</h2>
+                            <button class="pt-modal-close" type="button" data-booking-close aria-label="Cerrar">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <form class="pt-booking-form" id="ptBookingForm" novalidate>
+                            <div class="pt-form-grid">
+                                <div class="pt-form-group">
+                                    <label class="pt-form-label" for="ptBkName">Nombre completo <span class="pt-req">*</span></label>
+                                    <input class="pt-input" type="text" id="ptBkName" name="fullName" required autocomplete="name">
+                                </div>
+                                <div class="pt-form-group">
+                                    <label class="pt-form-label" for="ptBkPhone">WhatsApp / teléfono <span class="pt-req">*</span></label>
+                                    <input class="pt-input" type="tel" id="ptBkPhone" name="phone" required autocomplete="tel">
+                                </div>
+                                <div class="pt-form-group pt-form-group--full">
+                                    <label class="pt-form-label" for="ptBkEmail">Correo electrónico</label>
+                                    <input class="pt-input" type="email" id="ptBkEmail" name="email" autocomplete="email">
+                                </div>
+                                <div class="pt-form-group">
+                                    <label class="pt-form-label" for="ptBkService">Servicio <span class="pt-req">*</span></label>
+                                    <select class="pt-input pt-input--select" id="ptBkService" name="serviceType" required>
+                                        ${this._serviceOptionsHtml()}
+                                    </select>
+                                </div>
+                                <div class="pt-form-group">
+                                    <label class="pt-form-label" for="ptBkModality">Modalidad <span class="pt-req">*</span></label>
+                                    <select class="pt-input pt-input--select" id="ptBkModality" name="modality" required>
+                                        <option value="Presencial">Presencial</option>
+                                        <option value="Online">Online</option>
+                                    </select>
+                                </div>
+                                <div class="pt-form-group">
+                                    <label class="pt-form-label" for="ptBkDate">Fecha preferida <span class="pt-req">*</span></label>
+                                    <input class="pt-input" type="date" id="ptBkDate" name="preferredDate" required>
+                                </div>
+                                <div class="pt-form-group">
+                                    <label class="pt-form-label" for="ptBkTime">Horario preferido <span class="pt-req">*</span></label>
+                                    <select class="pt-input pt-input--select" id="ptBkTime" name="preferredTime" required disabled>
+                                        <option value="">Elige primero una fecha</option>
+                                    </select>
+                                    <span class="pt-form-hint" id="ptBkTimeHint"></span>
+                                </div>
+                                <div class="pt-form-group pt-form-group--full">
+                                    <label class="pt-form-label" for="ptBkMsg">¿En qué podemos acompañarte? <span class="pt-opt">(opcional)</span></label>
+                                    <textarea class="pt-textarea" id="ptBkMsg" name="message" placeholder="Cuéntanos brevemente tu motivo de consulta."></textarea>
+                                </div>
+                            </div>
+                            <button type="submit" class="pt-btn pt-btn--primary">Enviar solicitud</button>
+                            <p class="pt-booking-status" id="ptBookingStatus" role="status"></p>
+                            <p class="pt-form-note">El equipo te contactará para confirmar el horario disponible.</p>
+                        </form>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -195,6 +263,8 @@ export class PatientPortalPage {
         };
         document.addEventListener('click', this._ptDocClick);
 
+        this._bindBookingModal();
+
         this._startClock();
         await Promise.allSettled([
             this._loadProfile(),
@@ -204,6 +274,184 @@ export class PatientPortalPage {
             this._loadAssessments(),
             this._loadRequests()
         ]);
+    }
+
+    // Servicios del formulario: desde el CMS (landing pública), con fallback.
+    _serviceOptionsHtml() {
+        const services = (this._cms && this._cms.servicios && this._cms.servicios.items) || [];
+        const titles = services.map(s => s && s.title).filter(Boolean);
+        if (!titles.length) {
+            titles.push('Terapia Individual', 'Terapia de Pareja', 'Terapia Familiar', 'Evaluación Psicológica', 'Terapia Online');
+        }
+        return titles.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+    }
+
+    _confirmHoursHtml() {
+        const h = this._settings && this._settings.booking_confirm_hours;
+        return h ? String(h) : '24';
+    }
+
+    async _loadTimeOptions(dateISO) {
+        const select = this.container?.querySelector('#ptBkTime');
+        const hint = this.container?.querySelector('#ptBkTimeHint');
+        if (!select) return;
+
+        if (!dateISO) {
+            select.disabled = true;
+            select.innerHTML = '<option value="">Elige primero una fecha</option>';
+            if (hint) hint.textContent = '';
+            return;
+        }
+
+        select.disabled = true;
+        select.innerHTML = '<option value="">Buscando horarios…</option>';
+        if (hint) hint.textContent = '';
+        if (this._slotsToken) this._slotsToken.cancelled = true;
+        const token = { cancelled: false };
+        this._slotsToken = token;
+
+        const { data: slots, error } = await bookingRequestsService.getAvailableTimes(dateISO);
+        if (token.cancelled) return;
+        this._slotsToken = null;
+
+        if (error || !slots || !slots.length) {
+            select.disabled = true;
+            select.innerHTML = '<option value="">Sin horarios disponibles</option>';
+            if (hint) {
+                hint.textContent = 'No hay horarios libres para esta fecha. Prueba con otro día.';
+                hint.className = 'pt-form-hint is-error';
+            }
+            return;
+        }
+
+        select.disabled = false;
+        select.innerHTML = '<option value="">Elige un horario</option>' +
+            slots.map(s => `<option value="${s}">${s}</option>`).join('');
+        if (hint) {
+            hint.textContent = `${slots.length} horario(s) libre(s) para esta fecha.`;
+            hint.className = 'pt-form-hint is-ok';
+        }
+    }
+
+    _bindBookingModal() {
+        const modal = this.container?.querySelector('#ptBookingModal');
+        const openBtn = this.container?.querySelector('[data-booking-open]');
+        if (!modal || !openBtn) return;
+
+        const form = modal.querySelector('#ptBookingForm');
+        const statusEl = modal.querySelector('#ptBookingStatus');
+
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        modal.querySelector('#ptBkDate').min = today;
+
+        const setStatus = (type, text) => {
+            statusEl.textContent = text;
+            statusEl.className = `pt-booking-status is-${type}`;
+        };
+        const setBusy = (busy) => {
+            const submit = form.querySelector('[type="submit"]');
+            submit.disabled = busy;
+            submit.textContent = busy ? 'Enviando solicitud…' : 'Enviar solicitud';
+        };
+
+        const prefill = () => {
+            const user = authService.getCurrentUser() || {};
+            const fullName = user.user_metadata?.full_name || user.email || '';
+            form.querySelector('#ptBkName').value = fullName;
+            form.querySelector('#ptBkEmail').value = user.email || '';
+        };
+
+        openBtn.addEventListener('click', () => {
+            prefill();
+            setStatus('', '');
+            modal.hidden = false;
+            document.body.style.overflow = 'hidden';
+            modal.querySelector('#ptBkName').focus();
+        });
+
+        const close = () => {
+            modal.hidden = true;
+            document.body.style.overflow = '';
+        };
+
+        modal.querySelectorAll('[data-booking-close]').forEach(el => {
+            el.addEventListener('click', close);
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            setStatus('', '');
+
+            const fullName = form.querySelector('#ptBkName').value.trim();
+            const phone = form.querySelector('#ptBkPhone').value.trim();
+            const email = form.querySelector('#ptBkEmail').value.trim();
+            const serviceType = form.querySelector('#ptBkService').value;
+            const modality = form.querySelector('#ptBkModality').value;
+            const preferredDate = form.querySelector('#ptBkDate').value;
+            const preferredTime = form.querySelector('#ptBkTime').value;
+            const message = form.querySelector('#ptBkMsg').value.trim();
+
+            if (!fullName || !phone || !preferredDate || !preferredTime) {
+                setStatus('error', 'Completa nombre, teléfono, fecha y horario.');
+                return;
+            }
+            if (!/^\+?[\d\s()-]{7,}$/.test(phone)) {
+                setStatus('error', 'Revisa el formato de tu teléfono.');
+                return;
+            }
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                setStatus('error', 'Revisa el formato de tu correo electrónico.');
+                return;
+            }
+
+            setBusy(true);
+            const { data, error } = await bookingRequestsService.create({
+                fullName,
+                phone,
+                email,
+                serviceType,
+                modality,
+                preferredDate,
+                preferredTime,
+                message
+            });
+            setBusy(false);
+
+            if (!error && data) {
+                setStatus('success', `¡Solicitud enviada! Te confirmaremos tu cita en menos de ${this._confirmHoursHtml()} horas.`);
+                form.reset();
+                prefill();
+                this._loadTimeOptions('');
+                this._loadRequests();
+            } else {
+                console.error('booking create error:', error);
+                setStatus('error', 'No pudimos registrar tu solicitud. Inténtalo de nuevo o escríbenos por WhatsApp.');
+            }
+        });
+
+        this._bookingClose = close;
+        this._bookingModal = modal;
+
+        document.addEventListener('keydown', this._bookingEsc = (ev) => {
+            if (ev.key === 'Escape' && !modal.hidden) close();
+        });
+
+        const dateInput = form.querySelector('#ptBkDate');
+        const todayMsStart = new Date().setHours(0, 0, 0, 0);
+        dateInput.addEventListener('input', () => {
+            if (dateInput.value && new Date(dateInput.value).getTime() < todayMsStart) {
+                setStatus('error', 'Elige una fecha futura, no en el pasado.');
+                dateInput.value = '';
+                this._loadTimeOptions('');
+            }
+        });
+        dateInput.addEventListener('change', () => {
+            if (dateInput.value) this._loadTimeOptions(dateInput.value);
+        });
+        openBtn.addEventListener('click', () => {
+            this._loadTimeOptions(form.querySelector('#ptBkDate').value || '');
+        });
     }
 
     _startClock() {
@@ -348,6 +596,10 @@ export class PatientPortalPage {
     }
 
     destroy() {
+        if (this._slotsToken) {
+            this._slotsToken.cancelled = true;
+            this._slotsToken = null;
+        }
         if (this.clockInterval) {
             clearInterval(this.clockInterval);
             this.clockInterval = null;
@@ -355,6 +607,14 @@ export class PatientPortalPage {
         if (this._ptDocClick) {
             document.removeEventListener('click', this._ptDocClick);
             this._ptDocClick = null;
+        }
+        if (this._bookingEsc) {
+            document.removeEventListener('keydown', this._bookingEsc);
+            this._bookingEsc = null;
+        }
+        if (this._bookingModal && this._bookingClose) {
+            this._bookingModal.hidden = true;
+            document.body.style.overflow = '';
         }
         this.container = null;
     }

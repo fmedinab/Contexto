@@ -306,6 +306,122 @@
 .pt-progress { height: 6px; border-radius: var(--radius-full); background: rgba(148, 163, 184, 0.16); margin-top: var(--space-sm); overflow: hidden; }
 .pt-progress-fill { display: block; height: 100%; border-radius: var(--radius-full); background: linear-gradient(90deg, var(--primary), #a855f7); transition: width var(--transition-base); }
 
+/* ===== Botón de enlace y callout de reserva ===== */
+.pt-link--btn {
+    border: none;
+    background: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+.pt-link--btn:hover { text-decoration: underline; }
+
+/* ===== Modal de solicitud de cita ===== */
+.pt-modal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-md);
+}
+.pt-modal[hidden] { display: none; }
+.pt-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.62);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+.pt-modal-panel {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    padding: var(--space-xl);
+}
+.pt-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+}
+.pt-modal-title { font-size: var(--text-lg); font-weight: 700; color: var(--text-primary); margin: 0; }
+.pt-modal-close {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+.pt-modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.pt-modal-close svg { width: 16px; height: 16px; }
+
+.pt-booking-form { display: flex; flex-direction: column; gap: var(--space-sm); }
+.pt-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
+.pt-form-group--full { grid-column: 1 / -1; }
+.pt-form-label { display: block; font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-xs); }
+.pt-req { color: var(--primary); }
+.pt-opt { color: var(--text-muted); font-weight: 500; }
+.pt-input, .pt-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: var(--text-sm);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.pt-input:focus, .pt-textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+.pt-input--select { appearance: none; cursor: pointer; }
+.pt-textarea { min-height: 90px; resize: vertical; }
+.pt-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.pt-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.pt-btn--primary { background: linear-gradient(135deg, var(--primary), #8b5cf6); color: #fff; }
+.pt-btn--primary:hover:not(:disabled) { filter: brightness(1.08); }
+.pt-booking-status { font-size: var(--text-sm); margin: 0; min-height: 0; }
+.pt-booking-status.is-error { color: var(--error); }
+.pt-booking-status.is-success { color: var(--success); }
+.pt-form-note { font-size: var(--text-xs); color: var(--text-muted); margin: 0; }
+.pt-form-hint { display: block; font-size: var(--text-xs); color: var(--text-muted); margin-top: 4px; }
+.pt-form-hint.is-ok { color: var(--success); }
+.pt-form-hint.is-error { color: var(--error); }
+@media (max-width: 620px) {
+    .pt-form-grid { grid-template-columns: 1fr; }
+    .pt-form-group--full { grid-column: auto; }
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 720px) {
     .pt-clock { display: none; }
