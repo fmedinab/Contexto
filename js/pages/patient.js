@@ -1,8 +1,12 @@
 // js/pages/patient.js
-// Portal del paciente (/paciente).
-// Vista autenticada para usuarios con rol 'patient': perfil, próximas citas,
+// Portal del paciente dentro del dashboard unificado (/dashboard).
+// Vista autenticada para usuarios sin rol de staff: perfil, próximas citas,
 // historial, tareas terapéuticas, evaluaciones y solicitudes propias.
-// La visibilidad de datos la garantiza RLS; este módulo solo presenta.
+// Es SOLO LECTURA: el paciente no hace CRUD. La visibilidad de datos la
+// garantiza RLS; este módulo solo presenta.
+//
+// Diseño: dashboard clásico y sobrio, independiente del shell orbital del
+// staff (no hereda .app--dashboard). Todo el estilo vive aquí con prefijo pt-.
 
 import { patientPortalService } from '../services/patientPortalService.js';
 import { authService } from '../services/authService.js';
@@ -65,94 +69,131 @@ export class PatientPortalPage {
         const user = authService.getCurrentUser() || {};
         const greeting = getGreeting();
         const initials = getInitials(user.user_metadata?.full_name || user.email || 'Paciente');
+        const patientName = user.user_metadata?.full_name || user.email || 'Paciente';
+        const firstName = String(patientName).trim().split(/\s+/)[0];
 
         this.container.innerHTML = `
-            <div class="ambient-bg" aria-hidden="true"></div>
-            <div class="app">
-                <header class="app-header-dash">
-                    <div class="header-shape" aria-hidden="true"></div>
-                    <svg class="header-border-svg" viewBox="0 0 1536 100" preserveAspectRatio="none" aria-hidden="true">
-                        <path d="M0,100 C384,100 384,70 576,70 L960,70 C1152,70 1152,100 1536,100" />
-                    </svg>
-                    <div class="header-content">
-                        <div class="brand">
-                            <div class="brand-icon" aria-hidden="true">
-                                <svg class="brand-logo-svg" viewBox="0 0 100 100" fill="none">
-                                    <path d="M64 15C43 15 26 32 26 53c0 21 17 38 38 38" stroke="#c4b5fd" stroke-width="6" stroke-linecap="round"/>
+            <div class="pt-shell" id="ptShell">
+
+                <header class="pt-header">
+                    <div class="pt-header-inner">
+                        <a class="pt-brand" href="#/" aria-label="CONTEXTO Psicología — Inicio">
+                            <span class="pt-brand-logo" aria-hidden="true">
+                                <svg viewBox="0 0 100 100" fill="none">
+                                    <path d="M64 15C43 15 26 32 26 53c0 21 17 38 38 38" stroke="#8b5cf6" stroke-width="6" stroke-linecap="round"/>
                                     <circle cx="50" cy="35" r="8" fill="#86efac"/>
                                     <circle cx="35" cy="53" r="8" fill="#93c5fd"/>
                                     <circle cx="65" cy="53" r="8" fill="#67e8f9"/>
                                     <circle cx="50" cy="71" r="8" fill="#fcd34d"/>
-                                    <path d="M50 43a11 11 0 0 0-11 10M39 55a11 11 0 0 0 11 8M50 63a11 11 0 0 0 11-8M61 53a11 11 0 0 0-11-10" stroke="#a5b4fc" stroke-width="1.5"/>
                                 </svg>
-                            </div>
-                            <div class="brand-text">
-                                <div class="brand-name">CONTEXTO</div>
-                                <div class="brand-sub">Psicología</div>
-                            </div>
+                            </span>
+                            <span class="pt-brand-text">
+                                <span class="pt-brand-name">CONTEXTO</span>
+                                <span class="pt-brand-sub">Psicología</span>
+                            </span>
+                        </a>
+
+                        <div class="pt-clock" aria-hidden="true">
+                            <span class="pt-clock-date" id="ptDate">—</span>
+                            <span class="pt-clock-dot">·</span>
+                            <span class="pt-clock-time" id="ptTime">--:--</span>
                         </div>
-                        <div class="header-center">
-                            <span class="clock-date" id="ptDate">—</span>
-                            <span class="dot-sep" aria-hidden="true"></span>
-                            <span class="clock-time" id="ptTime">--:--</span>
-                        </div>
-                        <div class="header-right">
-                            <button class="icon-btn" id="ptLogout" aria-label="Cerrar sesión" title="Cerrar sesión">
-                                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+
+                        <div class="pt-user" id="ptUser">
+                            <button class="pt-user-trigger" id="ptUserTrigger" aria-haspopup="true" aria-expanded="false">
+                                <span class="pt-avatar">${escapeHtml(initials)}</span>
+                                <span class="pt-user-meta">
+                                    <span class="pt-user-name">${escapeHtml(firstName)}</span>
+                                    <span class="pt-user-role">Paciente</span>
+                                </span>
+                                <svg class="pt-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
                             </button>
+                            <div class="pt-dropdown" role="menu">
+                                <button role="menuitem" data-action="home">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7"/><path d="M5 9v11h14V9"/></svg>
+                                    Volver al inicio
+                                </button>
+                                <button role="menuitem" data-action="logout">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+                                    Cerrar sesión
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </header>
 
-                <div class="main-grid">
-                    <div class="greeting-card">
-                        <h1 class="greeting-title">${greeting.text} <span class="heart" aria-hidden="true">♡</span></h1>
-                        <p class="greeting-quote">"${greeting.phrase}"</p>
+                <main class="pt-main">
+                    <div class="pt-hello">
+                        <h1 class="pt-hello-title">${greeting.text} <span class="pt-heart" aria-hidden="true">♡</span></h1>
+                        <p class="pt-hello-quote">"${greeting.phrase}"</p>
                     </div>
 
-                    <section class="card pt-card pt-card--profile">
-                        <h2 class="card-title">Mi expediente</h2>
-                        <div id="ptProfile" class="pt-loading">Cargando tu información…</div>
-                    </section>
-
                     <div class="pt-grid">
-                        <section class="card pt-card">
-                            <h2 class="card-title">Próximas citas</h2>
+                        <section class="pt-card pt-card--profile">
+                            <h2 class="pt-card-title">Mi expediente</h2>
+                            <div id="ptProfile" class="pt-loading">Cargando tu información…</div>
+                        </section>
+
+                        <section class="pt-card">
+                            <h2 class="pt-card-title">Próximas citas</h2>
                             <div id="ptUpcoming" class="pt-loading">Cargando citas…</div>
-                            <a class="btn pt-book-link" href="#/">
+                            <a class="pt-link" href="#/">
                                 Reservar una cita <span aria-hidden="true">→</span>
                             </a>
                         </section>
+                    </div>
 
-                        <section class="card pt-card">
-                            <h2 class="card-title">Historial de citas</h2>
+                    <div class="pt-grid">
+                        <section class="pt-card">
+                            <h2 class="pt-card-title">Historial de citas</h2>
                             <div id="ptHistory" class="pt-loading">Cargando…</div>
+                        </section>
+
+                        <section class="pt-card">
+                            <h2 class="pt-card-title">Mis tareas terapéuticas</h2>
+                            <div id="ptTasks" class="pt-loading">Cargando tareas…</div>
                         </section>
                     </div>
 
-                    <section class="card pt-card">
-                        <h2 class="card-title">Mis tareas terapéuticas</h2>
-                        <div id="ptTasks" class="pt-loading">Cargando tareas…</div>
-                    </section>
-
                     <div class="pt-grid">
-                        <section class="card pt-card">
-                            <h2 class="card-title">Mis evaluaciones</h2>
+                        <section class="pt-card">
+                            <h2 class="pt-card-title">Mis evaluaciones</h2>
                             <div id="ptAssessments" class="pt-loading">Cargando…</div>
                         </section>
 
-                        <section class="card pt-card">
-                            <h2 class="card-title">Mis solicitudes</h2>
+                        <section class="pt-card">
+                            <h2 class="pt-card-title">Mis solicitudes</h2>
                             <div id="ptRequests" class="pt-loading">Cargando…</div>
                         </section>
                     </div>
-                </div>
+                </main>
             </div>
         `;
 
-        this.container.querySelector('#ptLogout').addEventListener('click', () => {
-            authService.logout().catch(() => {});
-        });
+        const userMenu = this.container.querySelector('#ptUser');
+        if (userMenu) {
+            const trigger = userMenu.querySelector('#ptUserTrigger');
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = userMenu.classList.toggle('open');
+                trigger.setAttribute('aria-expanded', String(isOpen));
+            });
+            userMenu.addEventListener('click', (e) => {
+                const action = e.target.closest('[data-action]')?.dataset.action;
+                if (action === 'logout') {
+                    authService.logout().catch(() => {});
+                } else if (action === 'home') {
+                    window.router?.navigate?.('/');
+                }
+                userMenu.classList.remove('open');
+            });
+        }
+
+        this._ptDocClick = (e) => {
+            const menu = this.container?.querySelector('#ptUser');
+            if (menu && !menu.contains(e.target)) menu.classList.remove('open');
+        };
+        document.addEventListener('click', this._ptDocClick);
 
         this._startClock();
         await Promise.allSettled([
@@ -310,6 +351,10 @@ export class PatientPortalPage {
         if (this.clockInterval) {
             clearInterval(this.clockInterval);
             this.clockInterval = null;
+        }
+        if (this._ptDocClick) {
+            document.removeEventListener('click', this._ptDocClick);
+            this._ptDocClick = null;
         }
         this.container = null;
     }

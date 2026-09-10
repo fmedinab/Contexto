@@ -72,6 +72,15 @@ export class PermissionService {
         return this.hasRole(Roles.PATIENT);
     }
 
+    /* Rol de staff (puede gestionar pacientes). Si no hay ningún rol cargado,
+       NO se considera staff: así /dashboard nunca falla abierto hacia el panel
+       de gestión por roles no cargados aún. */
+    isStaff() {
+        return this.hasRole(Roles.ADMIN) ||
+               this.hasRole(Roles.PSYCHOLOGIST) ||
+               this.hasRole(Roles.ASSISTANT);
+    }
+
     canAccessPage(page) {
         const pagePermissions = {
             '/dashboard': [Permissions.DASHBOARD_VIEW],

@@ -83,6 +83,11 @@ export class LoginPage {
                     </div>
                 </div>
 
+                <a href="/" class="auth-back" data-link aria-label="Volver al inicio">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Volver al inicio
+                </a>
+
                 <div class="auth-form-container">
                     <h1 class="auth-title">CONTEXTO<span class="terminal-cursor">|</span></h1>
                     <p class="auth-subtitle"><i class="fa-solid fa-user-shield"></i> Plataforma de Gestión Psicológica</p>
@@ -255,11 +260,11 @@ export class LoginPage {
         try {
             await window.app.auth.login(email, password);
             _clearFailures();
-            // Refrescar roles antes de decidir el destino post-login.
+            // Refrescar roles antes de entrar (el dashboard es consciente del rol).
             try { await window.app.permissions.refresh(); } catch (e) { /* noop */ }
-            const isPatient = window.app.permissions.isPatient?.() || false;
             window.app.toast.success('Bienvenido', 'Has iniciado sesión correctamente.');
-            window.router.navigate(isPatient ? '/paciente' : '/dashboard');
+            // Página principal unificada: el paciente ve su portal, el staff su panel.
+            window.router.navigate('/dashboard');
         } catch (error) {
             const raw = (error.message || '').toLowerCase();
             if (!/fetch|network/.test(raw)) _registerFailure();

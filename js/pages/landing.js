@@ -792,8 +792,7 @@ export class LandingPage {
         const user = window.app?.auth?.getCurrentUser?.();
         if (!user) return;
 
-        const isPatient = window.app?.permissions?.isPatient?.();
-        const dest = isPatient ? '#/paciente' : '#/dashboard';
+        const dest = '#/dashboard';
         const name = user.user_metadata?.full_name || user.email || 'Usuario';
         const initial = (name.trim().charAt(0) || 'U').toUpperCase();
 

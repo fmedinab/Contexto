@@ -1,5 +1,5 @@
 // js/services/patientPortalService.js
-// Consultas para el portal del paciente (/paciente).
+// Consultas para el portal del paciente (dashboard unificado /dashboard).
 //
 // El acceso a cada fila lo garantiza RLS del lado de Supabase
 // (políticas "view own" en patients, appointments, assessments,

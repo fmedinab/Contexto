@@ -68,8 +68,17 @@ class App {
             .addRoute('/privacidad', () => this.renderPage('legal', new LegalPage()))
             .addRoute('/cookies', () => this.renderPage('legal', new LegalPage()))
             .addRoute('/aviso-legal', () => this.renderPage('legal', new LegalPage()))
-            .addRoute('/dashboard', () => this.renderPage('dashboard', new DashboardPage()))
-            .addRoute('/paciente', () => this.requireAuth(() => this.renderPage('patient', new PatientPortalPage()))())
+            .addRoute('/dashboard', () => {
+                // El dashboard es la página principal unificada con seguridad
+                // fail-closed: SOLO se muestra el panel de gestión si el usuario
+                // tiene un rol de staff explícito. Cualquier otra situación
+                // (paciente, sin roles, roles aún no cargados) muestra el portal
+                // de paciente, que es de solo lectura.
+                const isStaff = this.permissions.isStaff?.();
+                const pageKey = isStaff ? 'dashboard' : 'patient';
+                const instance = isStaff ? new DashboardPage() : new PatientPortalPage();
+                return this.renderPage(pageKey, instance);
+            })
             .addRoute('/patients', () => this.requireAuth(() => this.renderPage('patients', new PatientsPage()))())
             .addRoute('/appointments', () => this.requireAuth(() => this.renderPage('appointments', new AppointmentsPage()))())
             .addRoute('/evaluations', () => this.requireAuth(() => this.renderPage('evaluations', new EvaluationsPage()))())
@@ -114,29 +123,44 @@ class App {
             // Páginas legales: públicas, sin autenticación.
             if (isLegalRoute) return;
 
-            // Ruta del portal del paciente: solo usuarios con rol paciente.
-            if (path === '/paciente') {
+            // Ruta principal unificada: /dashboard está disponible para cualquier
+            // usuario autenticado (paciente ve su portal, staff ve su panel).
+            if (path === '/dashboard') {
                 if (!this.auth.isAuthenticated()) {
                     router.navigate('/login');
                     return false;
                 }
-                if (!this.permissions.isPatient()) {
-                    router.navigate('/dashboard');
-                    return false;
+                // Seguridad fail-closed: si el usuario no tiene ningún rol cargado
+                // ni rol de staff, se le completa la cuenta como paciente (rol +
+                // ficha) para que su portal de solo lectura encuentre sus datos.
+                // Un staff real (admin/psychologist/assistant) no pasa por aquí.
+                if (this.permissions.isStaff?.()) return;
+
+                if (!this.permissions.userRoles.length) {
+                    const user = this.auth.getCurrentUser?.();
+                    if (user?.email) {
+                        try {
+                            await this.auth.getSupabaseClient().rpc('ensure_patient_account', {
+                                p_email: user.email,
+                                p_full_name: user.user_metadata?.full_name || user.email
+                            });
+                        } catch (e) { /* noop */ }
+                        try { await this.permissions.refresh(); } catch (e) { /* noop */ }
+                    }
                 }
                 return;
             }
 
-            // Rutas clínicas y dashboard: solo staff con permiso. Un paciente
-            // que intenta entrar es redirigido a su portal.
-            const staffRoutes = ['/dashboard', '/patients', '/appointments', '/evaluations', '/tasks', '/notes', '/reports'];
+            // Rutas clínicas: solo staff con permiso. Un paciente que intenta
+            // entrar es redirigido a su portal (ahora en /dashboard).
+            const staffRoutes = ['/patients', '/appointments', '/evaluations', '/tasks', '/notes', '/reports'];
             if (staffRoutes.includes(path)) {
                 if (!this.auth.isAuthenticated()) {
                     router.navigate('/login');
                     return false;
                 }
                 if (this.permissions.isPatient()) {
-                    router.navigate('/paciente');
+                    router.navigate('/dashboard');
                     return false;
                 }
                 if (!this.permissions.canAccessPage(path)) {
@@ -170,7 +194,7 @@ class App {
 
         const appEl = document.getElementById('app');
         if (appEl) {
-            const dashboardPages = ['dashboard', 'patients', 'appointments', 'evaluations', 'tasks', 'notes', 'reports', 'patient'];
+            const dashboardPages = ['dashboard', 'patients', 'appointments', 'evaluations', 'tasks', 'notes', 'reports'];
             if (dashboardPages.includes(key)) {
                 appEl.classList.add('app--dashboard');
             } else {
@@ -210,8 +234,9 @@ class App {
         });
     }
 
-    /* Tras entrar vía magic link (login sin contraseña), lleva al usuario a
-       su portal según el rol: paciente → /paciente, staff → /dashboard. */
+    /* Tras entrar vía magic link (login sin contraseña), lleva al usuario a la
+       página principal unificada (/dashboard): pacientes ven su portal, staff
+       su panel de gestión. */
     _handleMagicLinkArrival() {
         let pending = false;
         try { pending = localStorage.getItem('contexto_magic_pending') === '1'; } catch { /* noop */ }
@@ -219,7 +244,7 @@ class App {
 
         try { localStorage.removeItem('contexto_magic_pending'); } catch { /* noop */ }
 
-        const dest = this.permissions.isPatient?.() ? '/paciente' : '/dashboard';
+        const dest = '/dashboard';
         if (router._getPath && router._getPath() !== dest) {
             router.navigate(dest);
         }

@@ -101,6 +101,24 @@
 }
 
 /* Contenedor del formulario — sin card, aparece directamente en la página */
+.auth-back {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 var(--space-md) var(--space-md);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+.auth-back svg { width: 16px; height: 16px; }
+.auth-back:hover { color: var(--primary); background: rgba(99, 102, 241, 0.08); }
+
 .auth-form-container {
     position: relative;
     width: 100%;
