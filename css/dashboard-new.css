@@ -205,6 +205,8 @@
 /* ========== HEADER ========== */
 .app--dashboard .app-header-dash {
   position: relative;
+  z-index: 10;
+  /* Para que quede por encima del fondo ambiental */
   height: auto;
   min-height: 80px;
   margin-bottom: clamp(12px, 2vw, 20px);
@@ -2250,13 +2252,40 @@
     height: 92px;
   }
 
-  .app--dashboard .mod-pacientes { --ox: 0px; --oy: -204px; }
-  .app--dashboard .mod-citas { --ox: 165px; --oy: -120px; }
-  .app--dashboard .mod-evaluaciones { --ox: 194px; --oy: 25px; }
-  .app--dashboard .mod-tareas { --ox: 128px; --oy: 159px; }
-  .app--dashboard .mod-notas { --ox: -132px; --oy: 159px; }
-  .app--dashboard .mod-reportes { --ox: -204px; --oy: 25px; }
-  .app--dashboard .mod-mensajes { --ox: -165px; --oy: -120px; }
+  .app--dashboard .mod-pacientes {
+    --ox: 0px;
+    --oy: -204px;
+  }
+
+  .app--dashboard .mod-citas {
+    --ox: 165px;
+    --oy: -120px;
+  }
+
+  .app--dashboard .mod-evaluaciones {
+    --ox: 194px;
+    --oy: 25px;
+  }
+
+  .app--dashboard .mod-tareas {
+    --ox: 128px;
+    --oy: 159px;
+  }
+
+  .app--dashboard .mod-notas {
+    --ox: -132px;
+    --oy: 159px;
+  }
+
+  .app--dashboard .mod-reportes {
+    --ox: -204px;
+    --oy: 25px;
+  }
+
+  .app--dashboard .mod-mensajes {
+    --ox: -165px;
+    --oy: -120px;
+  }
 }
 
 /* ========== ULTRAWIDE / 2K+ (1920+) ========== */
@@ -2301,13 +2330,40 @@
     height: 104px;
   }
 
-  .app--dashboard .mod-pacientes { --ox: 0px; --oy: -232px; }
-  .app--dashboard .mod-citas { --ox: 188px; --oy: -136px; }
-  .app--dashboard .mod-evaluaciones { --ox: 221px; --oy: 28px; }
-  .app--dashboard .mod-tareas { --ox: 146px; --oy: 181px; }
-  .app--dashboard .mod-notas { --ox: -150px; --oy: 181px; }
-  .app--dashboard .mod-reportes { --ox: -232px; --oy: 28px; }
-  .app--dashboard .mod-mensajes { --ox: -188px; --oy: -136px; }
+  .app--dashboard .mod-pacientes {
+    --ox: 0px;
+    --oy: -232px;
+  }
+
+  .app--dashboard .mod-citas {
+    --ox: 188px;
+    --oy: -136px;
+  }
+
+  .app--dashboard .mod-evaluaciones {
+    --ox: 221px;
+    --oy: 28px;
+  }
+
+  .app--dashboard .mod-tareas {
+    --ox: 146px;
+    --oy: 181px;
+  }
+
+  .app--dashboard .mod-notas {
+    --ox: -150px;
+    --oy: 181px;
+  }
+
+  .app--dashboard .mod-reportes {
+    --ox: -232px;
+    --oy: 28px;
+  }
+
+  .app--dashboard .mod-mensajes {
+    --ox: -188px;
+    --oy: -136px;
+  }
 }
 
 /* ========== LAPTOP (1024 - 1280) ========== */
