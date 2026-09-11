@@ -248,12 +248,17 @@ export class TasksPage {
           if (newStatus === 'COMPLETADA') await tasksService.complete(task.id);
           else await tasksService.start(task.id);
           this._closeModal();
+          window.app?.toast?.success?.('Estado actualizado', `Tarea marcada como ${STATUS_LABELS[newStatus]?.label || newStatus}.`);
           await this._load();
-        } catch (err) { alert('Error: ' + err.message); e.target.disabled = false; }
+        } catch (err) { window.app?.toast?.error?.('Error', 'No se pudo actualizar: ' + (err.message || 'Intenta de nuevo')); e.target.disabled = false; }
       });
       $('#taskModalBody [data-action-cancel]')?.addEventListener('click', async () => {
-        try { await tasksService.cancel(task.id); this._closeModal(); await this._load(); }
-        catch (err) { alert('Error: ' + err.message); }
+        try {
+          await tasksService.cancel(task.id);
+          this._closeModal();
+          window.app?.toast?.success?.('Cancelada', 'Tarea cancelada.');
+          await this._load();
+        } catch (err) { window.app?.toast?.error?.('Error', 'No se pudo cancelar: ' + (err.message || 'Intenta de nuevo')); }
       });
       $('#taskModalBody [data-action-edit]')?.addEventListener('click', () => { this._closeModal(); this._openForm(task.id); });
       $('#modalCloseBtn')?.addEventListener('click', () => this._closeModal());
@@ -269,8 +274,9 @@ export class TasksPage {
     try {
       if (newStatus === 'COMPLETADA') await tasksService.complete(id);
       else await tasksService.start(id);
+      window.app?.toast?.success?.('Estado actualizado', `Tarea marcada como ${STATUS_LABELS[newStatus]?.label || newStatus}.`);
       await this._load();
-    } catch (err) { alert('Error: ' + err.message); }
+    } catch (err) { window.app?.toast?.error?.('Error', 'No se pudo actualizar: ' + (err.message || 'Intenta de nuevo')); }
   }
 
   /* ===== FORMULARIO (CREAR / EDITAR) ===== */
@@ -349,9 +355,13 @@ export class TasksPage {
           if (isEdit) await tasksService.update(editId, data);
           else await tasksService.create(data);
           this._closeModal();
+          window.app?.toast?.success?.(
+            isEdit ? 'Tarea actualizada' : 'Tarea creada',
+            isEdit ? 'Los cambios se guardaron correctamente.' : 'La tarea terapéutica se registró correctamente.'
+          );
           await this._load();
         } catch (err) {
-          alert('Error: ' + err.message);
+          window.app?.toast?.error?.('Error', 'No se pudo guardar: ' + (err.message || 'Intenta de nuevo'));
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = isEdit ? 'Guardar cambios' : 'Crear tarea'; }
         }
       });

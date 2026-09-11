@@ -132,17 +132,3 @@ export function renderErrorPage(code = 404) {
 
     document.title = `${page.code} — CONTEXTO`;
 }
-
-export function renderErrorInline(code = 404) {
-    const page = ERROR_PAGES[code] || ERROR_PAGES[404];
-    return `
-        <div class="error-page error-page--inline">
-            <div class="error-icon error-icon--sm">${page.icon}</div>
-            <div class="error-code error-code--sm" style="--err-accent:${page.accent}">${page.code}</div>
-            <h2 class="error-title error-title--sm">${page.title}</h2>
-            <p class="error-message error-message--sm">${page.message}</p>
-            <button class="error-btn error-btn--primary" onclick="window.router.navigate('/dashboard')">
-                Volver al inicio
-            </button>
-        </div>`;
-}

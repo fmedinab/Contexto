@@ -105,26 +105,46 @@ class NotesService {
   }
 
   async getStats() {
-    const all = await this.list();
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const today = iso(now);
+    const weekAgo = new Date(now);
+    weekAgo.setDate(now.getDate() - 7);
+    const weekAgoIso = iso(weekAgo);
+
+    const count = (predicate = (q) => q) =>
+      predicate(supabase.from('clinical_notes').select('id', { count: 'exact', head: true }));
+
+    const [totalRes, weekRes, monthRes, highRiskRes] = await Promise.all([
+      count(),
+      count(q => q.gte('session_date', weekAgoIso)),
+      count(q => q.gte('session_date', today.slice(0, 7) + '-01').lte('session_date', today)),
+      count(q => q.in('risk_level', ['ALTO', 'CRISIS'])),
+    ]);
+    const err = [totalRes, weekRes, monthRes, highRiskRes].find(r => r.error)?.error;
+    if (err) throw err;
+
+    // Pacientes únicos y agrupación por tipo: bastan 2 columnas ligeras
+    // (evita el SELECT * + resolución de nombres de list()).
+    const { data: aggRows, error: aggErr } = await supabase
+      .from('clinical_notes')
+      .select('patient_id, session_type');
+    if (aggErr) throw aggErr;
+
+    const rows = aggRows || [];
+    const byType = rows.reduce((acc, n) => {
+      acc[n.session_type] = (acc[n.session_type] || 0) + 1;
+      return acc;
+    }, {});
+
     return {
-      total:      all.length,
-      thisWeek:   all.filter(n => {
-        if (!n.sessionDate) return false;
-        const d = new Date(n.sessionDate + 'T00:00:00');
-        const now = new Date();
-        const weekAgo = new Date(now);
-        weekAgo.setDate(now.getDate() - 7);
-        return d >= weekAgo;
-      }).length,
-      thisMonth:  all.filter(n => {
-        if (!n.sessionDate) return false;
-        const d = new Date(n.sessionDate + 'T00:00:00');
-        const now = new Date();
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }).length,
-      highRisk:   all.filter(n => n.riskLevel === 'ALTO' || n.riskLevel === 'CRISIS').length,
-      byType:     all.reduce((acc, n) => { acc[n.sessionType] = (acc[n.sessionType] || 0) + 1; return acc; }, {}),
-      uniquePatients: new Set(all.map(n => n.patientId)).size,
+      total:      totalRes.count || 0,
+      thisWeek:   weekRes.count || 0,
+      thisMonth:  monthRes.count || 0,
+      highRisk:   highRiskRes.count || 0,
+      byType,
+      uniquePatients: new Set(rows.map(n => n.patient_id)).size,
     };
   }
 

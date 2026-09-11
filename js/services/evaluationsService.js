@@ -251,28 +251,29 @@ class EvaluationsService {
 
     async getStats() {
         const ownerId = await this._getOwnerId();
-        let base = supabase.from(TABLE).select('*', { count: 'exact', head: true });
-        if (ownerId) base = base.eq('owner_id', ownerId);
 
-        const [totalRes, pendingRes, inProgressRes, completedRes] = await Promise.all([
-            base,
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'PENDIENTE')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'PENDIENTE'),
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'EN_PROGRESO')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'EN_PROGRESO'),
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'COMPLETADA')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'COMPLETADA')
+        const count = (predicate = (q) => q) => {
+            let q = supabase.from(TABLE).select('*', { count: 'exact', head: true });
+            if (ownerId) q = q.eq('owner_id', ownerId);
+            return predicate(q);
+        };
+
+        const results = await Promise.all([
+            count(),
+            count(q => q.eq('status', 'PENDIENTE')),
+            count(q => q.eq('status', 'EN_PROGRESO')),
+            count(q => q.eq('status', 'COMPLETADA'))
         ]);
+
+        const error = results.find(r => r.error)?.error;
+        if (error) return { data: null, error };
 
         return {
             data: {
-                total: totalRes.count || 0,
-                pending: pendingRes.count || 0,
-                inProgress: inProgressRes.count || 0,
-                completed: completedRes.count || 0
+                total: results[0].count || 0,
+                pending: results[1].count || 0,
+                inProgress: results[2].count || 0,
+                completed: results[3].count || 0
             },
             error: null
         };

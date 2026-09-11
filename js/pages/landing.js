@@ -875,11 +875,6 @@ export class LandingPage {
             }
         };
         links.forEach(link => link.addEventListener('click', onClick));
-
-        // Evitar que los enlaces placeholder de redes sociales cambien el hash.
-        this.container.querySelectorAll('a[data-noop]').forEach(link => {
-            link.addEventListener('click', (e) => e.preventDefault());
-        });
     }
 
     _bindFaq() {

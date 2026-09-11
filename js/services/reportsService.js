@@ -79,24 +79,31 @@ class ReportsService {
 
     async getMonthlySessions(months = 12) {
         const now = new Date();
+        const windowStart = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
         const bounds = [];
         for (let i = months - 1; i >= 0; i--) {
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
             bounds.push({ ...monthBounds(d.getFullYear(), d.getMonth()), month: d.toLocaleDateString('es-ES', { month: 'short' }) });
         }
 
-        const results = await Promise.all(bounds.map(b =>
-            supabase.from('appointments').select('id', { count: 'exact', head: true })
-                .gte('appointment_date', b.startISO).lte('appointment_date', b.endISO)
-                .then(({ count, error }) => ({ month: b.month, value: count || 0, error }))
-        ));
+        // 1 query en vez de 12 (una por mes) y el conteo se agrega en cliente.
+        const { data, error } = await supabase
+            .from('appointments')
+            .select('appointment_date')
+            .gte('appointment_date', windowStart.toISOString());
 
-        const failed = results.find(r => r.error);
-        if (failed) {
-            throw failed.error;
-        }
+        if (error) throw error;
 
-        return results.map(({ month, value }) => ({ month, value }));
+        const rows = data || [];
+        return bounds.map(b => {
+            const start = new Date(b.startISO);
+            const end = new Date(b.endISO);
+            const value = rows.filter(r => {
+                const t = new Date(r.appointment_date);
+                return t >= start && t <= end;
+            }).length;
+            return { month: b.month, value };
+        });
     }
 
     async getSummary() {

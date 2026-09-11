@@ -252,58 +252,43 @@ class AppointmentsService {
 
     async getStats() {
         const ownerId = await this._getOwnerId();
-        let base = supabase.from(TABLE).select('*', { count: 'exact', head: true });
-        if (ownerId) base = base.eq('owner_id', ownerId);
 
+        const count = (predicate = (q) => q) => {
+            let q = supabase.from(TABLE).select('*', { count: 'exact', head: true });
+            if (ownerId) q = q.eq('owner_id', ownerId);
+            return predicate(q);
+        };
+
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
         const now = new Date().toISOString();
 
-        const [totalRes, pendingRes, confirmedRes, inProgressRes, completedRes, cancelledRes, todayRes, upcomingRes] = await Promise.all([
-            base,
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'PENDIENTE')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'PENDIENTE'),
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'CONFIRMADA')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'CONFIRMADA'),
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'EN_CURSO')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'EN_CURSO'),
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'COMPLETADA')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'COMPLETADA'),
-            ownerId
-                ? supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('owner_id', ownerId).eq('status', 'CANCELADA')
-                : supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'CANCELADA'),
-            (() => {
-                const todayStart = new Date();
-                todayStart.setHours(0, 0, 0, 0);
-                const todayEnd = new Date();
-                todayEnd.setHours(23, 59, 59, 999);
-                let q = supabase.from(TABLE).select('*', { count: 'exact', head: true })
-                    .gte('appointment_date', todayStart.toISOString())
-                    .lte('appointment_date', todayEnd.toISOString());
-                if (ownerId) q = q.eq('owner_id', ownerId);
-                return q;
-            })(),
-            (() => {
-                let q = supabase.from(TABLE).select('*', { count: 'exact', head: true })
-                    .gte('appointment_date', now)
-                    .in('status', ['PENDIENTE', 'CONFIRMADA']);
-                if (ownerId) q = q.eq('owner_id', ownerId);
-                return q;
-            })()
+        const results = await Promise.all([
+            count(),
+            count(q => q.eq('status', 'PENDIENTE')),
+            count(q => q.eq('status', 'CONFIRMADA')),
+            count(q => q.eq('status', 'EN_CURSO')),
+            count(q => q.eq('status', 'COMPLETADA')),
+            count(q => q.eq('status', 'CANCELADA')),
+            count(q => q.gte('appointment_date', todayStart.toISOString()).lte('appointment_date', todayEnd.toISOString())),
+            count(q => q.gte('appointment_date', now).in('status', ['PENDIENTE', 'CONFIRMADA']))
         ]);
+
+        const error = results.find(r => r.error)?.error;
+        if (error) return { data: null, error };
 
         return {
             data: {
-                total: totalRes.count || 0,
-                pending: pendingRes.count || 0,
-                confirmed: confirmedRes.count || 0,
-                inProgress: inProgressRes.count || 0,
-                completed: completedRes.count || 0,
-                cancelled: cancelledRes.count || 0,
-                today: todayRes.count || 0,
-                upcoming: upcomingRes.count || 0
+                total: results[0].count || 0,
+                pending: results[1].count || 0,
+                confirmed: results[2].count || 0,
+                inProgress: results[3].count || 0,
+                completed: results[4].count || 0,
+                cancelled: results[5].count || 0,
+                today: results[6].count || 0,
+                upcoming: results[7].count || 0
             },
             error: null
         };

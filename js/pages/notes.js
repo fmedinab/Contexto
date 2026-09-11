@@ -203,9 +203,9 @@ export class NotesPage {
         try {
           await notesService.delete(note.id);
           this._closeModal();
-          this._showToast('Nota eliminada.');
+          window.app?.toast?.success?.('Eliminada', 'Nota eliminada correctamente.');
           await this._load();
-        } catch (err) { alert('Error: ' + err.message); }
+        } catch (err) { window.app?.toast?.error?.('Error', 'No se pudo eliminar: ' + (err.message || 'Intenta de nuevo')); }
       });
       $('#modalCloseBtn')?.addEventListener('click', () => this._closeModal());
     } catch (err) {
@@ -275,9 +275,13 @@ export class NotesPage {
           if (isEdit) await notesService.update(editId, data);
           else await notesService.create(data);
           this._closeModal();
+          window.app?.toast?.success?.(
+            isEdit ? 'Nota actualizada' : 'Nota creada',
+            isEdit ? 'Los cambios se guardaron correctamente.' : 'La nota clínica se registró correctamente.'
+          );
           await this._load();
         } catch (err) {
-          alert('Error: ' + err.message);
+          window.app?.toast?.error?.('Error', 'No se pudo guardar: ' + (err.message || 'Intenta de nuevo'));
           if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = isEdit ? 'Guardar cambios' : 'Crear nota'; }
         }
       });
@@ -287,19 +291,5 @@ export class NotesPage {
       this._openModal('Error', '<div class="patients-empty">Error al cargar el formulario.</div><div class="action-row"><button class="btn btn-primary" id="modalCloseBtn">Cerrar</button></div>');
       $('#modalCloseBtn')?.addEventListener('click', () => this._closeModal());
     }
-  }
-
-  _showToast(msg) {
-    let t = document.getElementById('appToast');
-    if (!t) {
-      t = document.createElement('div');
-      t.id = 'appToast';
-      t.className = 'patients-toast';
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(this._toastTimer);
-    this._toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
   }
 }

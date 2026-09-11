@@ -128,16 +128,28 @@ export function getMessages() {
 
 export async function getEmotionalState() {
     const now = new Date();
+    const windowStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+
+    // 1 query en vez de 12 (una por mes) y el conteo se agrega en cliente.
+    const { data, error } = await supabase
+        .from('assessments')
+        .select('created_at')
+        .gte('created_at', windowStart.toISOString());
+
+    if (error) throw error;
+
+    const rows = data || [];
     const points = [];
     const labels = [];
     for (let i = 11; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const start = d.toISOString().slice(0, 10);
-        const end = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
-        const { count } = await supabase.from('assessments').select('id', { count: 'exact', head: true })
-            .gte('created_at', start).lte('created_at', end + 'T23:59:59Z');
-        points.push(count || 0);
-        labels.push(d.toLocaleDateString('es-ES', { month: 'short' }));
+        const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+        const count = rows.filter(r => {
+            const t = new Date(r.created_at);
+            return t >= start && t < end;
+        }).length;
+        points.push(count);
+        labels.push(start.toLocaleDateString('es-ES', { month: 'short' }));
     }
     const current = points[points.length - 1];
     const prev = points[points.length - 2] || 0;

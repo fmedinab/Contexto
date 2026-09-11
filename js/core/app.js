@@ -221,14 +221,10 @@ class App {
             if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
                 if (session?.user) {
                     this.permissions.refresh().then(() => {
-                        this.updateNavigationVisibility();
                         this._handleMagicLinkArrival();
                     }).catch(() => {});
-                } else {
-                    this.updateNavigationVisibility();
                 }
             } else if (event === 'SIGNED_OUT') {
-                this.updateNavigationVisibility();
                 router.navigate('/login');
             }
         });
@@ -248,13 +244,6 @@ class App {
         if (router._getPath && router._getPath() !== dest) {
             router.navigate(dest);
         }
-    }
-
-    updateNavigationVisibility() {
-        const isAuthenticated = this.auth.isAuthenticated();
-        document.querySelectorAll('[data-nav]').forEach(el => {
-            el.style.display = isAuthenticated ? '' : 'none';
-        });
     }
 
     bindThemeToggle() {

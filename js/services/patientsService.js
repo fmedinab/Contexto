@@ -194,23 +194,27 @@ class PatientsService {
     }
 
     async getStats() {
-        let base = supabase.from(TABLE).select('*', { count: 'exact', head: true });
+        const count = (predicate = (q) => q) =>
+            predicate(supabase.from(TABLE).select('*', { count: 'exact', head: true }));
 
-        const [totalRes, activeRes, inactiveRes, newRes, upcomingRes] = await Promise.all([
-            base,
-            supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'active'),
-            supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'inactive'),
-            supabase.from(TABLE).select('*', { count: 'exact', head: true }).eq('status', 'new'),
-            supabase.from(TABLE).select('*', { count: 'exact', head: true }).not('next_appointment', 'is', null)
+        const results = await Promise.all([
+            count(),
+            count(q => q.eq('status', 'active')),
+            count(q => q.eq('status', 'inactive')),
+            count(q => q.eq('status', 'new')),
+            count(q => q.not('next_appointment', 'is', null))
         ]);
+
+        const error = results.find(r => r.error)?.error;
+        if (error) return { data: null, error };
 
         return {
             data: {
-                total: totalRes.count || 0,
-                active: activeRes.count || 0,
-                inactive: inactiveRes.count || 0,
-                new: newRes.count || 0,
-                upcomingAppointments: upcomingRes.count || 0
+                total: results[0].count || 0,
+                active: results[1].count || 0,
+                inactive: results[2].count || 0,
+                new: results[3].count || 0,
+                upcomingAppointments: results[4].count || 0
             },
             error: null
         };

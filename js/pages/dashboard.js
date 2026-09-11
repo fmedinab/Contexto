@@ -9,7 +9,7 @@ import {
 } from '../services/mockData.js';
 import { patientService, THERAPY_TYPES, STATUS_LABELS } from '../services/patientsService.js';
 import { appointmentService, STATUS_LABELS as APPT_STATUS_LABELS, STATUS_COLORS as APPT_STATUS_COLORS } from '../services/appointmentsService.js';
-import { evaluationService, INSTRUMENTS, STATUS_LABELS as EVAL_STATUS_LABELS } from '../services/evaluationsService.js';
+import { evaluationService, INSTRUMENTS } from '../services/evaluationsService.js';
 import { tasksService } from '../services/tasksService.js';
 import { notesService } from '../services/notesService.js';
 import { reportsService } from '../services/reportsService.js';
@@ -185,7 +185,7 @@ export class DashboardPage {
                                 <button class="filter-btn" id="dashPatientFilter">${icon('search', 13)} Filtrar</button>
                             </div>
                             <div id="dashPatientList"></div>
-                            <button class="card-footer-link" data-modal="patients">Ver todos los pacientes</button>
+                            ${this._canOpenModal('patients') ? '<button class="card-footer-link" data-modal="patients">Ver todos los pacientes</button>' : ''}
                         </section>
                     </div>
 
@@ -196,27 +196,27 @@ export class DashboardPage {
                             <div class="orbit-ring ring-3" aria-hidden="true"></div>
                             <div id="dashParticleField" aria-hidden="true"></div>
 
-                            <button class="module-orbit mod-pacientes" data-modal="patients" aria-label="Abrir módulo de pacientes">
+                            ${this._canOpenModal('patients') ? `<button class="module-orbit mod-pacientes" data-modal="patients" aria-label="Abrir módulo de pacientes">
                                 <span class="mod-icon">${icon('patients', 17)}</span>Pacientes
-                            </button>
-                            <button class="module-orbit mod-citas" data-modal="appointments" aria-label="Abrir módulo de citas">
+                            </button>` : ''}
+                            ${this._canOpenModal('appointments') ? `<button class="module-orbit mod-citas" data-modal="appointments" aria-label="Abrir módulo de citas">
                                 <span class="mod-icon">${icon('calendar', 17)}</span>Citas
-                            </button>
-                            <button class="module-orbit mod-evaluaciones" data-modal="evaluations" aria-label="Abrir módulo de evaluaciones">
+                            </button>` : ''}
+                            ${this._canOpenModal('evaluations') ? `<button class="module-orbit mod-evaluaciones" data-modal="evaluations" aria-label="Abrir módulo de evaluaciones">
                                 <span class="mod-icon">${icon('clipboard', 17)}</span>Evaluaciones
-                            </button>
-                            <button class="module-orbit mod-tareas" data-modal="tasks" aria-label="Abrir módulo de tareas">
+                            </button>` : ''}
+                            ${this._canOpenModal('tasks') ? `<button class="module-orbit mod-tareas" data-modal="tasks" aria-label="Abrir módulo de tareas">
                                 <span class="mod-icon">${icon('checklist', 17)}</span>Tareas
-                            </button>
-                            <button class="module-orbit mod-notas" data-modal="notes" aria-label="Abrir módulo de notas">
+                            </button>` : ''}
+                            ${this._canOpenModal('notes') ? `<button class="module-orbit mod-notas" data-modal="notes" aria-label="Abrir módulo de notas">
                                 <span class="mod-icon">${icon('notes', 17)}</span>Notas
-                            </button>
-                            <button class="module-orbit mod-reportes" data-modal="reports" aria-label="Abrir módulo de reportes">
+                            </button>` : ''}
+                            ${this._canOpenModal('reports') ? `<button class="module-orbit mod-reportes" data-modal="reports" aria-label="Abrir módulo de reportes">
                                 <span class="mod-icon">${icon('reports', 17)}</span>Reportes
-                            </button>
-                            <button class="module-orbit mod-mensajes" data-modal="messages" aria-label="Abrir módulo de mensajes">
+                            </button>` : ''}
+                            ${this._canOpenModal('messages') ? `<button class="module-orbit mod-mensajes" data-modal="messages" aria-label="Abrir módulo de mensajes">
                                 <span class="mod-icon">${icon('messages', 17)}</span>Mensajes
-                            </button>
+                            </button>` : ''}
 
                             <button class="brain-core" id="dashBrainCore" data-modal="core" aria-label="Abrir centro de control">
                                 <svg viewBox="0 0 40 40" fill="none">
@@ -241,7 +241,7 @@ export class DashboardPage {
                                 <span class="booking-near-count" id="dashBookingNear"></span>
                             </div>
                             <div class="booking-list" id="dashBookingList"></div>
-                            <button class="card-footer-link" data-modal="bookings">Ver todas las solicitudes</button>
+                            ${this._canOpenModal('bookings') ? '<button class="card-footer-link" data-modal="bookings">Ver todas las solicitudes</button>' : ''}
                         </section>
                         <section class="card" id="dashRemindersPanel">
                             <div class="card-title">
@@ -250,7 +250,7 @@ export class DashboardPage {
                                 <span class="booking-count-badge" id="dashReminderCount"></span>
                             </div>
                             <div class="reminder-list" id="dashReminderList"></div>
-                            <button class="card-footer-link" data-modal="reminders">Ver todos los recordatorios</button>
+                            ${this._canOpenModal('reminders') ? '<button class="card-footer-link" data-modal="reminders">Ver todos los recordatorios</button>' : ''}
                         </section>
                         <section class="card">
                             <div class="card-title">
@@ -278,7 +278,7 @@ export class DashboardPage {
                                 <button class="tab-btn" data-tab="completed">Completadas <span class="tab-count">6</span></button>
                             </div>
                             <div id="dashEvalList"></div>
-                            <button class="card-footer-link" data-modal="evaluations">Ver todas las evaluaciones</button>
+                            ${this._canOpenModal('evaluations') ? '<button class="card-footer-link" data-modal="evaluations">Ver todas las evaluaciones</button>' : ''}
                         </section>
                         <section class="card" id="dashTasksPanel">
                             <div class="card-title">Tareas terapéuticas</div>
@@ -288,12 +288,12 @@ export class DashboardPage {
                                 <button class="tab-btn" data-tab="COMPLETADA">Completadas <span class="tab-count" id="dashTaskCompletedCount">—</span></button>
                             </div>
                             <div id="dashTaskList"></div>
-                            <button class="card-footer-link" data-modal="tasks">Ver todas las tareas</button>
+                            ${this._canOpenModal('tasks') ? '<button class="card-footer-link" data-modal="tasks">Ver todas las tareas</button>' : ''}
                         </section>
                         <section class="card" id="dashNotesPanel">
                             <div class="card-title">Notas clínicas</div>
                             <div id="dashNotesList"></div>
-                            <button class="card-footer-link" data-modal="notes">Ver todas las notas</button>
+                            ${this._canOpenModal('notes') ? '<button class="card-footer-link" data-modal="notes">Ver todas las notas</button>' : ''}
                         </section>
                     </div>
                 </div>
@@ -466,6 +466,45 @@ export class DashboardPage {
         } catch {
             return false;
         }
+    }
+
+    // ¿Puede abrir el modal indicado según la matriz de permisos?
+    // (patients/appointments/evaluations/reports usan permisos dedicados;
+    //  tasks/notes/messages no tienen permiso en la matriz → solo equipo clínico.)
+    _canOpenModal(type, payload = null) {
+        const perms = window.app?.permissions;
+        if (!perms) return false;
+        const has = (p) => !!(perms.hasPermission && perms.hasPermission(p));
+        const isRole = (r) => !!(perms.hasRole && perms.hasRole(r));
+
+        if (['tasks', 'newTask', 'notes', 'newNote', 'messages'].includes(type)) {
+            return isRole('admin') || isRole('psychologist');
+        }
+
+        if (type === 'patientForm') {
+            return has(payload?.isEdit ? 'patients:edit' : 'patients:create');
+        }
+
+        const byPermission = {
+            patients: 'patients:view',
+            patientDetail: 'patients:view',
+            appointments: 'appointments:view',
+            appointmentDetail: 'appointments:view',
+            newAppointment: 'appointments:create',
+            bookings: 'appointments:view',
+            bookingDetail: 'appointments:view',
+            bookingSlotPicker: 'appointments:view',
+            reminders: 'appointments:view',
+            evaluations: 'assessments:view',
+            newEvaluation: 'assessments:create',
+            reports: 'reports:view'
+        };
+
+        const required = byPermission[type];
+        if (required) return has(required);
+
+        // core y cualquier otro: disponible para el staff con dashboard.
+        return has('dashboard:view');
     }
 
     // Panel de ajustes del consultorio (horarios, inactividad, contacto).
@@ -1501,6 +1540,10 @@ export class DashboardPage {
     // ========== MODALS ==========
 
     _openModal(type, payload = null) {
+        if (!this._canOpenModal(type, payload)) {
+            window.app?.toast?.error?.('Sin permiso', 'No tienes permiso para abrir este módulo.');
+            return;
+        }
         this.currentModal = type;
         const overlay = $('#dashModalOverlay');
         const box = $('#dashModalBox');
@@ -1603,7 +1646,7 @@ export class DashboardPage {
             ['notes', 'Notas', 'notes'], ['tasks', 'Tareas', 'checklist'],
             ['reports', 'Reportes', 'reports'], ['messages', 'Mensajes', 'messages'],
             ['settings', 'Config.', 'settings']
-        ];
+        ].filter(([modal]) => this._canOpenModal(modal));
         return `<div class="core-grid">${items.map(([modal, label, ic]) => `
             <button class="core-module" data-core-open="${modal}">
                 <span class="mod-icon">${icon(ic, 18)}</span>${label}
@@ -1628,7 +1671,8 @@ export class DashboardPage {
         if (!el) return;
 
         const { data: patients } = await patientService.getAll({ search: filter || undefined });
-        const { data: stats } = await patientService.getStats();
+        const { data: statsData } = await patientService.getStats();
+        const stats = statsData || { total: 0, active: 0, new: 0, upcomingAppointments: 0 };
 
         if (statsEl) {
             statsEl.innerHTML = `

@@ -155,27 +155,43 @@ class TasksService {
 
   // ── Estadísticas ─────────────────────────────────────────
   async getStats() {
-    const all = await this.list();
-    const today = new Date().toISOString().slice(0,10);
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const today = iso(now);
+    const weekEnd = new Date(now);
+    weekEnd.setDate(now.getDate() + (7 - now.getDay()));
+    const weekEndIso = iso(weekEnd);
+
+    const count = (predicate = (q) => q) =>
+      predicate(supabase.from('therapeutic_tasks').select('id', { count: 'exact', head: true }));
+
+    const results = await Promise.all([
+      count(),
+      count(q => q.eq('status', 'PENDIENTE')),
+      count(q => q.eq('status', 'EN_PROGRESO')),
+      count(q => q.eq('status', 'COMPLETADA')),
+      count(q => q.eq('status', 'VENCIDA')),
+      count(q => q.eq('status', 'CANCELADA')),
+      count(q => q.eq('due_date', today).not('status', 'in', '(COMPLETADA,CANCELADA)')),
+      count(q => q.gte('due_date', today).lte('due_date', weekEndIso).not('status', 'in', '(COMPLETADA,CANCELADA)')),
+    ]);
+
+    const error = results.find(r => r.error)?.error;
+    if (error) throw error;
+
+    const [total, pending, inProgress, completed, overdue, cancelled] = results.map(r => r.count || 0);
+
     return {
-      total:            all.length,
-      pending:          all.filter(t => t.status === 'PENDIENTE').length,
-      inProgress:       all.filter(t => t.status === 'EN_PROGRESO').length,
-      completed:        all.filter(t => t.status === 'COMPLETADA').length,
-      overdue:          all.filter(t => t.status === 'VENCIDA').length,
-      cancelled:        all.filter(t => t.status === 'CANCELADA').length,
-      dueToday:         all.filter(t => t.dueDate === today && t.status !== 'COMPLETADA' && t.status !== 'CANCELADA').length,
-      dueThisWeek:      all.filter(t => {
-        if (!t.dueDate || t.status === 'COMPLETADA' || t.status === 'CANCELADA') return false;
-        const d = new Date(t.dueDate + 'T00:00:00');
-        const now = new Date();
-        const weekEnd = new Date(now);
-        weekEnd.setDate(now.getDate() + (7 - now.getDay()));
-        return d >= now && d <= weekEnd;
-      }).length,
-      compliancePercent: all.length
-        ? Math.round((all.filter(t => t.status === 'COMPLETADA').length / all.length) * 100)
-        : 0,
+      total,
+      pending,
+      inProgress,
+      completed,
+      overdue,
+      cancelled,
+      dueToday:      results[6].count || 0,
+      dueThisWeek:   results[7].count || 0,
+      compliancePercent: total ? Math.round((completed / total) * 100) : 0,
     };
   }
 
