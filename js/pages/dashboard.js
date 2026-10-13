@@ -15,6 +15,7 @@ import { notesService } from '../services/notesService.js';
 import { reportsService } from '../services/reportsService.js';
 import { bookingRequestsService, buildBookingReminderUrl } from '../services/bookingRequestsService.js';
 import { remindersService } from '../services/remindersService.js';
+import { notificationsService } from '../services/notificationsService.js';
 
 const ICONS = {
     patients: '<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
@@ -111,9 +112,9 @@ export class DashboardPage {
             <div class="app">
                 <header class="app-header-dash">
                     <div class="header-shape" aria-hidden="true"></div>
-                    <svg class="header-border-svg" viewBox="0 0 1536 100" preserveAspectRatio="none" aria-hidden="true">
-                        <path d="M0,100 C384,100 384,70 576,70 L960,70 C1152,70 1152,100 1536,100" />
-                    </svg>
+<svg class="header-border-svg" viewBox="0 0 1536 100" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M0,100 C260,100 300,52 600,52 L936,52 C1236,52 1276,100 1536,100" />
+                </svg>
                     <div class="header-content">
                         <div class="brand">
                             <div class="brand-icon" aria-hidden="true">
@@ -340,6 +341,9 @@ export class DashboardPage {
         }
         await this._renderReminders();
         this._startBookingPoll();
+        // Badge de la campana: cuenta real (citas de hoy, tareas vencidas,
+        // solicitudes y recordatorios), no solo las solicitudes.
+        this._refreshNotifCount();
 
         if (this._unsubscribers) {
             this._unsubscribers.forEach(unsub => { try { unsub(); } catch (e) { /* noop */ } });
@@ -381,6 +385,16 @@ export class DashboardPage {
         if (this.clockInterval) clearInterval(this.clockInterval);
         if (this._bookingPoll) { clearInterval(this._bookingPoll); this._bookingPoll = null; }
         this._bookingReminderShown = false;
+        // Los popovers del header (campana y calendario) se cuelgan de
+        // listeners en document. Si no se limpian al salir del dashboard,
+        // el listener de document queda apuntando a un panel ya borrado
+        // y acumula uno por cada visita.
+        this._notifCleanup?.();
+        this._calCleanup?.();
+        this._notifCleanup = null;
+        this._calCleanup = null;
+        document.getElementById('dashNotifPanel')?.remove();
+        document.getElementById('dashCalPop')?.remove();
         if (this._resizeHandler) window.removeEventListener('resize', this._resizeHandler);
         if (this._orientationHandler) window.removeEventListener('orientationchange', this._orientationHandler);
         if (this._docClickHandler) document.removeEventListener('click', this._docClickHandler);
@@ -860,9 +874,309 @@ export class DashboardPage {
         return d === 1 ? 'hace 1 día' : `hace ${d} días`;
     }
 
-    _updateNotifDot() {
+    _updateNotifDot(count = null) {
+        // Antes miraba solo _pendingBookings, así que el punto rojo
+        // ignoraba citas de hoy, tareas vencidas y recordatorios. Ahora
+        // refleja el total real. `hidden` en vez de display:none inline
+        // porque el CSS define la clase y lo inline la pisaba.
         const dot = $('#dashNotifDot');
-        if (dot) dot.style.display = (this._pendingBookings || []).length ? 'block' : 'none';
+        if (!dot) return;
+        const n = count === null ? (this._notifCount || 0) : count;
+        dot.hidden = n <= 0;
+        dot.setAttribute('aria-label', n > 0 ? `${n} notificaciones` : '');
+    }
+
+    // Cuenta la campana en segundo plano. No bloquea el render del
+    // dashboard: si falla, el badge simplemente no se actualiza y el
+    // panel reintenta al abrirse.
+    async _refreshNotifCount() {
+        try {
+            const { unreadCount } = await notificationsService.getAll();
+            this._notifCount = unreadCount;
+            this._updateNotifDot(unreadCount);
+        } catch (e) {
+            console.error('[Dashboard] no se pudo refrescar el contador de notificaciones:', e);
+        }
+    }
+
+    // ── Panel de notificaciones ───────────────────────────────
+    async _toggleNotificationsPanel() {
+        const existing = $('#dashNotifPanel');
+        if (existing) {
+            this._closeNotificationsPanel();
+            return;
+        }
+
+        const btn = $('#dashNotifications');
+        btn?.setAttribute('aria-expanded', 'true');
+        const panel = document.createElement('div');
+        panel.id = 'dashNotifPanel';
+        panel.className = 'notif-panel';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', 'Notificaciones');
+        panel.innerHTML = `
+            <div class="notif-panel-head">
+                <span class="notif-panel-title">Notificaciones</span>
+                <button type="button" class="notif-panel-refresh" id="notifRefresh" aria-label="Actualizar">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-2.1M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.9 2.1M20 20v-4h-4"/></svg>
+                </button>
+            </div>
+            <div class="notif-panel-body" id="notifPanelBody">
+                <div class="notif-loading"><span class="notif-spinner"></span> Cargando…</div>
+            </div>`;
+
+        const wrap = btn?.closest('.header-right');
+        if (wrap) {
+            wrap.appendChild(panel);
+        } else {
+            document.body.appendChild(panel);
+        }
+
+        // El clic que abre el panel sigue propagándose hasta document,
+        // así que se registra el cierre con capture en un turno posterior
+        // para que no mate el panel que recién se creó.
+        let justOpened = true;
+        const onDocClick = (e) => {
+            if (justOpened) { justOpened = false; return; }
+            if (panel.contains(e.target) || btn?.contains(e.target)) return;
+            this._closeNotificationsPanel();
+        };
+        const onKeydown = (e) => {
+            if (e.key === 'Escape') this._closeNotificationsPanel();
+        };
+
+        this._notifCleanup = () => {
+            document.removeEventListener('click', onDocClick, true);
+            document.removeEventListener('keydown', onKeydown, true);
+        };
+
+        document.addEventListener('click', onDocClick, true);
+        document.addEventListener('keydown', onKeydown, true);
+
+        panel.querySelector('#notifRefresh')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._renderNotificationsPanel(panel, true);
+        });
+
+        await this._renderNotificationsPanel(panel, false);
+    }
+
+    _closeNotificationsPanel() {
+        const panel = $('#dashNotifPanel');
+        if (!panel) return;
+        // Los listeners se unregistered con el propio elemento; los de
+        // document/ventana se limpian aquí para no acumular.
+        this._notifCleanup?.();
+        panel.remove();
+        $('#dashNotifications')?.setAttribute('aria-expanded', 'false');
+    }
+
+    // ── Popover de agenda rápida ─────────────────────────────
+    _toggleCalendarPopover() {
+        const existing = $('#dashCalPop');
+        if (existing) {
+            this._closeCalendarPopover();
+            return;
+        }
+        if ($('#dashNotifPanel')) this._closeNotificationsPanel();
+
+        const btn = $('#dashCalendar');
+        btn?.setAttribute('aria-expanded', 'true');
+
+        const pop = document.createElement('div');
+        pop.id = 'dashCalPop';
+        pop.className = 'notif-panel cal-pop';
+        pop.setAttribute('role', 'dialog');
+        pop.setAttribute('aria-label', 'Agenda de hoy');
+        pop.innerHTML = `
+            <div class="notif-panel-head">
+                <span class="notif-panel-title">Agenda de hoy</span>
+                <button type="button" class="notif-panel-refresh" id="calFullAgenda" aria-label="Ver agenda completa" title="Ver agenda completa">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5h18M8 3v3M16 3v3"/><rect x="3" y="4.5" width="18" height="16" rx="2.5"/></svg>
+                </button>
+            </div>
+            <div class="notif-panel-body" id="calPopBody">
+                <div class="notif-loading"><span class="notif-spinner"></span> Cargando agenda…</div>
+            </div>
+            <div class="cal-pop-foot">
+                <button type="button" class="btn btn-primary" id="calNewAppt" style="width:100%;justify-content:center">
+                    ${icon('plus', 14)} Nueva cita
+                </button>
+            </div>`;
+
+        const wrap = btn?.closest('.header-right');
+        if (wrap) wrap.appendChild(pop);
+        else document.body.appendChild(pop);
+
+        let justOpened = true;
+        const onDocClick = (e) => {
+            if (justOpened) { justOpened = false; return; }
+            if (pop.contains(e.target) || btn?.contains(e.target)) return;
+            this._closeCalendarPopover();
+        };
+        const onKeydown = (e) => { if (e.key === 'Escape') this._closeCalendarPopover(); };
+
+        this._calCleanup = () => {
+            document.removeEventListener('click', onDocClick, true);
+            document.removeEventListener('keydown', onKeydown, true);
+        };
+        document.addEventListener('click', onDocClick, true);
+        document.addEventListener('keydown', onKeydown, true);
+
+        pop.querySelector('#calFullAgenda')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._closeCalendarPopover();
+            window.router?.navigate('/appointments');
+        });
+        pop.querySelector('#calNewAppt')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._closeCalendarPopover();
+            if (this._canOpenModal('newAppointment')) this._openModal('newAppointment');
+            else this._showToast('No tienes permisos para crear citas.');
+        });
+
+        this._renderCalendarPopover(pop);
+    }
+
+    _closeCalendarPopover() {
+        const pop = $('#dashCalPop');
+        if (!pop) return;
+        this._calCleanup?.();
+        pop.remove();
+        $('#dashCalendar')?.setAttribute('aria-expanded', 'false');
+    }
+
+    async _renderCalendarPopover(pop) {
+        const body = pop.querySelector('#calPopBody');
+        if (!body) return;
+
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+
+        const { data, error } = await appointmentService.getAll({ dateFrom: start, dateTo: end, status: 'all' });
+        if (!body.isConnected) return;
+
+        if (error) {
+            body.innerHTML = `<div class="notif-empty"><i class="fa-solid fa-calendar-xmark"></i><p>No se pudo cargar la agenda.</p></div>`;
+            return;
+        }
+
+        const appts = (data || []).filter(a => a.status !== 'CANCELADA').sort(
+            (a, b) => new Date(a.appointmentDate) - new Date(b.appointmentDate)
+        );
+
+        if (!appts.length) {
+            body.innerHTML = `<div class="notif-empty"><i class="fa-regular fa-calendar"></i><p>No tenés citas para hoy.</p></div>`;
+            return;
+        }
+
+        body.innerHTML = `<div class="cal-list">${appts.map(a => {
+            const d = new Date(a.appointmentDate);
+            const time = d.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+            return `
+                <button type="button" class="cal-row" data-appt-id="${a.id}">
+                    <span class="cal-time">${time}</span>
+                    <span class="cal-bar cal-bar-${(APPT_STATUS_COLORS[a.status] || 'pending')}"></span>
+                    <span class="cal-info">
+                        <span class="cal-name">${escapeHtml(a.patientName || 'Paciente')}</span>
+                        <span class="cal-sub">${escapeHtml(a.title || a.type || 'Cita')}</span>
+                    </span>
+                    <span class="status-pill ${APPT_STATUS_COLORS[a.status] || 'pending'}">${escapeHtml(APPT_STATUS_LABELS[a.status] || a.status)}</span>
+                </button>`;
+        }).join('')}</div>`;
+
+        body.querySelectorAll('.cal-row').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = el.dataset.apptId;
+                this._closeCalendarPopover();
+                if (this._canOpenModal('appointmentDetail')) this._openModal('appointmentDetail', { id });
+                else this._showToast('No tienes permisos para ver la cita.');
+            });
+        });
+    }
+
+    async _renderNotificationsPanel(panel, isRefresh) {
+        const body = panel.querySelector('#notifPanelBody');
+        if (!body) return;
+        if (isRefresh) body.innerHTML = '<div class="notif-loading"><span class="notif-spinner"></span> Actualizando…</div>';
+
+        const { items, unreadCount, error } = await notificationsService.getAll();
+        this._notifCount = unreadCount;
+        this._updateNotifDot(unreadCount);
+
+        if (!body.isConnected) return;
+
+        if (error && !items.length) {
+            body.innerHTML = `
+                <div class="notif-empty">
+                    <i class="fa-solid fa-cloud-arrow-down"></i>
+                    <p>No se pudieron cargar las notificaciones.</p>
+                    <button type="button" class="notif-retry" data-retry>Reintentar</button>
+                </div>`;
+            body.querySelector('[data-retry]')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._renderNotificationsPanel(panel, true);
+            });
+            return;
+        }
+
+        if (!items.length) {
+            body.innerHTML = `
+                <div class="notif-empty">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <p>Todo al día. No hay nada pendiente.</p>
+                </div>`;
+            return;
+        }
+
+        const ICONS = {
+            booking: 'fa-hand-holding-heart',
+            appointment: 'fa-calendar-day',
+            task: 'fa-clipboard-list',
+            reminder: 'fa-whatsapp',
+        };
+        const LABEL = {
+            alta: 'Requiere atención',
+            media: 'Seguimiento',
+            baja: 'Pendiente',
+        };
+
+        const grouped = { alta: [], media: [], baja: [] };
+        items.forEach(i => grouped[i.priority]?.push(i));
+
+        let html = '';
+        for (const p of ['alta', 'media', 'baja']) {
+            if (!grouped[p].length) continue;
+            html += `<div class="notif-group">
+                        <div class="notif-group-label">${LABEL[p]}</div>`;
+            for (const it of grouped[p]) {
+                html += `
+                    <button type="button" class="notif-item" data-modal="${it.action.modal}" data-kind="${it.kind}">
+                        <span class="notif-item-ico notif-ico-${it.kind}"><i class="fa-solid ${ICONS[it.kind] || 'fa-circle'}"></i></span>
+                        <span class="notif-item-body">
+                            <span class="notif-item-title">${escapeHtml(it.title)}</span>
+                            <span class="notif-item-detail">${escapeHtml(it.detail)}</span>
+                        </span>
+                        <span class="notif-item-go" aria-hidden="true">›</span>
+                    </button>`;
+            }
+            html += '</div>';
+        }
+
+        body.innerHTML = html;
+
+        // Cada fila lleva al módulo donde se resuelve el pendiente.
+        body.querySelectorAll('.notif-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const type = el.dataset.modal;
+                this._closeNotificationsPanel();
+                if (type && this._canOpenModal(type)) this._openModal(type);
+                else this._showToast('No tienes permisos para ver esta sección.');
+            });
+        });
     }
 
     // Polleo ligero: avisa cuando llega una solicitud nueva sin recargar la página.
@@ -1272,32 +1586,39 @@ export class DashboardPage {
             });
         }
 
-        // Notifications
+        // Notifications — panel desplegable con el estado real del día.
+        // Antes solo mostraba un toast ("no tienes notificaciones nuevas"),
+        // y el innerHTML del botón se reescribía con una clase `notif-dot`
+        // que el CSS no define (el CSS define `badge-dot`), así que el
+        // punto rojo que se ve en el HTML inicial nunca se actualizaba.
         const notifBtn = $('#dashNotifications');
         if (notifBtn) {
             notifBtn.setAttribute('aria-label', 'Ver notificaciones');
+            notifBtn.setAttribute('aria-haspopup', 'true');
+            notifBtn.setAttribute('aria-expanded', 'false');
             notifBtn.innerHTML = `
                 <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-                <span class="notif-dot" id="dashNotifDot" style="display:none" aria-hidden="true"></span>`;
+                <span class="badge-dot" id="dashNotifDot" hidden aria-hidden="true"></span>`;
+
             notifBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const n = (this._pendingBookings || []).length;
-                if (!n) {
-                    this._showToast('No tienes notificaciones nuevas.');
-                    return;
-                }
-                const near = n >= 3;
-                this._showToast(`Tienes ${n} solicitud(es) pendiente(s)${near ? ', varias con fecha cercana' : ''}. Revisa el panel «Solicitudes de cita».`);
+                this._toggleNotificationsPanel();
             });
             this._updateNotifDot();
         }
 
-        // Calendar — navigate to appointments page
+        // Calendar — popover de agenda rápida.
+        // Antes hacía `router.navigate('/appointments')`, que saca al
+        // usuario del dashboard. Un botón de "calendario" en el header
+        // que te tira a otra pantalla es peor que no tenerlo: mismo
+        // criterio que la campana, que se queda en su sitio.
         const calBtn = $('#dashCalendar');
         if (calBtn) {
+            calBtn.setAttribute('aria-haspopup', 'true');
+            calBtn.setAttribute('aria-expanded', 'false');
             calBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                window.router?.navigate('/appointments');
+                this._toggleCalendarPopover();
             });
         }
 

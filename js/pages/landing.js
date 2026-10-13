@@ -38,6 +38,11 @@ export class LandingPage {
 
         this.container.innerHTML = this._template();
 
+        // El año del copyright estaba hardcodeado en el HTML y quedaba
+        // desactualizado en enero. Se inyecta en runtime.
+        const yearEl = this.container.querySelector('#lpFooterYear');
+        if (yearEl) yearEl.textContent = String(new Date().getFullYear());
+
         this._bindTheme();
         this._bindHeaderScroll();
         this._bindMobileNav();
@@ -456,12 +461,23 @@ export class LandingPage {
                         </div>
                     </div>
 
-                    <div class="lp-footer-bottom">
-                        <span>© 2026 CONTEXTO Psicología · Centro de Ciencias Comportamentales</span>
-                        <span>
-                            <a href="#/privacidad">Privacidad</a> ·
-                            <a href="#/cookies">Cookies</a> ·
+<div class="lp-footer-bottom">
+                        <span class="lp-footer-copy">
+                            © <span id="lpFooterYear">2026</span> CONTEXTO
+                            <span class="lp-footer-org">Centro de Ciencias Comportamentales</span>
+                        </span>
+
+                        <nav class="lp-footer-legal" aria-label="Enlaces legales">
+                            <a href="#/privacidad">Privacidad</a>
+                            <span class="lp-footer-sep" aria-hidden="true">·</span>
+                            <a href="#/cookies">Cookies</a>
+                            <span class="lp-footer-sep" aria-hidden="true">·</span>
                             <a href="#/aviso-legal">Aviso legal</a>
+                        </nav>
+
+                        <span class="lp-footer-credit">
+                            <span class="lp-footer-credit-label">Desarrollado por</span>
+                            <span class="lp-footer-credit-name">Frank M.</span>
                         </span>
                     </div>
                 </div>

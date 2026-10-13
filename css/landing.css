@@ -839,6 +839,99 @@
     flex-wrap: wrap;
     gap: 10px;
 }
+
+/* ── Créditos y copyright ───────────────────────────────────
+   Tres bloques: copyright, enlaces legales y crédito del
+   desarrollador. En desktop forman una fila de tres; en móvil se
+   apilan centrados para no quedar apretados a 390px. */
+
+.lp-footer-copy {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+.lp-footer-org {
+    color: rgba(244, 244, 251, 0.32);
+}
+
+.lp-footer-legal {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.lp-footer-legal a {
+    color: rgba(244, 244, 251, 0.42);
+    text-decoration: none;
+    transition: color 180ms ease;
+}
+
+.lp-footer-legal a:hover,
+.lp-footer-legal a:focus-visible {
+    color: rgba(244, 244, 251, 0.85);
+}
+
+.lp-footer-sep {
+    opacity: 0.35;
+}
+
+/* El crédito lleva un borde sutil para separarse del copyright sin
+   competir con los enlaces legales. */
+.lp-footer-credit {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 11px;
+    border: 1px solid rgba(244, 244, 251, 0.09);
+    border-radius: 999px;
+    background: rgba(244, 244, 251, 0.028);
+    white-space: nowrap;
+    transition: border-color 180ms ease, background 180ms ease;
+}
+
+.lp-footer-credit:hover {
+    border-color: rgba(167, 139, 250, 0.3);
+    background: rgba(167, 139, 250, 0.06);
+}
+
+.lp-footer-credit-label {
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(244, 244, 251, 0.34);
+}
+
+.lp-footer-credit-name {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: rgba(244, 244, 251, 0.78);
+}
+
+@media (max-width: 720px) {
+    .lp-footer-bottom {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 14px;
+        padding: 24px 0;
+    }
+
+    .lp-footer-copy {
+        flex-wrap: wrap;
+        justify-content: center;
+        white-space: normal;
+    }
+}
+
+@media (max-width: 420px) {
+    .lp-footer-org {
+        display: block;
+        width: 100%;
+    }
+}
 .lp-footer-bottom a { color: rgba(244, 244, 251, 0.5); }
 .lp-footer-bottom a:hover { color: #fff; }
 

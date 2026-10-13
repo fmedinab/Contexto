@@ -208,21 +208,36 @@
   z-index: 10;
   /* Para que quede por encima del fondo ambiental */
   height: auto;
-  min-height: 80px;
-  margin-bottom: clamp(12px, 2vw, 20px);
+  /* La máscara reserva la mitad inferior del header para la curva. Con
+     80px la franja visible quedaba de ~28px y se leía como una línea,
+     no como una barra. 104px deja ~52px visibles, que es lo que se ve
+     en la referencia. */
+  min-height: 104px;
+  margin-bottom: clamp(4px, 1vw, 8px);
 }
 
 .app--dashboard .header-shape {
   position: absolute;
   inset: 0;
-  border-radius: 20px 20px 0 0;
+  border-radius: 22px 22px 0 0;
   background: var(--dash-surface);
   border: 1px solid var(--dash-surface-border);
   border-bottom: none;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1536 100' preserveAspectRatio='none'%3E%3Crect width='1536' height='100' fill='white'/%3E%3Cpath d='M0,100 C384,100 384,70 576,70 L960,70 C1152,70 1152,100 1536,100' fill='black'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1536 100' preserveAspectRatio='none'%3E%3Crect width='1536' height='100' fill='white'/%3E%3Cpath d='M0,100 C384,100 384,70 576,70 L960,70 C1152,70 1152,100 1536,100' fill='black'/%3E%3C/svg%3E");
+  /* La máscara define el perfil del header: alto al centro, bajando
+     hacia los bordes (como la referencia de Mente Serena).
+
+     OJO sobre la convención de mask: blanco = VISIBLE, negro = oculto.
+     El path negro recorta las dos curvas inferiores; el rect blanco deja
+     el resto a la vista. La curva original iba de y=100 (borde) a y=70
+     (centro), o sea recortaba el CENTRO en vez de los bordes: por eso
+     el header se veía plano. Aquí el path arranca en el borde y sube.
+
+     viewBox 0 0 1536 100 con preserveAspectRatio=none estira la curva
+     a cualquier ancho; el header se ve igual de 1200 que de 1920. */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1536 100' preserveAspectRatio='none'%3E%3Crect width='1536' height='100' fill='white'/%3E%3Cpath d='M0,100 C260,100 300,52 600,52 L936,52 C1236,52 1276,100 1536,100 Z' fill='black'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1536 100' preserveAspectRatio='none'%3E%3Crect width='1536' height='100' fill='white'/%3E%3Cpath d='M0,100 C260,100 300,52 600,52 L936,52 C1236,52 1276,100 1536,100 Z' fill='black'/%3E%3C/svg%3E");
   -webkit-mask-size: 100% 100%;
   mask-size: 100% 100%;
   -webkit-mask-repeat: no-repeat;
@@ -240,13 +255,42 @@
 
 .app--dashboard .header-border-svg path {
   fill: none;
-  stroke: rgba(139, 92, 246, 0.25);
-  stroke-width: 1;
+  stroke: rgba(139, 92, 246, 0.45);
+  stroke-width: 1.25;
   vector-effect: non-scaling-stroke;
+  /* La curva es el acento visual del header: un halo difuso hace que
+     se lea como una superficie que flota, no como un borde de tabla. */
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.35));
 }
 
 .app--dashboard.light-mode .header-border-svg path {
-  stroke: rgba(124, 58, 237, 0.2);
+  stroke: rgba(124, 58, 237, 0.32);
+  filter: drop-shadow(0 0 5px rgba(124, 58, 237, 0.18));
+}
+
+/* Halo superior: da la sensación de luz emanating desde la barra. */
+.app--dashboard .app-header-dash::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 22px 22px 0 0;
+  background: linear-gradient(
+    180deg,
+    rgba(139, 92, 246, 0.14) 0%,
+    rgba(139, 92, 246, 0.04) 42%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.app--dashboard.light-mode .app-header-dash::before {
+  background: linear-gradient(
+    180deg,
+    rgba(124, 58, 237, 0.07) 0%,
+    rgba(124, 58, 237, 0.02) 45%,
+    transparent 72%
+  );
 }
 
 .app--dashboard .header-content {
@@ -255,7 +299,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: clamp(10px, 2vw, 16px) clamp(14px, 2vw, 32px);
+  /* El header mide 104px y la curva ocupa la mitad inferior. Centrar
+     el contenido sobre los 104px lo hundía contra la curva: el reloj
+     quedaba pegado a la línea. Se sube el bloque para que la barra
+     visible sea la mitad superior, igual que la referencia. */
+  padding: clamp(8px, 1.4vw, 12px) clamp(14px, 2vw, 32px) 0;
+  min-height: 52px;
 }
 
 .app--dashboard .brand {
@@ -2705,22 +2754,39 @@
 /* ========== MOBILE MEDIUM (375 - 480) ========== */
 @media (max-width: 480px) {
 
-  /* Header: two rows — brand centered, actions centered below */
+/* Header: two rows — brand centered, actions centered below.
+
+     La curva del header NO se reproduce en móvil, pero tampoco debe
+     convertirse en una caja flotante: antes ponía border-radius:16px
+     en las cuatro esquinas, así que en pantallas chicas el header se
+     veía como una tarjeta suelta pegada arriba. Se mantiene la curva
+     como borde inferior recto y solo se suavizan las esquinas
+     superiores, para que siga leyéndose como la barra del sistema. */
   .app--dashboard .header-shape {
-    border-radius: 16px;
+    border-radius: 16px 16px 0 0;
     -webkit-mask-image: none;
     mask-image: none;
+  }
+
+  /* El halo superior heredaba el radio completo del header; con el
+     header en dos filas hay que recortarlo a la barra real. */
+  .app--dashboard .app-header-dash::before {
+    border-radius: 16px 16px 0 0;
+    bottom: 46%;
   }
 
   .app--dashboard .header-border-svg {
     display: none;
   }
 
+  /* El header crece a dos filas: el padding inferior que evita que el
+     contenido baje hacia la curva ya no hace sentido. */
   .app--dashboard .header-content {
-    padding: 8px 12px;
+    padding: 8px 12px 10px;
     gap: 6px;
     flex-direction: column;
     align-items: center;
+    min-height: 0;
   }
 
   .app--dashboard .brand {
@@ -3953,4 +4019,319 @@
 .app--dashboard .app {
   overflow-wrap: break-word;
   word-wrap: break-word;
+}
+/* ============================================================
+   PANEL DE NOTIFICACIONES (campana del header)
+   ============================================================ */
+
+/* .header-right necesita ser el ancla del panel. No lo tiene por
+   defecto porque hasta ahora solo contenía botones alineados en
+   flex; el panel es posicionado en absoluto respecto a él. */
+.app--dashboard .header-right {
+  position: relative;
+}
+
+/* El punto rojo reutiliza el estilo de .badge-dot que ya existía.
+   Se oculta con [hidden] en vez de display:none inline, para que
+   el CSS siga mandando sobre la visibilidad. */
+.app--dashboard .notif-btn .badge-dot[hidden] {
+  display: none;
+}
+
+.app--dashboard .notif-btn[aria-expanded='true'] {
+  background: var(--dash-surface);
+  border-color: var(--dash-border-violet);
+}
+
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: 380px;
+  max-height: min(560px, 70vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-surface-border);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(14px);
+  z-index: 1200;
+  overflow: hidden;
+  animation: notif-in 160ms ease;
+}
+
+@keyframes notif-in {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-panel { animation: none; }
+}
+
+.notif-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--dash-border);
+  flex-shrink: 0;
+}
+
+.notif-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dash-text-primary);
+  letter-spacing: 0.01em;
+}
+
+.notif-panel-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dash-text-tertiary);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.notif-panel-refresh:hover {
+  background: rgba(139, 92, 246, 0.12);
+  color: var(--dash-violet-light);
+}
+
+.notif-panel-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px 0;
+}
+
+.notif-group-label {
+  padding: 10px 16px 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--dash-text-tertiary);
+}
+
+.notif-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 130ms ease;
+}
+
+.notif-item:hover,
+.notif-item:focus-visible {
+  background: rgba(139, 92, 246, 0.09);
+  outline: none;
+}
+
+.notif-item-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
+.notif-ico-booking    { background: rgba(244, 114, 182, 0.16); color: var(--dash-pink); }
+.notif-ico-appointment { background: rgba(139, 92, 246, 0.18); color: var(--dash-violet-light); }
+.notif-ico-task       { background: rgba(251, 191, 36, 0.16); color: #fbbf24; }
+.notif-ico-reminder   { background: rgba(52, 211, 153, 0.16); color: #34d399; }
+
+.notif-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.notif-item-title {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--dash-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-item-detail {
+  font-size: 11.5px;
+  color: var(--dash-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-item-go {
+  color: var(--dash-text-tertiary);
+  font-size: 17px;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+.notif-loading,
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 34px 20px;
+  color: var(--dash-text-tertiary);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.notif-empty i {
+  font-size: 21px;
+  opacity: 0.45;
+}
+
+.notif-spinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  border-top-color: var(--dash-violet-light);
+  border-radius: 50%;
+  animation: notif-spin 0.7s linear infinite;
+}
+
+@keyframes notif-spin {
+  to { transform: rotate(360deg); }
+}
+
+.notif-retry {
+  padding: 7px 15px;
+  border: 1px solid var(--dash-border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dash-text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.notif-retry:hover {
+  border-color: var(--dash-border-violet);
+  color: var(--dash-violet-light);
+}
+
+/* En móvil el panel se ancla a pantalla completa en lugar de
+   desbordar el header, que en pantallas chicas es estrecho. */
+@media (max-width: 560px) {
+  .notif-panel {
+    position: fixed;
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: 62vh;
+  }
+}
+
+/* Popover de agenda (botón calendario del header) */
+.cal-pop { width: 400px; }
+
+.cal-list { padding: 4px 0; }
+
+.cal-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background 130ms ease;
+}
+
+.cal-row:hover,
+.cal-row:focus-visible {
+  background: rgba(139, 92, 246, 0.09);
+  outline: none;
+}
+
+.cal-time {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--dash-text-secondary);
+  flex-shrink: 0;
+  width: 40px;
+}
+
+.cal-bar {
+  width: 3px;
+  align-self: stretch;
+  min-height: 30px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Los valores vienen de STATUS_COLORS en appointmentsService.js:
+   PENDIENTE=amber · CONFIRMADA=green · EN_CURSO=blue ·
+   COMPLETADA=emerald · CANCELADA=red. Si se agrega un estado ahí,
+   hay que agregar su barra acá o cae en el gris de por defecto. */
+.cal-bar-green,
+.cal-bar-emerald { background: #34d399; }
+.cal-bar-amber { background: #fbbf24; }
+.cal-bar-blue  { background: #60a5fa; }
+.cal-bar-red   { background: var(--dash-pink); }
+.cal-bar-pending { background: var(--dash-text-tertiary); }
+
+.cal-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cal-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--dash-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-sub {
+  font-size: 11.5px;
+  color: var(--dash-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-pop-foot {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--dash-border);
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .cal-pop { width: auto; }
 }
