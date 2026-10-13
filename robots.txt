@@ -1,0 +1,35 @@
+# robots.txt — CONTEXTO
+#
+# IMPORTANTE: antes de pasar a produccion, reemplazar
+#   https://fmedinab.github.io/Contexto
+# por el dominio final del cliente, p.ej.
+#   https://contexto.com.pe
+#
+# GitHub Pages sirve este archivo desde la raiz del repo, asi que el
+# Sitemap debe usar la URL publica completa (no rutas relativas).
+
+User-agent: *
+Allow: /
+
+# Paginas internas de la SPA: no aportan nada a un buscador y exponen
+# nombres de modulos. El router hash ya las protege de forma Practica
+# (# no se envia al servidor), pero se listan por si el sitio migrara
+# a rutas limpias en el futuro.
+Disallow: /Contexto/#/dashboard
+Disallow: /Contexto/#/patients
+Disallow: /Contexto/#/appointments
+Disallow: /Contexto/#/evaluations
+Disallow: /Contexto/#/tasks
+Disallow: /Contexto/#/notes
+Disallow: /Contexto/#/reports
+Disallow: /Contexto/#/settings
+
+# Respuestas de API de Supabase: nunca deben indexarse.
+Disallow: /rest/
+Disallow: /auth/
+
+# No rastrear la app de soporte, el 404 ni archivos internos.
+Disallow: /404.html
+Disallow: /.github/
+
+Sitemap: https://fmedinab.github.io/Contexto/sitemap.xml

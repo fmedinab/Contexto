@@ -133,18 +133,17 @@ class EvaluationsService {
             return { data: [], error, count: 0 };
         }
 
-        let patientMap = {};
-        try {
-            const ids = [...new Set((data || []).map(r => r.patient_id).filter(Boolean))];
-            if (ids.length) {
-                const { data: pRows, error: pErr } = await supabase.from('patients').select('id, full_name').in('id', ids);
-                if (pErr) {
-                    console.error('evaluationsService patient lookup error:', pErr);
-                }
-                (pRows || []).forEach(p => { patientMap[p.id] = p.full_name || ''; });
+        // Resolución de nombres de paciente en lote (1 query para toda la página).
+        // No es un N+1 y ya propaga el error a consola explícitamente;
+        // el try/catch envolvente sobra porque supabase no lanza.
+        const patientMap = {};
+        const ids = [...new Set((data || []).map(r => r.patient_id).filter(Boolean))];
+        if (ids.length) {
+            const { data: pRows, error: pErr } = await supabase.from('patients').select('id, full_name').in('id', ids);
+            if (pErr) {
+                console.error('[EvaluationsService] Error al resolver nombres de paciente:', pErr.message || pErr);
             }
-        } catch (pErr) {
-            console.error('evaluationsService patient lookup exception:', pErr);
+            (pRows || []).forEach(p => { patientMap[p.id] = p.full_name || ''; });
         }
 
         const mapped = (data || []).map(row => {
@@ -167,16 +166,27 @@ class EvaluationsService {
 
         const item = dbRowToUI(data);
 
-        try {
-            const { data: patient } = await supabase
-                .from('patients')
-                .select('full_name, age, therapy_type')
-                .eq('id', data.patient_id)
-                .single();
-            item.patientName = patient?.full_name || '';
-            item.patientAge = patient?.age ?? null;
-            item.patientTherapyType = patient?.therapy_type || '';
-        } catch { /* continue without patient details */ }
+// Enriquecido con los datos del paciente.
+        // El catch anterior ("continue without patient details") nunca se
+        // disparaba para fallos de red: supabase no lanza, devuelve
+        // { error }. Solo capturaba el caso de .single() sin resultados.
+        // Se resuelve sin depender de excepciones.
+        const { data: patient, error: patientErr } = await supabase
+            .from('patients')
+            .select('full_name, age, therapy_type')
+            .eq('id', data.patient_id)
+            .maybeSingle();
+
+        if (patientErr) {
+            // No es fatal: la evaluación se guardó bien, solo falta el
+            // nombre del paciente en la vista. Se registra para poder
+            // diagnosticarlo, y se sigue devolviendo el registro.
+            console.error('[EvaluationsService] No se pudo resolver el paciente:', patientErr.message || patientErr);
+        } else if (patient) {
+            item.patientName = patient.full_name || '';
+            item.patientAge = patient.age ?? null;
+            item.patientTherapyType = patient.therapy_type || '';
+        }
 
         return { data: item, error: null };
     }

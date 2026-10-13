@@ -1,0 +1,18 @@
+{
+    "semi": true,
+    "singleQuote": true,
+    "tabWidth": 4,
+    "useTabs": false,
+    "printWidth": 100,
+    "trailingComma": "es5",
+    "arrowParens": "always",
+    "endOfLine": "lf",
+    "overrides": [
+        {
+            "files": ["*.html", "*.json", "*.yml", "*.yaml", "*.css", "*.sql", "*.md"],
+            "options": {
+                "tabWidth": 2
+            }
+        }
+    ]
+}

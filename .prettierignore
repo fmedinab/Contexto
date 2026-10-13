@@ -1,0 +1,17 @@
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Secretos — NUNCA commitear (ver docs/produccion.md B0.2)
+.env
+.env.*
+!.env.example
+
+# Secrets de Supabase si alguien usa el template equivocado
+supabase/.temp/
+supabase/.branches/
+
+# Sistema
+npm-debug.log*
+yarn-error.log*
+*.log

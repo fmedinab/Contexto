@@ -30,6 +30,18 @@ export const Permissions = {
     ASSESSMENTS_DELETE: 'assessments:delete',
     ASSESSMENTS_VIEW_OWN: 'assessments:view_own',
 
+    TASKS_VIEW: 'tasks:view',
+    TASKS_CREATE: 'tasks:create',
+    TASKS_EDIT: 'tasks:edit',
+    TASKS_DELETE: 'tasks:delete',
+    TASKS_VIEW_OWN: 'tasks:view_own',
+
+    NOTES_VIEW: 'notes:view',
+    NOTES_CREATE: 'notes:create',
+    NOTES_EDIT: 'notes:edit',
+    NOTES_DELETE: 'notes:delete',
+    NOTES_VIEW_OWN: 'notes:view_own',
+
     REPORTS_VIEW: 'reports:view',
     REPORTS_CREATE: 'reports:create',
     REPORTS_EXPORT: 'reports:export',
@@ -72,6 +84,18 @@ export const PermissionLabels = {
     [Permissions.ASSESSMENTS_DELETE]: 'Eliminar evaluaciones',
     [Permissions.ASSESSMENTS_VIEW_OWN]: 'Ver mis evaluaciones',
 
+    [Permissions.TASKS_VIEW]: 'Ver tareas terapéuticas',
+    [Permissions.TASKS_CREATE]: 'Crear tareas terapéuticas',
+    [Permissions.TASKS_EDIT]: 'Editar tareas terapéuticas',
+    [Permissions.TASKS_DELETE]: 'Eliminar tareas terapéuticas',
+    [Permissions.TASKS_VIEW_OWN]: 'Ver mis tareas',
+
+    [Permissions.NOTES_VIEW]: 'Ver notas clínicas',
+    [Permissions.NOTES_CREATE]: 'Crear notas clínicas',
+    [Permissions.NOTES_EDIT]: 'Editar notas clínicas',
+    [Permissions.NOTES_DELETE]: 'Eliminar notas clínicas',
+    [Permissions.NOTES_VIEW_OWN]: 'Ver mis notas',
+
     [Permissions.REPORTS_VIEW]: 'Ver informes',
     [Permissions.REPORTS_CREATE]: 'Crear informes',
     [Permissions.REPORTS_EXPORT]: 'Exportar informes',
@@ -96,10 +120,16 @@ export const RolePermissions = {
         Permissions.APPOINTMENTS_VIEW, Permissions.APPOINTMENTS_CREATE, Permissions.APPOINTMENTS_EDIT, Permissions.APPOINTMENTS_DELETE,
         Permissions.SESSIONS_VIEW, Permissions.SESSIONS_CREATE, Permissions.SESSIONS_EDIT, Permissions.SESSIONS_DELETE,
         Permissions.ASSESSMENTS_VIEW, Permissions.ASSESSMENTS_CREATE, Permissions.ASSESSMENTS_EDIT, Permissions.ASSESSMENTS_DELETE,
+        Permissions.TASKS_VIEW, Permissions.TASKS_CREATE, Permissions.TASKS_EDIT, Permissions.TASKS_DELETE,
+        Permissions.NOTES_VIEW, Permissions.NOTES_CREATE, Permissions.NOTES_EDIT, Permissions.NOTES_DELETE,
         Permissions.REPORTS_VIEW, Permissions.REPORTS_CREATE, Permissions.REPORTS_EXPORT,
         Permissions.SETTINGS_VIEW
     ],
 
+    // El asistente es administrativo: agenda, pacientes y solicitudes.
+    // NO lleva tareas ni notas clínicas — son datos terapéuticos y el
+    // dashboard ya lo restringía por rol en los modales; esta matriz
+    // ahora coincide con ese comportamiento (bug B1.5 / B2.4).
     [Roles.ASSISTANT]: [
         Permissions.DASHBOARD_VIEW,
         Permissions.APPOINTMENTS_VIEW, Permissions.APPOINTMENTS_CREATE, Permissions.APPOINTMENTS_EDIT,
@@ -112,6 +142,8 @@ export const RolePermissions = {
         Permissions.APPOINTMENTS_VIEW_OWN,
         Permissions.SESSIONS_VIEW_OWN,
         Permissions.ASSESSMENTS_VIEW_OWN,
+        Permissions.TASKS_VIEW_OWN,
+        Permissions.NOTES_VIEW_OWN,
         Permissions.PATIENTS_VIEW_OWN
     ]
 };

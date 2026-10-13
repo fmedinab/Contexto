@@ -1,4 +1,11 @@
-// js/services/mockData.js
+// js/services/dashboardData.js
+//
+// ANTIGUO NOMBRE: mockData.js — renombrado porque mentía. El archivo
+// hacía queries reales a Supabase (getSummary, getEmotionalState), y un
+// nombre "mock" invita al próximo dev a asumir que puede devolver datos
+// falsos sin consecuencias (bug B1.3). Solo queda una constante curada
+// real: MOCK_QUOTE.
+//
 // Helpers y datos curados para la app — CONTEXTO.
 // Perfil, saludo, resumen y estado emocional se calculan desde Supabase.
 // NOTA: los datos ficticios de pacientes (PHI simulada) fueron eliminados.

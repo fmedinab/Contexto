@@ -60,8 +60,21 @@ class TasksService {
   }
 
   // ── Marcar tareas vencidas ───────────────────────────────
+  // El comentario anterior ("function may not exist yet") con un catch
+  // vacío era engañoso: supabase.rpc() NO lanza excepción cuando la
+  // consulta falla, devuelve { error }. El catch nunca se disparaba y el
+  // error se perdía igual. Ahora se registra de verdad.
+  //
+  // No bloquea el listado: marcar vencidas es una mejora, no un requisito
+  // para leer. Si falla, el usuario ve las tareas tal como están y el
+  // error queda en consola para diagnóstico.
   async _markOverdue() {
-    try { await supabase.rpc('check_overdue_tasks'); } catch { /* function may not exist yet */ }
+    const { error } = await supabase.rpc('check_overdue_tasks');
+    if (error) {
+      console.error('[TasksService] check_overdue_tasks falló:', error.message || error);
+      return false;
+    }
+    return true;
   }
 
   // ── Listar ───────────────────────────────────────────────

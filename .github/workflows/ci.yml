@@ -1,0 +1,177 @@
+name: CI
+
+# Corre en cada push y PR a main. Antes no había NINGÚN pipeline: un
+# typo en un push a main rompía producción sin que nadie se enterara
+# (bug B2.6).
+#
+# Qué hace, en orden de coste:
+#   1. Sintaxis de todos los .js (node --check, sin instalar nada)
+#   2. ESLint
+#   3. Prettier --check
+#   4. Verificaciones de coherencia del proyecto
+#   5. Valida que el CSS referenciado en index.html exista
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancela ejecuciones anteriores del mismo branch: un push seguido de
+# otro no debe esperar a que termine el primero.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Sintaxis, lint y formato
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # ---------------------------------------------------------------
+      # 1. Sintaxis. node --check NO necesita dependencias, así que va
+      #    primero: si hay un error de sintaxis, falla en 2 segundos
+      #    en vez de esperar al install.
+      # ---------------------------------------------------------------
+      - name: Sintaxis de todos los módulos JS
+        run: |
+          fail=0
+          while IFS= read -r f; do
+            if ! node --check "$f"; then
+              echo "::error file=$f::Fallo de sintaxis"
+              fail=1
+            fi
+          done < <(find js config scripts -name '*.js' -type f)
+          exit $fail
+
+      # ---------------------------------------------------------------
+      # 2. ESLint. 0 errores = pasa; warnings no bloquean (el código
+      #    existente tiene 16 legítimos que se van limpiando).
+      # ---------------------------------------------------------------
+      - name: ESLint
+        run: npx eslint js config scripts eslint.config.mjs --max-warnings 9999
+
+      # ---------------------------------------------------------------
+      # 2b. Smoke tests. Sin dependencias: verifican el grafo de imports,
+      #     los assets referenciados, la coherencia de rutas con el
+      #     router, la ausencia de secretos, la secuencia de migraciones
+      #     y la matriz de permisos. Es lo que detecta un rename mal
+      #     propagado o un asset borrado (M2.7).
+      # ---------------------------------------------------------------
+      - name: Smoke tests
+        run: node scripts/smoke-test.js
+
+      # ---------------------------------------------------------------
+      # 3. Prettier — INFORMATIVO, no bloquea.
+      #    Motivo: el código existente nunca fue formateado con Prettier
+      #    (52 de 54 archivos no cumplen). Reformatear 12.500 líneas en
+      #    un solo commit justo antes de producción mete ruido en el diff
+      #    y hace que una regresión real pase desapercibida.
+      #    Plan: commit dedicado "chore: formateo prettier" DESPUÉS de
+      #    que los tests smoke existan, y ahí sí se quita continue-on-error.
+      #    Mientras tanto este paso solo informa.
+      # ---------------------------------------------------------------
+      - name: Prettier (informativo)
+        continue-on-error: true
+        run: npx prettier --check "js/**/*.js" "config/**/*.js" "scripts/**/*.js" "*.json" "*.html"
+
+      # ---------------------------------------------------------------
+      # 4. Coherencia del proyecto. Cada una de estas checks ya detectó
+      #    un bug real o impediría un deploy roto.
+      # ---------------------------------------------------------------
+      - name: Coherencia de rutas y assets
+        run: |
+          fail=0
+
+          # 4a. Todo href/src de index.html debe existir en el repo.
+          echo ">> Verificando assets referenciados en index.html"
+          grep -oE '(href|src)="[^"]+"' index.html \
+            | sed -E 's/^(href|src)="//; s/"$//' \
+            | grep -vE '^(https?:|data:|#)' \
+            | while read -r asset; do
+                if [ ! -e "$asset" ]; then
+                  echo "::error file=index.html::Asset inexistente: $asset"
+                  exit 1
+                fi
+              done
+
+          # 4b. Todos los href del manifest.json deben existir.
+          echo ">> Verificando assets del manifest.json"
+          node -e "
+            const m = require('./manifest.json');
+            const fs = require('fs');
+            let bad = 0;
+            for (const i of m.icons || []) {
+              if (!fs.existsSync(i.src)) {
+                console.log('::error file=manifest.json::Icono inexistente: ' + i.src);
+                bad = 1;
+              }
+            }
+            if ((m.screenshots || []).length === 0) {
+              console.log('::warning file=manifest.json::screenshots vacio (la PWA se instala sin preview en algunos Android)');
+            }
+            process.exit(bad);
+          "
+
+          # 4c. No debe haber secretos commiteados.
+          echo ">> Verificando que .env no este trackeado"
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "::error::.env esta commiteado. Ver docs/produccion.md B0.2"
+            fail=1
+          fi
+
+          # 4d. migrations numeradas sin huecos ni duplicados.
+          echo ">> Verificando secuencia de migraciones"
+          node -e "
+            const fs = require('fs');
+            const files = fs.readdirSync('database/migrations')
+              .filter(f => /^\d{3}_.+\.sql$/.test(f))
+              .sort();
+            const nums = files.map(f => parseInt(f.slice(0, 3), 10));
+            let bad = 0;
+            nums.forEach((n, i) => {
+              if (n !== i + 1) {
+                console.log('::error file=database/migrations::Secuencia rota, esperava ' + (i+1) + ' y encontre ' + n);
+                bad = 1;
+              }
+            });
+            console.log(files.length + ' migraciones: ' + files[0] + ' .. ' + files[files.length-1]);
+            process.exit(bad);
+          "
+
+          exit $fail
+
+      # ---------------------------------------------------------------
+      # 5. La imagen de Open Graph debe existir: sin ella, compartir el
+      #    enlace en WhatsApp (el canal real del cliente) sale pelado.
+      # ---------------------------------------------------------------
+      - name: Open Graph
+        run: |
+          if [ ! -f assets/og-image.png ]; then
+            echo "::error::Falta assets/og-image.png — generarlo con: npm run og-image"
+            exit 1
+          fi
+          node -e "
+            const fs = require('fs');
+            const b = fs.readFileSync('assets/og-image.png');
+            const w = b.readUInt32BE(16), h = b.readUInt32BE(20);
+            if (w < 1200 || h < 630) {
+              console.log('::error::og-image.png es ' + w + 'x' + h + ', se requiere minimo 1200x630');
+              process.exit(1);
+            }
+            console.log('og-image.png OK: ' + w + 'x' + h);
+          "

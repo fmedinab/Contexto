@@ -7,10 +7,23 @@
   "scripts": {
     "start": "npx serve . -s",
     "dev": "npx serve . -l 3000 -s",
-    "test": "echo \"No tests configured yet\""
+    "lint": "eslint js config scripts",
+    "lint:fix": "eslint js config scripts --fix",
+    "format": "prettier --write \"**/*.{js,json,css,html,md,sql}\"",
+    "format:check": "prettier --check \"**/*.{js,json,css,html,md,sql}\"",
+    "check:syntax": "node --check js/core/app.js",
+    "og-image": "node scripts/generate-og-image.js",
+    "icons": "node scripts/generate-icons.js",
+    "assets": "npm run og-image && npm run icons",
+    "smoke": "node scripts/smoke-test.js",
+    "verify": "npm run lint && npm run smoke",
+    "test": "node scripts/smoke-test.js"
   },
-  "dependencies": {},
   "devDependencies": {
-    "serve": "^14.2.0"
+    "serve": "^14.2.0",
+    "eslint": "^9.17.0",
+    "@eslint/js": "^9.17.0",
+    "globals": "^15.14.0",
+    "prettier": "^3.4.2"
   }
 }

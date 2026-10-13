@@ -10,7 +10,7 @@
 
 import { patientPortalService } from '../services/patientPortalService.js';
 import { authService } from '../services/authService.js';
-import { getGreeting, getInitials, formatAppointmentDate } from '../services/mockData.js';
+import { getGreeting, getInitials, formatAppointmentDate } from '../services/dashboardData.js';
 import { BOOKING_STATUS_LABELS, bookingRequestsService } from '../services/bookingRequestsService.js';
 import { cmsService } from '../services/cmsService.js';
 import { siteSettingsService } from '../services/siteSettingsService.js';

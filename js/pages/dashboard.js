@@ -6,7 +6,7 @@ import {
     getClinicianProfile, getGreeting, getSummary,
     getMessages, getEmotionalState, getQuote,
     formatDate, formatTime, getInitials, formatAppointmentDate
-} from '../services/mockData.js';
+} from '../services/dashboardData.js';
 import { patientService, THERAPY_TYPES, STATUS_LABELS } from '../services/patientsService.js';
 import { appointmentService, STATUS_LABELS as APPT_STATUS_LABELS, STATUS_COLORS as APPT_STATUS_COLORS } from '../services/appointmentsService.js';
 import { evaluationService, INSTRUMENTS } from '../services/evaluationsService.js';
@@ -67,6 +67,15 @@ const MODAL_TITLES = {
     bookingDetail: ['Solicitud de cita', ''],
     bookingSlotPicker: ['Horario no disponible', 'Elegí un horario libre y agendamos en 1 clic.'],
     reminders: ['Recordatorios', 'Citas y solicitudes con recordatorio de WhatsApp listo para enviar.']
+};
+
+/* Módulos visibles en la órbita del dashboard.
+   'messages' está en false porque la función underlying (getMessages)
+   devuelve [] — el botón abría un modal vacío en la demo del cliente.
+   El código se conserva para reactivarlo cuando exista mensajería real;
+   basta con poner true aquí (bug B1.4). */
+const FEATURE_FLAGS = {
+    messages: false
 };
 
 export class DashboardPage {
@@ -214,7 +223,7 @@ export class DashboardPage {
                             ${this._canOpenModal('reports') ? `<button class="module-orbit mod-reportes" data-modal="reports" aria-label="Abrir módulo de reportes">
                                 <span class="mod-icon">${icon('reports', 17)}</span>Reportes
                             </button>` : ''}
-                            ${this._canOpenModal('messages') ? `<button class="module-orbit mod-mensajes" data-modal="messages" aria-label="Abrir módulo de mensajes">
+                            ${this._isFeatureEnabled('messages') && this._canOpenModal('messages') ? `<button class="module-orbit mod-mensajes" data-modal="messages" aria-label="Abrir módulo de mensajes">
                                 <span class="mod-icon">${icon('messages', 17)}</span>Mensajes
                             </button>` : ''}
 
@@ -439,6 +448,11 @@ export class DashboardPage {
         const footer = this.container?.querySelector('.quote-footer');
         if (grid) grid.style.display = '';
         if (footer) footer.style.display = '';
+    }
+
+    // ¿El módulo está habilitado como funcionalidad? (ver FEATURE_FLAGS)
+    _isFeatureEnabled(name) {
+        return FEATURE_FLAGS[name] === true;
     }
 
     // ¿Puede gestionar el contenido del sitio (landing)?
@@ -1612,6 +1626,16 @@ export class DashboardPage {
     async _renderModalBody(type, payload) {
         const body = $('#dashModalBody');
         if (!body) return;
+
+        // Segunda barrera para los módulos apagados por FEATURE_FLAGS:
+        // aunque un data-modal="messages" llegue al DOM por algún otro
+        // camino, el modal no se renderiza vacío.
+        // OJO: solo se chequean los módulos que están declarados en
+        // FEATURE_FLAGS. Un módulo ausente de esa tabla está activo.
+        if (type in FEATURE_FLAGS && !FEATURE_FLAGS[type]) {
+            body.innerHTML = '<div class="empty-state">Módulo no disponible.</div>';
+            return;
+        }
 
         switch (type) {
             case 'core': body.innerHTML = this._coreModalHTML(); break;

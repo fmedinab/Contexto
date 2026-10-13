@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  sitemap.xml — CONTEXTO
+
+  IMPORTANTE: antes de pasar a produccion, reemplazar
+    https://fmedinab.github.io/Contexto
+  por el dominio final del cliente, p.ej.
+    https://contexto.com.pe
+
+  Solo se lista la portada. Las paginas publicas secundarias
+  (#/privacidad, #/aviso-legal, #/cookies) NO se incluyen a proposito:
+  los buscadores descartan el fragmento "#..." antes de indexar, asi que
+  una URL con hash dentro de un sitemap se registra como duplicado de la
+  portada. Es una limitacion del enrutado por hash, no un error del sitemap.
+  Para que esas paginas sean indexables habria que migrar a rutas limpias
+  (ver Seccion 2.4 del informe: hoy la opcion es Cloudflare Pages con
+  un _redirects que traduzca /privacidad -> /#/privacidad).
+
+  Actualizar <lastmod> al hacer deploy.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://fmedinab.github.io/Contexto/</loc>
+    <lastmod>2026-10-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

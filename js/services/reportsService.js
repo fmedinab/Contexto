@@ -48,6 +48,26 @@ class ReportsService {
                 .eq('status', 'COMPLETADA').lt('updated_at', cur.startISO),
         ]);
 
+        // Cualquier fallo de red se propaga. Antes se enmascaraba con `|| 0`
+        // y el reporte mostraba "0 pacientes" con aspecto de dato real
+        // (bug B1.2): el psicólogo podía tomar una decisión clínica sobre
+        // un dashboard que estaba mintiendo. Un error visible es mejor
+        // que un cero falso; reports.js ya sabe pintar el mensaje.
+        const failed = [
+            ['patients', patientsRes],
+            ['patients (baseline)', patientsBaselineRes],
+            ['appointments', apptsRes],
+            ['appointments (mes anterior)', apptsLastRes],
+            ['appointments (completadas)', apptsCompletedRes],
+            ['assessments', evalsRes],
+            ['assessments (baseline)', evalsBaselineRes],
+        ].find(([, res]) => res.error);
+
+        if (failed) {
+            console.error('[ReportsService] Falló la consulta:', failed[0], failed[1].error);
+            throw failed[1].error;
+        }
+
         const totalPatients = patientsRes.count || 0;
         const patientsBaseline = patientsBaselineRes.count || 0;
         const patientsDelta = totalPatients - patientsBaseline;
@@ -70,10 +90,13 @@ class ReportsService {
         const attendanceDelta = attendanceRate - attendanceLastRate;
 
         return [
-            { label: 'Pacientes activos', value: totalPatients, delta: `${patientsDelta >= 0 ? '+' : ''}${patientsDelta}` },
-            { label: 'Sesiones este mes', value: sessionsThisMonth, delta: `${sessionsDelta >= 0 ? '+' : ''}${sessionsDelta}` },
-            { label: 'Tasa de asistencia', value: `${attendanceRate}%`, delta: `${attendanceDelta >= 0 ? '+' : ''}${attendanceDelta}%` },
-            { label: 'Evaluaciones completadas', value: evalsCompleted, delta: `${evalsDelta >= 0 ? '+' : ''}${evalsDelta}` },
+            // `partial: true` avisa a la UI de que el dato es real pero
+            // incompleto (mes sin citas) para que muestre "—"
+            // en vez de un 0% que sugiere que nadie asistió.
+            { label: 'Pacientes activos', value: totalPatients, delta: `${patientsDelta >= 0 ? '+' : ''}${patientsDelta}`, partial: false },
+            { label: 'Sesiones este mes', value: sessionsThisMonth, delta: `${sessionsDelta >= 0 ? '+' : ''}${sessionsDelta}`, partial: false },
+            { label: 'Tasa de asistencia', value: `${attendanceRate}%`, delta: `${attendanceDelta >= 0 ? '+' : ''}${attendanceDelta}%`, partial: totalAppts === 0 },
+            { label: 'Evaluaciones completadas', value: evalsCompleted, delta: `${evalsDelta >= 0 ? '+' : ''}${evalsDelta}`, partial: false },
         ];
     }
 
